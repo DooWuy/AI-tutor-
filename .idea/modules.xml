@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/AI-tutorProject.iml" filepath="$PROJECT_DIR$/AI-tutorProject.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/ai-tutor-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/ai-tutor-service.main.iml" />
     </modules>
   </component>
 </project>

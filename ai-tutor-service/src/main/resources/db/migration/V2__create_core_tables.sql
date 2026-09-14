@@ -1,15 +1,20 @@
 CREATE TABLE users (
     id UUID PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     date_of_birth DATE,
+    phone_number VARCHAR(32),
+    avatar_url VARCHAR(1024),
     gender VARCHAR(16) NOT NULL,
     role VARCHAR(16) NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uk_users_email UNIQUE (email),
+    CONSTRAINT uk_users_username UNIQUE (username),
     CONSTRAINT ck_users_gender CHECK (gender IN ('MALE', 'FEMALE', 'OTHER')),
     CONSTRAINT ck_users_role CHECK (role IN ('STUDENT', 'ADMIN'))
 );
@@ -21,7 +26,6 @@ CREATE TABLE students (
     grade_level VARCHAR(32),
     class_name VARCHAR(64),
     school_name VARCHAR(255),
-    phone_number VARCHAR(32),
     email VARCHAR(255),
     address TEXT,
     total_xp INTEGER NOT NULL DEFAULT 0,

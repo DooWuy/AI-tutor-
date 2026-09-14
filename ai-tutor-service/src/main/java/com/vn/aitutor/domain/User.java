@@ -34,6 +34,9 @@ public class User {
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
+    @Column(name = "username", nullable = false, unique = true, length = 255)
+    private String username;
+
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
@@ -42,6 +45,12 @@ public class User {
 
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
+
+    @Column(name = "phone_number", length = 32)
+    private String phoneNumber;
+
+    @Column(name = "avatar_url", length = 1024)
+    private String avatarUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", nullable = false, length = 16)
@@ -61,4 +70,6 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    private boolean isDeleted = false;
 }

@@ -1,5 +1,4 @@
 server:
-  # 8888 is in the Windows Hyper-V/WSL excluded TCP range on this host.
   port: 8088
 
 spring:

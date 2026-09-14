@@ -47,9 +47,6 @@ public class Student {
     @Column(name = "school_name", length = 255)
     private String schoolName;
 
-    @Column(name = "phone_number", length = 32)
-    private String phoneNumber;
-
     @Column(name = "email", length = 255)
     private String email;
 
