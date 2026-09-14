@@ -1,0 +1,164 @@
+CREATE TABLE users (
+    id UUID PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    date_of_birth DATE,
+    gender VARCHAR(16) NOT NULL,
+    role VARCHAR(16) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uk_users_email UNIQUE (email),
+    CONSTRAINT ck_users_gender CHECK (gender IN ('MALE', 'FEMALE', 'OTHER')),
+    CONSTRAINT ck_users_role CHECK (role IN ('STUDENT', 'ADMIN'))
+);
+
+CREATE TABLE students (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    student_code VARCHAR(64) NOT NULL,
+    grade_level VARCHAR(32),
+    class_name VARCHAR(64),
+    school_name VARCHAR(255),
+    phone_number VARCHAR(32),
+    email VARCHAR(255),
+    address TEXT,
+    total_xp INTEGER NOT NULL DEFAULT 0,
+    current_level INTEGER NOT NULL DEFAULT 1,
+    current_streak INTEGER NOT NULL DEFAULT 0,
+    longest_streak INTEGER NOT NULL DEFAULT 0,
+    last_activity_date TIMESTAMPTZ,
+    study_preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
+    CONSTRAINT uk_students_user_id UNIQUE (user_id),
+    CONSTRAINT uk_students_student_code UNIQUE (student_code),
+    CONSTRAINT fk_students_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE TABLE calendar_events (
+    id UUID PRIMARY KEY,
+    student_id UUID NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    start_date_time TIMESTAMPTZ NOT NULL,
+    end_date_time TIMESTAMPTZ,
+    type VARCHAR(32) NOT NULL,
+    location VARCHAR(255),
+    has_reminder BOOLEAN NOT NULL DEFAULT FALSE,
+    reminder_minutes_before INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_calendar_events_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
+    CONSTRAINT ck_calendar_events_type CHECK (type IN ('EVENT', 'EXAM', 'QUIZ', 'ASSIGNMENT'))
+);
+
+CREATE INDEX idx_calendar_events_student_id ON calendar_events (student_id);
+CREATE INDEX idx_calendar_events_start ON calendar_events (start_date_time);
+
+CREATE TABLE chat_sessions (
+    id UUID PRIMARY KEY,
+    student_id UUID NOT NULL,
+    subject VARCHAR(64),
+    title VARCHAR(255),
+    status VARCHAR(16) NOT NULL DEFAULT 'OPEN',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_message_at TIMESTAMPTZ,
+    CONSTRAINT fk_chat_sessions_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
+    CONSTRAINT ck_chat_sessions_status CHECK (status IN ('OPEN', 'CLOSED'))
+);
+
+CREATE INDEX idx_chat_sessions_student_id ON chat_sessions (student_id);
+
+CREATE TABLE chat_messages (
+    id UUID PRIMARY KEY,
+    chat_session_id UUID NOT NULL,
+    sender_type VARCHAR(16) NOT NULL,
+    content TEXT NOT NULL,
+    audio_url VARCHAR(1024),
+    intent VARCHAR(64),
+    citation_links JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_chat_messages_session FOREIGN KEY (chat_session_id) REFERENCES chat_sessions (id) ON DELETE CASCADE,
+    CONSTRAINT ck_chat_messages_sender CHECK (sender_type IN ('STUDENT', 'AI'))
+);
+
+CREATE INDEX idx_chat_messages_session_id ON chat_messages (chat_session_id);
+
+CREATE TABLE quizzes (
+    id UUID PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    subject VARCHAR(64),
+    grade_level VARCHAR(32),
+    difficulty VARCHAR(16) NOT NULL,
+    time_limit INTEGER,
+    is_ai_generated BOOLEAN NOT NULL DEFAULT FALSE,
+    created_by_id UUID NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_quizzes_created_by FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE RESTRICT,
+    CONSTRAINT ck_quizzes_difficulty CHECK (difficulty IN ('EASY', 'MEDIUM', 'HARD'))
+);
+
+CREATE TABLE quiz_questions (
+    id UUID PRIMARY KEY,
+    quiz_id UUID NOT NULL,
+    question_text TEXT NOT NULL,
+    options JSONB NOT NULL DEFAULT '[]'::jsonb,
+    correct_option_key VARCHAR(64),
+    explanation TEXT,
+    order_index INTEGER NOT NULL DEFAULT 0,
+    points INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_quiz_questions_quiz FOREIGN KEY (quiz_id) REFERENCES quizzes (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_quiz_questions_quiz_id ON quiz_questions (quiz_id);
+
+CREATE TABLE quiz_attempts (
+    id UUID PRIMARY KEY,
+    quiz_id UUID NOT NULL,
+    student_id UUID NOT NULL,
+    score DOUBLE PRECISION,
+    xp_earned INTEGER NOT NULL DEFAULT 0,
+    duration_seconds INTEGER,
+    submitted_at TIMESTAMPTZ,
+    CONSTRAINT fk_quiz_attempts_quiz FOREIGN KEY (quiz_id) REFERENCES quizzes (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_quiz_attempts_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_quiz_attempts_quiz_id ON quiz_attempts (quiz_id);
+CREATE INDEX idx_quiz_attempts_student_id ON quiz_attempts (student_id);
+
+CREATE TABLE documents (
+    id UUID PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(1024) NOT NULL,
+    file_size BIGINT,
+    file_type VARCHAR(64),
+    subject VARCHAR(64),
+    grade_level VARCHAR(32),
+    status VARCHAR(32) NOT NULL DEFAULT 'PROCESSING',
+    progress_percentage INTEGER NOT NULL DEFAULT 0,
+    created_by_id UUID NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_documents_created_by FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE RESTRICT,
+    CONSTRAINT ck_documents_status CHECK (status IN ('PROCESSING', 'SUCCESS', 'FAILED'))
+);
+
+CREATE TABLE document_chunks (
+    id UUID PRIMARY KEY,
+    document_id UUID NOT NULL,
+    chunk_index INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    embedding vector(1536),
+    metadata JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uk_document_chunks_doc_idx UNIQUE (document_id, chunk_index),
+    CONSTRAINT fk_document_chunks_document FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_document_chunks_document_id ON document_chunks (document_id);
+
+CREATE INDEX idx_document_chunks_embedding_hnsw
+    ON document_chunks USING hnsw (embedding vector_cosine_ops);
