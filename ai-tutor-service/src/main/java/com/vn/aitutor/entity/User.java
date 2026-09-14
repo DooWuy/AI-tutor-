@@ -1,7 +1,7 @@
-package com.vn.aitutor.domain;
+package com.vn.aitutor.entity;
 
-import com.vn.aitutor.domain.enums.Gender;
-import com.vn.aitutor.domain.enums.Role;
+import com.vn.aitutor.entity.enums.Gender;
+import com.vn.aitutor.entity.enums.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

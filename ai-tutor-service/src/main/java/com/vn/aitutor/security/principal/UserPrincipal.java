@@ -1,6 +1,6 @@
 package com.vn.aitutor.security.principal;
 
-import com.vn.aitutor.domain.User;
+import com.vn.aitutor.entity.User;
 import lombok.Builder;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;

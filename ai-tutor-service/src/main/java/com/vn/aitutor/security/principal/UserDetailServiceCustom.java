@@ -1,6 +1,6 @@
 package com.vn.aitutor.security.principal;
 
-import com.vn.aitutor.domain.User;
+import com.vn.aitutor.entity.User;
 import com.vn.aitutor.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

@@ -1,6 +1,6 @@
-package com.vn.aitutor.domain;
+package com.vn.aitutor.entity;
 
-import com.vn.aitutor.domain.enums.CalendarEventType;
+import com.vn.aitutor.entity.enums.DocumentStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -23,42 +23,45 @@ import org.hibernate.annotations.CreationTimestamp;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "calendar_events")
-public class CalendarEvent {
+@Table(name = "documents")
+public class Document {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "student_id", nullable = false)
-    private Student student;
-
     @Column(name = "title", nullable = false, length = 255)
     private String title;
 
-    @Column(name = "description")
-    private String description;
+    @Column(name = "file_name", nullable = false, length = 255)
+    private String fileName;
 
-    @Column(name = "start_date_time", nullable = false)
-    private Instant startDateTime;
+    @Column(name = "file_path", nullable = false, length = 1024)
+    private String filePath;
 
-    @Column(name = "end_date_time")
-    private Instant endDateTime;
+    @Column(name = "file_size")
+    private Long fileSize;
+
+    @Column(name = "file_type", length = 64)
+    private String fileType;
+
+    @Column(name = "subject", length = 64)
+    private String subject;
+
+    @Column(name = "grade_level", length = 32)
+    private String gradeLevel;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 32)
-    private CalendarEventType type;
+    @Column(name = "status", nullable = false, length = 32)
+    private DocumentStatus status = DocumentStatus.PROCESSING;
 
-    @Column(name = "location", length = 255)
-    private String location;
+    @Column(name = "progress_percentage", nullable = false)
+    private int progressPercentage;
 
-    @Column(name = "has_reminder", nullable = false)
-    private boolean hasReminder;
-
-    @Column(name = "reminder_minutes_before")
-    private Integer reminderMinutesBefore;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "created_by_id", nullable = false)
+    private User createdBy;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -1,4 +1,4 @@
-package com.vn.aitutor.domain.enums;
+package com.vn.aitutor.entity.enums;
 
 public enum Gender {
     MALE,

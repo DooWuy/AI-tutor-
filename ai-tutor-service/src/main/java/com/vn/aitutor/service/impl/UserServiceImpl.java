@@ -1,8 +1,8 @@
 package com.vn.aitutor.service.impl;
 
-import com.vn.aitutor.domain.User;
-import com.vn.aitutor.domain.enums.Role;
-import com.vn.aitutor.domain.enums.Gender;
+import com.vn.aitutor.entity.User;
+import com.vn.aitutor.entity.enums.Role;
+import com.vn.aitutor.entity.enums.Gender;
 import com.vn.aitutor.dto.request.ChangePasswordRequest;
 import com.vn.aitutor.dto.request.UpdateRoleRequest;
 import com.vn.aitutor.dto.request.UserCreateRequest;
@@ -12,7 +12,6 @@ import com.vn.aitutor.dto.response.PageResponseDTO;
 import com.vn.aitutor.dto.response.UserResponse;
 import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.exception.ResourceConflictException;
-import com.vn.aitutor.exception.ResourceForbiddenException;
 import com.vn.aitutor.exception.ResourceNotFoundException;
 import com.vn.aitutor.repository.UserRepository;
 import com.vn.aitutor.service.IUserService;

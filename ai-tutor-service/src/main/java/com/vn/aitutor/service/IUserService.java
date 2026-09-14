@@ -1,6 +1,6 @@
 package com.vn.aitutor.service;
 
-import com.vn.aitutor.domain.enums.Role;
+import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.dto.request.*;
 import com.vn.aitutor.dto.response.*;
 import com.vn.aitutor.exception.ResourceBadRequestException;

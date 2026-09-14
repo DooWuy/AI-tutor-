@@ -1,6 +1,6 @@
-package com.vn.aitutor.domain;
+package com.vn.aitutor.entity;
 
-import com.vn.aitutor.domain.enums.QuizDifficulty;
+import com.vn.aitutor.entity.enums.CalendarEventType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -23,13 +23,17 @@ import org.hibernate.annotations.CreationTimestamp;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "quizzes")
-public class Quiz {
+@Table(name = "calendar_events")
+public class CalendarEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "student_id", nullable = false)
+    private Student student;
 
     @Column(name = "title", nullable = false, length = 255)
     private String title;
@@ -37,28 +41,24 @@ public class Quiz {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "subject", length = 64)
-    private String subject;
+    @Column(name = "start_date_time", nullable = false)
+    private Instant startDateTime;
 
-    @Column(name = "grade_level", length = 32)
-    private String gradeLevel;
+    @Column(name = "end_date_time")
+    private Instant endDateTime;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "difficulty", nullable = false, length = 16)
-    private QuizDifficulty difficulty;
+    @Column(name = "type", nullable = false, length = 32)
+    private CalendarEventType type;
 
-    @Column(name = "time_limit")
-    private Integer timeLimit;
+    @Column(name = "location", length = 255)
+    private String location;
 
-    @Column(name = "is_ai_generated", nullable = false)
-    private boolean aiGenerated;
+    @Column(name = "has_reminder", nullable = false)
+    private boolean hasReminder;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "created_by_id", nullable = false)
-    private User createdBy;
-
-    @Column(name = "is_active", nullable = false)
-    private boolean active = true;
+    @Column(name = "reminder_minutes_before")
+    private Integer reminderMinutesBefore;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

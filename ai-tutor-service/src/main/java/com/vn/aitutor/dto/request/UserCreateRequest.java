@@ -1,7 +1,6 @@
 package com.vn.aitutor.dto.request;
 
-import com.vn.aitutor.domain.enums.Role;
-import com.vn.aitutor.domain.enums.Gender;
+import com.vn.aitutor.entity.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
