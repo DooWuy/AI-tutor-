@@ -1,9 +1,9 @@
 package com.vn.aitutor.service.impl;
 
-import com.vn.aitutor.domain.Student;
-import com.vn.aitutor.domain.User;
-import com.vn.aitutor.domain.enums.Gender;
-import com.vn.aitutor.domain.enums.Role;
+import com.vn.aitutor.entity.Student;
+import com.vn.aitutor.entity.User;
+import com.vn.aitutor.entity.enums.Gender;
+import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.dto.request.LoginRequest;
 import com.vn.aitutor.dto.request.RegisterRequest;
 import com.vn.aitutor.dto.response.ApiResponse;

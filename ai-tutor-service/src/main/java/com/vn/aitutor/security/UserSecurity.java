@@ -1,6 +1,5 @@
 package com.vn.aitutor.security;
 
-import com.vn.aitutor.domain.User;
 import com.vn.aitutor.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;

@@ -1,6 +1,6 @@
-package com.vn.aitutor.domain;
+package com.vn.aitutor.entity;
 
-import com.vn.aitutor.domain.enums.SenderType;
+import com.vn.aitutor.entity.enums.SenderType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

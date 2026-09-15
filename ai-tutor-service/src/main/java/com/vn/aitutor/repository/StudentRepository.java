@@ -1,6 +1,6 @@
 package com.vn.aitutor.repository;
 
-import com.vn.aitutor.domain.Student;
+import com.vn.aitutor.entity.Student;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

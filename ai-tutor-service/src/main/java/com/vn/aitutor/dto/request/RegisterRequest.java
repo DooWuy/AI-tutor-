@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 import java.time.LocalDate;
-import com.vn.aitutor.domain.enums.Gender;
+import com.vn.aitutor.entity.enums.Gender;
 
 @Data
 public class RegisterRequest {

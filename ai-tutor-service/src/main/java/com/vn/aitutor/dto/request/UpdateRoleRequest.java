@@ -1,6 +1,6 @@
 package com.vn.aitutor.dto.request;
 
-import com.vn.aitutor.domain.enums.Role;
+import com.vn.aitutor.entity.enums.Role;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 

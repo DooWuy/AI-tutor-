@@ -1,6 +1,6 @@
-package com.vn.aitutor.domain;
+package com.vn.aitutor.entity;
 
-import com.vn.aitutor.domain.enums.DocumentStatus;
+import com.vn.aitutor.entity.enums.QuizDifficulty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -23,8 +23,8 @@ import org.hibernate.annotations.CreationTimestamp;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "documents")
-public class Document {
+@Table(name = "quizzes")
+public class Quiz {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -34,17 +34,8 @@ public class Document {
     @Column(name = "title", nullable = false, length = 255)
     private String title;
 
-    @Column(name = "file_name", nullable = false, length = 255)
-    private String fileName;
-
-    @Column(name = "file_path", nullable = false, length = 1024)
-    private String filePath;
-
-    @Column(name = "file_size")
-    private Long fileSize;
-
-    @Column(name = "file_type", length = 64)
-    private String fileType;
+    @Column(name = "description")
+    private String description;
 
     @Column(name = "subject", length = 64)
     private String subject;
@@ -53,15 +44,21 @@ public class Document {
     private String gradeLevel;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 32)
-    private DocumentStatus status = DocumentStatus.PROCESSING;
+    @Column(name = "difficulty", nullable = false, length = 16)
+    private QuizDifficulty difficulty;
 
-    @Column(name = "progress_percentage", nullable = false)
-    private int progressPercentage;
+    @Column(name = "time_limit")
+    private Integer timeLimit;
+
+    @Column(name = "is_ai_generated", nullable = false)
+    private boolean aiGenerated;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by_id", nullable = false)
     private User createdBy;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

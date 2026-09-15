@@ -1,6 +1,6 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.domain.enums.Role;
+import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.dto.request.ChangePasswordRequest;
 import com.vn.aitutor.dto.request.UpdateRoleRequest;
 import com.vn.aitutor.dto.request.UserCreateRequest;

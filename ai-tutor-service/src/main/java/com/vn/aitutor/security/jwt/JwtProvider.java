@@ -1,6 +1,6 @@
 package com.vn.aitutor.security.jwt;
 
-import com.vn.aitutor.domain.User;
+import com.vn.aitutor.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
