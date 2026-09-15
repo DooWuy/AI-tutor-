@@ -12,6 +12,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u FROM User u WHERE (u.username = :identifier OR u.email = :identifier) AND u.isDeleted = false AND u.active = true")
     Optional<User> findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue(@Param("identifier") String identifier);
 
-    boolean existsByUsername(String username);
-    boolean existsByEmail(String email);
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.username = :username")
+    boolean existsByUsername(@Param("username") String username);
+
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.email = :email")
+    boolean existsByEmail(@Param("email") String email);
 }

@@ -1,6 +1,7 @@
 package com.vn.aitutor.exception;
 
 import com.vn.aitutor.dto.response.ApiResponse;
+import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -85,8 +86,18 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ApiResponse<String>> handleJwtException(JwtException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.<String>builder()
+                        .success(false)
+                        .message("Token không hợp lệ hoặc đã hết hạn")
+                        .build());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<String>> handleGeneralException(Exception ex) {
+        ex.printStackTrace(); // TODO: Use a logger in production
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.<String>builder()
                         .success(false)

@@ -1,328 +1,361 @@
-{
-  "info": {
-    "name": "AI Tutor API - V1",
-    "description": "Collection for testing Auth and User Management endpoints with automated Token & User ID extraction.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "Auth",
-      "item": [
+﻿{
+    "info": {
+        "name": "AI Tutor API - V1",
+        "description": "Collection for testing Auth and User Management endpoints with automated Token \u0026 User ID extraction.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
         {
-          "name": "Register",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData && jsonData.data && jsonData.data.accessToken) {",
-                  "    pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
-                  "}",
-                  "if (jsonData && jsonData.data && jsonData.data.user && jsonData.data.user.userId) {",
-                  "    pm.collectionVariables.set(\"userId\", jsonData.data.user.userId);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"username\": \"student123\",\n    \"email\": \"student123@example.com\",\n    \"password\": \"123456Test@\",\n    \"fullName\": \"Student Name\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auth",
-                "register"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Login",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData && jsonData.data && jsonData.data.accessToken) {",
-                  "    pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
-                  "}",
-                  "if (jsonData && jsonData.data && jsonData.data.user && jsonData.data.user.userId) {",
-                  "    pm.collectionVariables.set(\"userId\", jsonData.data.user.userId);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"email\": \"student123@example.com\",\n    \"password\": \"123456Test@\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auth",
-                "login"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Logout",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
+            "name": "Auth",
+            "item": [
                 {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
+                    "name": "Register",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.accessToken) {",
+                                    "    pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
+                                    "}",
+                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.user \u0026\u0026 jsonData.data.user.userId) {",
+                                    "    pm.collectionVariables.set(\"userId\", jsonData.data.user.userId);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"student123\",\n    \"email\": \"student123@example.com\",\n    \"password\": \"Password1!\",\n    \"confirmPassword\": \"Password1!\",\n    \"fullName\": \"Student Name\",\n    \"phoneNumber\": \"0987654321\",\n    \"schoolName\": \"High School A\",\n    \"gradeLevel\": \"10\",\n    \"className\": \"10A1\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/auth/register",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "register"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.accessToken) {",
+                                    "    pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
+                                    "}",
+                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.user \u0026\u0026 jsonData.data.user.userId) {",
+                                    "    pm.collectionVariables.set(\"userId\", jsonData.data.user.userId);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"student123@example.com\",\n    \"password\": \"123456Test@\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "raw": "{{baseUrl}}/api/v1/auth/refresh",
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "refresh"
+                            ]
+                        },
+                        "header": []
+                    },
+                    "name": "Refresh Token",
+                    "event": [
+                        {
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.accessToken) {",
+                                    "    pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            },
+                            "listen": "test"
+                        }
+                    ]
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/auth/logout",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "logout"
+                            ]
+                        }
+                    }
                 }
-              ]
-            },
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/logout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auth",
-                "logout"
-              ]
-            }
-          }
+            ]
+        },
+        {
+            "name": "Users",
+            "item": [
+                {
+                    "name": "Get All Profiles (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/users",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Profile By ID",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "{{userId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Profile",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"fullName\": \"Student New Name\",\n    \"phoneNumber\": \"0326999705\",\n    \"dateOfBirth\": \"2000-01-01\",\n    \"gender\": \"MALE\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "{{userId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"oldPassword\": \"123456Test@\",\n    \"newPassword\": \"Password@123\"\n   \"confirmPassword\": \"Password@123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/users/change-password",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "change-password"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Upload Avatar",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/users/{{userId}}/avatar",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "{{userId}}",
+                                "avatar"
+                            ]
+                        }
+                    }
+                }
+            ]
         }
-      ]
-    },
-    {
-      "name": "Users",
-      "item": [
+    ],
+    "variable": [
         {
-          "name": "Get All Profiles (Admin)",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users"
-              ]
-            }
-          }
+            "key": "baseUrl",
+            "value": "http://localhost:8088",
+            "type": "string"
         },
         {
-          "name": "Get Profile By ID",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users",
-                "{{userId}}"
-              ]
-            }
-          }
+            "key": "accessToken",
+            "value": "",
+            "type": "string"
         },
         {
-          "name": "Update Profile",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"fullName\": \"Student New Name\",\n    \"phoneNumber\": \"0326999705\",\n    \"dateOfBirth\": \"2000-01-01\",\n    \"gender\": \"MALE\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users",
-                "{{userId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Change Password",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"oldPassword\": \"123456Test@\",\n    \"newPassword\": \"Password@123\"\n   \"confirmPassword\": \"Password@123\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/users/change-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users",
-                "change-password"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Upload Avatar",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": []
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/users/{{userId}}/avatar",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users",
-                "{{userId}}",
-                "avatar"
-              ]
-            }
-          }
+            "key": "userId",
+            "value": "",
+            "type": "string"
         }
-      ]
-    }
-  ],
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8088",
-      "type": "string"
-    },
-    {
-      "key": "accessToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "userId",
-      "value": "",
-      "type": "string"
-    }
-  ]
+    ]
 }
