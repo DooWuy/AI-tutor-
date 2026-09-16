@@ -38,4 +38,27 @@ public class MailServiceImpl implements IMailService {
             log.error("Lỗi khi gửi email đến {}: {}", toEmail, e.getMessage());
         }
     }
+
+    @Override
+    @Async
+    public void sendAccountCreatedByAdminEmail(String toEmail, String fullName, String username, String rawPassword) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(toEmail);
+            message.setSubject("Tài khoản AI Tutor của bạn đã được tạo");
+            message.setText("Xin chào " + fullName + ",\n\n" +
+                    "Quản trị viên đã tạo cho bạn một tài khoản trên hệ thống AI Tutor.\n" +
+                    "Thông tin đăng nhập của bạn là:\n" +
+                    "- Tên đăng nhập: " + username + "\n" +
+                    "- Mật khẩu tạm thời: " + rawPassword + "\n\n" +
+                    "Vui lòng đăng nhập và đổi mật khẩu trong lần đầu tiên truy cập.\n\n" +
+                    "Trân trọng,\nĐội ngũ AI Tutor");
+            
+            mailSender.send(message);
+            log.info("Đã gửi email cấp tài khoản đến: {}", toEmail);
+        } catch (Exception e) {
+            log.error("Lỗi khi gửi email cấp tài khoản đến {}: {}", toEmail, e.getMessage());
+        }
+    }
 }

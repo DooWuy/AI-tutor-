@@ -1,7 +1,7 @@
-﻿{
+{
     "info": {
         "name": "AI Tutor API - V1",
-        "description": "Collection for testing Auth and User Management endpoints with automated Token \u0026 User ID extraction.",
+        "description": "Collection for testing Auth and User Management endpoints with automated Token & User ID extraction.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
@@ -16,10 +16,10 @@
                             "script": {
                                 "exec": [
                                     "var jsonData = pm.response.json();",
-                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.accessToken) {",
+                                    "if (jsonData && jsonData.data && jsonData.data.accessToken) {",
                                     "    pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
                                     "}",
-                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.user \u0026\u0026 jsonData.data.user.userId) {",
+                                    "if (jsonData && jsonData.data && jsonData.data.user && jsonData.data.user.userId) {",
                                     "    pm.collectionVariables.set(\"userId\", jsonData.data.user.userId);",
                                     "}"
                                 ],
@@ -61,10 +61,10 @@
                             "script": {
                                 "exec": [
                                     "var jsonData = pm.response.json();",
-                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.accessToken) {",
+                                    "if (jsonData && jsonData.data && jsonData.data.accessToken) {",
                                     "    pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
                                     "}",
-                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.user \u0026\u0026 jsonData.data.user.userId) {",
+                                    "if (jsonData && jsonData.data && jsonData.data.user && jsonData.data.user.userId) {",
                                     "    pm.collectionVariables.set(\"userId\", jsonData.data.user.userId);",
                                     "}"
                                 ],
@@ -121,7 +121,7 @@
                             "script": {
                                 "exec": [
                                     "var jsonData = pm.response.json();",
-                                    "if (jsonData \u0026\u0026 jsonData.data \u0026\u0026 jsonData.data.accessToken) {",
+                                    "if (jsonData && jsonData.data && jsonData.data.accessToken) {",
                                     "    pm.collectionVariables.set(\"accessToken\", jsonData.data.accessToken);",
                                     "}"
                                 ],
@@ -244,7 +244,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"fullName\": \"Student New Name\",\n    \"phoneNumber\": \"0326999705\",\n    \"dateOfBirth\": \"2000-01-01\",\n    \"gender\": \"MALE\"\n}"
+                            "raw": "{\n    \"fullName\": \"Nguyen Van A\",\n    \"phoneNumber\": \"0326999705\",\n    \"dateOfBirth\": \"2000-01-01\",\n    \"gender\": \"MALE\",\n    \"gradeLevel\": \"12\",\n    \"className\": \"12A1\",\n    \"schoolName\": \"THPT Chuyên\",\n    \"department\": \"Toán Học\",\n    \"subjectTaught\": \"Toán\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
@@ -339,6 +339,228 @@
                     }
                 }
             ]
+        },
+        {
+            "name": "Admin Operations",
+            "item": [
+                {
+                    "name": "Admin Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.data && jsonData.data.accessToken) {",
+                                    "    pm.collectionVariables.set(\"adminAccessToken\", jsonData.data.accessToken);",
+                                    "}",
+                                    "if (jsonData && jsonData.data && jsonData.data.user && jsonData.data.user.userId) {",
+                                    "    pm.collectionVariables.set(\"adminUserId\", jsonData.data.user.userId);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@aitutor.vn\",\n    \"password\": \"Admin@123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Teacher (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminAccessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"teacher_01\",\n    \"email\": \"teacher01@aitutor.vn\",\n    \"password\": \"Password@123\",\n    \"fullName\": \"Giáo viên Toán\",\n    \"role\": \"TEACHER\",\n    \"department\": \"Toán Học\",\n    \"subjectTaught\": \"Đại Số\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/users",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Student (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminAccessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"student_02\",\n    \"email\": \"student02@aitutor.vn\",\n    \"password\": \"Password@123\",\n    \"fullName\": \"Học sinh Khá\",\n    \"role\": \"STUDENT\",\n    \"schoolName\": \"THCS Cầu Giấy\",\n    \"gradeLevel\": \"9\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/users",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update User Role (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminAccessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"role\": \"TEACHER\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/users/{{userId}}/role",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "{{userId}}",
+                                "role"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update User Status (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminAccessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/users/{{userId}}/status",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "{{userId}}",
+                                "status"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete User (Admin)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminAccessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "{{userId}}"
+                            ]
+                        }
+                    }
+                }
+            ]
         }
     ],
     "variable": [
@@ -354,6 +576,16 @@
         },
         {
             "key": "userId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "adminAccessToken",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "adminUserId",
             "value": "",
             "type": "string"
         }

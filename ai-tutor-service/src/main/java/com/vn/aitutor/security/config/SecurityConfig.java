@@ -41,7 +41,10 @@ public class SecurityConfig {
     private String frontendUrl;
 
     private static final String[] PUBLIC_ENDPOINTS = {
-            "/api/v1/auth/**"
+            "/api/v1/auth/**",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
     };
 
     private static final String[] COMMON_ENDPOINTS = {
@@ -56,7 +59,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(COMMON_ENDPOINTS).hasAnyAuthority(
-                                "ROLE_ADMIN", "ROLE_STUDENT"
+                                "ROLE_ADMIN", "ROLE_STUDENT", "ROLE_TEACHER"
                         )
                         .anyRequest().authenticated()
                 )

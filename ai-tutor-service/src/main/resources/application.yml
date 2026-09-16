@@ -23,3 +23,8 @@ management:
     export:
       prometheus:
         enabled: true
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:demo}
+  api-key: ${CLOUDINARY_API_KEY:key}
+  api-secret: ${CLOUDINARY_API_SECRET:secret}

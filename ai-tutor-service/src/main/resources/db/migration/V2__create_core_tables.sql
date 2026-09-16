@@ -16,7 +16,7 @@ CREATE TABLE users (
     CONSTRAINT uk_users_email UNIQUE (email),
     CONSTRAINT uk_users_username UNIQUE (username),
     CONSTRAINT ck_users_gender CHECK (gender IN ('MALE', 'FEMALE', 'OTHER')),
-    CONSTRAINT ck_users_role CHECK (role IN ('STUDENT', 'ADMIN'))
+    CONSTRAINT ck_users_role CHECK (role IN ('STUDENT', 'ADMIN', 'TEACHER'))
 );
 
 CREATE TABLE students (
@@ -37,6 +37,18 @@ CREATE TABLE students (
     CONSTRAINT uk_students_user_id UNIQUE (user_id),
     CONSTRAINT uk_students_student_code UNIQUE (student_code),
     CONSTRAINT fk_students_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE TABLE teachers (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    teacher_code VARCHAR(64) NOT NULL,
+    department VARCHAR(255),
+    subject_taught VARCHAR(255),
+    school_name VARCHAR(255),
+    CONSTRAINT uk_teachers_user_id UNIQUE (user_id),
+    CONSTRAINT uk_teachers_teacher_code UNIQUE (teacher_code),
+    CONSTRAINT fk_teachers_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE TABLE calendar_events (
@@ -166,3 +178,30 @@ CREATE INDEX idx_document_chunks_document_id ON document_chunks (document_id);
 
 CREATE INDEX idx_document_chunks_embedding_hnsw
     ON document_chunks USING hnsw (embedding vector_cosine_ops);
+
+-- Insert default admin account
+INSERT INTO users (
+    id, 
+    username, 
+    email, 
+    password_hash, 
+    full_name, 
+    gender, 
+    role, 
+    is_active, 
+    is_deleted, 
+    created_at, 
+    updated_at
+) VALUES (
+    '3e9e5975-4fad-4226-8533-3ac9f573155d',
+    'admin',
+    'admin@aitutor.vn',
+    '$2a$10$jzRIo3iVgYd2SZqmNMfdtOHuxbNPs8O3wLIIMujA/m4Oi8XoYs.iG', -- Hash cho mật khẩu Admin@123
+    'Quản trị viên',
+    'OTHER',
+    'ADMIN',
+    TRUE,
+    FALSE,
+    NOW(),
+    NOW()
+);

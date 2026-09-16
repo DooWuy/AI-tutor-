@@ -1,5 +1,7 @@
 package com.vn.aitutor.service.impl;
 
+import com.vn.aitutor.entity.Student;
+import com.vn.aitutor.entity.Teacher;
 import com.vn.aitutor.entity.User;
 import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.entity.enums.Gender;
@@ -13,14 +15,20 @@ import com.vn.aitutor.dto.response.UserResponse;
 import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.exception.ResourceConflictException;
 import com.vn.aitutor.exception.ResourceNotFoundException;
+import com.vn.aitutor.repository.StudentRepository;
+import com.vn.aitutor.repository.TeacherRepository;
 import com.vn.aitutor.repository.UserRepository;
+import com.vn.aitutor.service.IMailService;
 import com.vn.aitutor.service.IUserService;
+import com.vn.aitutor.service.ICloudinaryService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -35,10 +43,15 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class UserServiceImpl implements IUserService {
 
     private final UserRepository userRepository;
+    private final StudentRepository studentRepository;
+    private final TeacherRepository teacherRepository;
     private final PasswordEncoder passwordEncoder;
+    private final IMailService mailService;
+    private final ICloudinaryService cloudinaryService;
 
     @Override
     public PageResponseDTO<UserResponse> getAllProfile(Role role, String search, PageRequest pageRequest) {
@@ -91,6 +104,45 @@ public class UserServiceImpl implements IUserService {
 
         User savedUser = userRepository.save(user);
 
+        if (request.getRole() == Role.STUDENT) {
+            if (request.getSchoolName() == null || request.getSchoolName().isBlank()) {
+                throw new ResourceBadRequestException("Tên trường học không được để trống đối với học sinh");
+            }
+            if (request.getGradeLevel() == null || request.getGradeLevel().isBlank()) {
+                throw new ResourceBadRequestException("Khối lớp không được để trống đối với học sinh");
+            }
+            Student student = new Student();
+            student.setUser(savedUser);
+            student.setStudentCode("STU-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            student.setSchoolName(request.getSchoolName());
+            student.setGradeLevel(request.getGradeLevel());
+            student.setClassName(request.getClassName());
+            student.setEmail(request.getEmail());
+            studentRepository.save(student);
+        } else if (request.getRole() == Role.TEACHER) {
+            if (request.getDepartment() == null || request.getDepartment().isBlank()) {
+                throw new ResourceBadRequestException("Phòng ban/Khoa không được để trống đối với giáo viên");
+            }
+            if (request.getSubjectTaught() == null || request.getSubjectTaught().isBlank()) {
+                throw new ResourceBadRequestException("Môn học giảng dạy không được để trống đối với giáo viên");
+            }
+            Teacher teacher = new Teacher();
+            teacher.setUser(savedUser);
+            teacher.setTeacherCode("TEA-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            teacher.setDepartment(request.getDepartment());
+            teacher.setSubjectTaught(request.getSubjectTaught());
+            teacher.setSchoolName(request.getSchoolName());
+            teacherRepository.save(teacher);
+        }
+
+        // Gửi email thông báo cấp tài khoản
+        mailService.sendAccountCreatedByAdminEmail(
+                savedUser.getEmail(), 
+                savedUser.getFullName(), 
+                savedUser.getUsername(), 
+                request.getPassword()
+        );
+
         return ApiResponse.<UserResponse>builder()
                 .success(true)
                 .message("Tạo hồ sơ thành công")
@@ -114,6 +166,22 @@ public class UserServiceImpl implements IUserService {
         }
 
         User updatedUser = userRepository.save(user);
+
+        if (user.getRole() == Role.STUDENT) {
+            studentRepository.findByUserId(user.getId()).ifPresent(student -> {
+                if (request.getSchoolName() != null) student.setSchoolName(request.getSchoolName());
+                if (request.getGradeLevel() != null) student.setGradeLevel(request.getGradeLevel());
+                if (request.getClassName() != null) student.setClassName(request.getClassName());
+                studentRepository.save(student);
+            });
+        } else if (user.getRole() == Role.TEACHER) {
+            teacherRepository.findByUserId(user.getId()).ifPresent(teacher -> {
+                if (request.getDepartment() != null) teacher.setDepartment(request.getDepartment());
+                if (request.getSubjectTaught() != null) teacher.setSubjectTaught(request.getSubjectTaught());
+                if (request.getSchoolName() != null) teacher.setSchoolName(request.getSchoolName());
+                teacherRepository.save(teacher);
+            });
+        }
 
         return ApiResponse.<UserResponse>builder()
                 .success(true)
@@ -192,24 +260,22 @@ public class UserServiceImpl implements IUserService {
         if (file.isEmpty()) {
             throw new ResourceBadRequestException("File trống");
         }
-
-        String uploadDir = "uploads/avatars/";
-        File dir = new File(uploadDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
+        
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new ResourceBadRequestException("Chỉ cho phép tải lên file ảnh (JPEG, PNG, v.v...)");
         }
 
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        Path filePath = Paths.get(uploadDir + fileName);
-        Files.write(filePath, file.getBytes());
+        // Upload ảnh lên Cloudinary
+        String avatarUrl = cloudinaryService.uploadImage(file);
 
-        user.setAvatarUrl(uploadDir + fileName);
+        user.setAvatarUrl(avatarUrl);
         userRepository.save(user);
 
         return ApiResponse.<String>builder()
                 .success(true)
                 .message("Tải ảnh đại diện lên thành công")
-                .data(uploadDir + fileName)
+                .data(avatarUrl)
                 .build();
     }
 

@@ -17,4 +17,13 @@ public class UserUpdateRequest {
     
     @Pattern(regexp = "^(|0[356789]\\d{8})$", message = "Số điện thoại không hợp lệ. Số điện thoại phải gồm 10 chữ số và bắt đầu bằng '0'.")
     private String phoneNumber;
+
+    // Optional fields for Student Profile
+    private String gradeLevel;
+    private String className;
+    private String schoolName;
+
+    // Optional fields for Teacher Profile
+    private String department;
+    private String subjectTaught;
 }

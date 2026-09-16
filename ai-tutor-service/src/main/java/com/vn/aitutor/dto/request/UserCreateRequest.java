@@ -27,4 +27,13 @@ public class UserCreateRequest {
 
     @NotNull(message = "Vai trò không được để trống")
     private Role role;
+
+    // Optional fields for Student Profile
+    private String gradeLevel;
+    private String className;
+    private String schoolName;
+
+    // Optional fields for Teacher Profile
+    private String department;
+    private String subjectTaught;
 }
