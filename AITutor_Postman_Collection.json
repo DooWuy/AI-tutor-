@@ -159,6 +159,34 @@
                             ]
                         }
                     }
+                },
+                {
+                    "name": "Setup Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"token\": \"REPLACE_WITH_YOUR_TOKEN\",\n    \"newPassword\": \"Password1!\",\n    \"confirmPassword\": \"Password1!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/auth/setup-password",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "setup-password"
+                            ]
+                        }
+                    }
                 }
             ]
         },
@@ -556,6 +584,116 @@
                                 "v1",
                                 "users",
                                 "{{userId}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Schedules",
+            "item": [
+                {
+                    "name": "Extract Schedule from Image (OCR)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/schedules/extract-ocr",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "schedules",
+                                "extract-ocr"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Schedule",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Học kỳ 1 2026\",\n    \"slots\": [\n        {\n            \"subjectName\": \"Toán\",\n            \"dayOfWeek\": 2,\n            \"startTime\": \"07:00:00\",\n            \"endTime\": \"09:00:00\",\n            \"teacherName\": \"Nguyễn Văn A\",\n            \"room\": \"Phòng 101\"\n        }\n    ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/schedules",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "schedules"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Active Schedule",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/schedules/active",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "schedules",
+                                "active"
                             ]
                         }
                     }

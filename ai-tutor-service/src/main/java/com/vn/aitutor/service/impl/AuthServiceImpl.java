@@ -36,6 +36,11 @@ import java.util.UUID;
 
 import org.springframework.transaction.annotation.Transactional;
 
+import com.vn.aitutor.entity.PasswordResetToken;
+import com.vn.aitutor.repository.PasswordResetTokenRepository;
+import com.vn.aitutor.dto.request.SetupPasswordRequest;
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -50,9 +55,37 @@ public class AuthServiceImpl implements IAuthService {
     private final TokenBlacklistService tokenBlacklistService;
     private final RefreshTokenService refreshTokenService;
     private final IMailService mailService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refresh_token";
     private static final int REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
+
+    @Override
+    public ApiResponse<String> setupPassword(SetupPasswordRequest request) {
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
+                .orElseThrow(() -> new ResourceBadRequestException("Token không hợp lệ hoặc không tồn tại."));
+
+        if (resetToken.isUsed()) {
+            throw new ResourceBadRequestException("Token này đã được sử dụng.");
+        }
+
+        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new ResourceBadRequestException("Token đã hết hạn.");
+        }
+
+        User user = resetToken.getUser();
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+
+        return ApiResponse.<String>builder()
+                .success(true)
+                .message("Thiết lập mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới.")
+                .data(null)
+                .build();
+    }
 
     @Override
     public ApiResponse<AuthResponse> login(LoginRequest request, HttpServletResponse response) {
@@ -119,7 +152,7 @@ public class AuthServiceImpl implements IAuthService {
         // Create Student profile
         Student student = new Student();
         student.setUser(savedUser);
-        student.setStudentCode("STU-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        student.setStudentCode(generateUniqueStudentCode());
         student.setSchoolName(request.getSchoolName());
         student.setGradeLevel(request.getGradeLevel());
         student.setClassName(request.getClassName());
@@ -149,6 +182,14 @@ public class AuthServiceImpl implements IAuthService {
                         .user(userResponse)
                         .build())
                 .build();
+    }
+
+    private String generateUniqueStudentCode() {
+        String code;
+        do {
+            code = "STU-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        } while (studentRepository.existsByStudentCode(code));
+        return code;
     }
 
     @Override

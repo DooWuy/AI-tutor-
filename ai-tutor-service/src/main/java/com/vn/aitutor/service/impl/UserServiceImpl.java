@@ -40,6 +40,9 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.vn.aitutor.entity.PasswordResetToken;
+import com.vn.aitutor.repository.PasswordResetTokenRepository;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -52,16 +55,13 @@ public class UserServiceImpl implements IUserService {
     private final PasswordEncoder passwordEncoder;
     private final IMailService mailService;
     private final ICloudinaryService cloudinaryService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Override
     public PageResponseDTO<UserResponse> getAllProfile(Role role, String search, PageRequest pageRequest) {
-        Page<User> usersPage;
-        usersPage = userRepository.findAll(pageRequest);
+        Page<User> usersPage = userRepository.searchUsers(role, search, pageRequest);
 
         List<UserResponse> items = usersPage.getContent().stream()
-                .filter(u -> !u.isDeleted())
-                .filter(u -> role == null || u.getRole() == role)
-                .filter(u -> !StringUtils.hasText(search) || u.getFullName().toLowerCase().contains(search.toLowerCase()) || u.getEmail().toLowerCase().contains(search.toLowerCase()))
                 .map(this::mapToUserResponse)
                 .collect(Collectors.toList());
 
@@ -96,7 +96,10 @@ public class UserServiceImpl implements IUserService {
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        
+        // Random mật khẩu phức tạp tạm thời để qua DB constraint (không dùng)
+        String randomComplexPassword = UUID.randomUUID().toString() + "!A1";
+        user.setPasswordHash(passwordEncoder.encode(randomComplexPassword));
         user.setFullName(request.getFullName());
         user.setRole(request.getRole());
         user.setGender(Gender.OTHER);
@@ -113,7 +116,7 @@ public class UserServiceImpl implements IUserService {
             }
             Student student = new Student();
             student.setUser(savedUser);
-            student.setStudentCode("STU-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            student.setStudentCode(generateUniqueStudentCode());
             student.setSchoolName(request.getSchoolName());
             student.setGradeLevel(request.getGradeLevel());
             student.setClassName(request.getClassName());
@@ -128,19 +131,29 @@ public class UserServiceImpl implements IUserService {
             }
             Teacher teacher = new Teacher();
             teacher.setUser(savedUser);
-            teacher.setTeacherCode("TEA-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            teacher.setTeacherCode(generateUniqueTeacherCode());
             teacher.setDepartment(request.getDepartment());
             teacher.setSubjectTaught(request.getSubjectTaught());
             teacher.setSchoolName(request.getSchoolName());
             teacherRepository.save(teacher);
         }
 
-        // Gửi email thông báo cấp tài khoản
-        mailService.sendAccountCreatedByAdminEmail(
+        // Tạo Token thiết lập mật khẩu
+        String token = UUID.randomUUID().toString();
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .token(token)
+                .user(savedUser)
+                .expiryDate(LocalDateTime.now().plusHours(24))
+                .isUsed(false)
+                .build();
+        passwordResetTokenRepository.save(resetToken);
+
+        // Gửi email yêu cầu thiết lập mật khẩu
+        mailService.sendAccountSetupEmail(
                 savedUser.getEmail(), 
                 savedUser.getFullName(), 
                 savedUser.getUsername(), 
-                request.getPassword()
+                token
         );
 
         return ApiResponse.<UserResponse>builder()
@@ -148,6 +161,22 @@ public class UserServiceImpl implements IUserService {
                 .message("Tạo hồ sơ thành công")
                 .data(mapToUserResponse(savedUser))
                 .build();
+    }
+
+    private String generateUniqueStudentCode() {
+        String code;
+        do {
+            code = "STU-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        } while (studentRepository.existsByStudentCode(code));
+        return code;
+    }
+
+    private String generateUniqueTeacherCode() {
+        String code;
+        do {
+            code = "TEA-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        } while (teacherRepository.existsByTeacherCode(code));
+        return code;
     }
 
     @Override

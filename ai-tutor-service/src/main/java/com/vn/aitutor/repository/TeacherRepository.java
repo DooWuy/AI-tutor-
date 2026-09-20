@@ -12,10 +12,9 @@ import java.util.UUID;
 
 @Repository
 public interface TeacherRepository extends JpaRepository<Teacher, UUID> {
-    
+
+    boolean existsByTeacherCode(String teacherCode);
+
     @Query("SELECT t FROM Teacher t WHERE t.user.id = :userId")
     Optional<Teacher> findByUserId(@Param("userId") UUID userId);
-
-    @Query("SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END FROM Teacher t WHERE t.teacherCode = :teacherCode")
-    boolean existsByTeacherCode(@Param("teacherCode") String teacherCode);
 }

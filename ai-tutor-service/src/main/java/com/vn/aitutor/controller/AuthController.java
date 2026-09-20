@@ -43,4 +43,10 @@ public class AuthController {
         ApiResponse<AuthResponse> apiResponse = authService.refreshToken(request, response);
         return ResponseEntity.ok(apiResponse);
     }
+
+    @PostMapping("/setup-password")
+    public ResponseEntity<ApiResponse<String>> setupPassword(@Valid @RequestBody com.vn.aitutor.dto.request.SetupPasswordRequest request) {
+        ApiResponse<String> apiResponse = authService.setupPassword(request);
+        return ResponseEntity.ok(apiResponse);
+    }
 }

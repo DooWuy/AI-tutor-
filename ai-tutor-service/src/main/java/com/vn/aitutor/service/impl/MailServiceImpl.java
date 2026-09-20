@@ -41,22 +41,25 @@ public class MailServiceImpl implements IMailService {
 
     @Override
     @Async
-    public void sendAccountCreatedByAdminEmail(String toEmail, String fullName, String username, String rawPassword) {
+    public void sendAccountSetupEmail(String toEmail, String fullName, String username, String setupToken) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(toEmail);
-            message.setSubject("Tài khoản AI Tutor của bạn đã được tạo");
+            message.setSubject("Thiết lập mật khẩu tài khoản AI Tutor");
+            
+            // Link giả lập frontend URL
+            String setupLink = "https://aitutor.vn/setup-password?token=" + setupToken;
+            
             message.setText("Xin chào " + fullName + ",\n\n" +
-                    "Quản trị viên đã tạo cho bạn một tài khoản trên hệ thống AI Tutor.\n" +
-                    "Thông tin đăng nhập của bạn là:\n" +
-                    "- Tên đăng nhập: " + username + "\n" +
-                    "- Mật khẩu tạm thời: " + rawPassword + "\n\n" +
-                    "Vui lòng đăng nhập và đổi mật khẩu trong lần đầu tiên truy cập.\n\n" +
+                    "Quản trị viên đã tạo cho bạn một tài khoản trên hệ thống AI Tutor với tên đăng nhập: " + username + "\n" +
+                    "Để bảo mật, vui lòng click vào đường link dưới đây để tự thiết lập mật khẩu của mình (Link có hiệu lực trong 24 giờ):\n" +
+                    setupLink + "\n\n" +
+                    "Nếu bạn không yêu cầu, vui lòng bỏ qua email này.\n\n" +
                     "Trân trọng,\nĐội ngũ AI Tutor");
             
             mailSender.send(message);
-            log.info("Đã gửi email cấp tài khoản đến: {}", toEmail);
+            log.info("Đã gửi email yêu cầu thiết lập mật khẩu đến: {}", toEmail);
         } catch (Exception e) {
             log.error("Lỗi khi gửi email cấp tài khoản đến {}: {}", toEmail, e.getMessage());
         }

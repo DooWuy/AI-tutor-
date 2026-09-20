@@ -205,3 +205,41 @@ INSERT INTO users (
     NOW(),
     NOW()
 );
+
+CREATE TABLE schedules (
+    id UUID PRIMARY KEY,
+    student_id UUID NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_schedules_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_schedules_student_id ON schedules (student_id);
+
+CREATE TABLE schedule_slots (
+    id UUID PRIMARY KEY,
+    schedule_id UUID NOT NULL,
+    subject_name VARCHAR(255) NOT NULL,
+    day_of_week INTEGER NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    teacher_name VARCHAR(255),
+    room VARCHAR(100),
+    schedule_type VARCHAR(64),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_slots_schedule FOREIGN KEY (schedule_id) REFERENCES schedules (id) ON DELETE CASCADE,
+    CONSTRAINT ck_schedule_slots_day CHECK (day_of_week BETWEEN 2 AND 8)
+);
+
+CREATE INDEX idx_schedule_slots_schedule_id ON schedule_slots (schedule_id);
+
+CREATE TABLE password_reset_tokens (
+    id UUID PRIMARY KEY,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    user_id UUID NOT NULL,
+    expiry_date TIMESTAMP NOT NULL,
+    is_used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_password_reset_token_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
