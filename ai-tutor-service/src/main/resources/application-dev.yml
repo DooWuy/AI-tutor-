@@ -34,3 +34,7 @@ spring:
           auth: true
           starttls:
             enable: true
+
+app:
+  analytics:
+    seed-demo: true

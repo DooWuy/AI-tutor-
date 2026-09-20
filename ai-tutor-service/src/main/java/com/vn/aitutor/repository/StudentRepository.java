@@ -18,4 +18,15 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
     Optional<Student> findByUserId(@Param("userId") UUID userId);
 
     boolean existsByStudentCode(String studentCode);
+
+    @Query(
+            value = """
+                    SELECT COUNT(*) FROM students s
+                    JOIN users u ON u.id = s.user_id
+                    WHERE s.class_id = :classId
+                      AND u.is_deleted = FALSE
+                      AND u.is_active = TRUE
+                    """,
+            nativeQuery = true)
+    long countActiveByClassId(@Param("classId") UUID classId);
 }
