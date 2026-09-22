@@ -591,6 +591,118 @@
             ]
         },
         {
+            "name": "Student Profile",
+            "item": [
+                {
+                    "name": "Get My Student Profile",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/students/me",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "students",
+                                "me"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update My Student Profile",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"fullName\": \"Nguyen Van A\",\n    \"dateOfBirth\": \"2009-05-12\",\n    \"gender\": \"MALE\",\n    \"phoneNumber\": \"0987654321\",\n    \"avatarUrl\": \"https://res.cloudinary.com/demo/image/upload/avatar.webp\",\n    \"gradeLevel\": \"10\",\n    \"className\": \"10A1\",\n    \"studyPreferences\": {\n        \"subjects\": [\"math\", \"english\"],\n        \"dailyGoalMinutes\": 45,\n        \"darkMode\": true\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/students/me",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "students",
+                                "me"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Upload My Student Avatar",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/students/me/avatar",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "students",
+                                "me",
+                                "avatar"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "name": "Schedules",
             "item": [
                 {

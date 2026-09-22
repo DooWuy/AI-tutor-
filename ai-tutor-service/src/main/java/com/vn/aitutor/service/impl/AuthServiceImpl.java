@@ -156,7 +156,6 @@ public class AuthServiceImpl implements IAuthService {
         student.setSchoolName(request.getSchoolName());
         student.setGradeLevel(request.getGradeLevel());
         student.setClassName(request.getClassName());
-        student.setEmail(request.getEmail());
         studentRepository.save(student);
 
         String accessToken = jwtProvider.generateAccessToken(savedUser);
