@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,14 +19,15 @@ public class CloudinaryServiceImpl implements ICloudinaryService {
 
     @Override
     public String uploadImage(MultipartFile file) throws IOException {
-        String originalFilename = file.getOriginalFilename();
         String publicId = UUID.randomUUID().toString();
-        
-        // Cấu hình upload: Sử dụng tên file là UUID để chống ghi đè và Path Traversal
+
         Map<String, Object> uploadParams = ObjectUtils.asMap(
                 "public_id", publicId,
                 "folder", "ai_tutor_avatars",
-                "resource_type", "auto"
+                "resource_type", "image",
+                "allowed_formats", List.of("jpg", "jpeg", "png", "webp"),
+                "overwrite", false,
+                "secure", true
         );
 
         Map uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadParams);

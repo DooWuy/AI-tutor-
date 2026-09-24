@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: ai_tutor_dev
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
     ports:
       - "5432:5432"
     volumes:
@@ -58,6 +58,8 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ai_tutor_dev
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-password}
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_DATA_REDIS_HOST=redis
       - APP_FRONTEND_URL=http://localhost:3000
