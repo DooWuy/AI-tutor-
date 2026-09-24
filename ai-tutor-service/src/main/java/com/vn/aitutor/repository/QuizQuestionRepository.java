@@ -1,13 +1,12 @@
 package com.vn.aitutor.repository;
 
-import com.vn.aitutor.entity.Quiz;
-import java.util.Optional;
+import com.vn.aitutor.entity.QuizQuestion;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface QuizRepository extends JpaRepository<Quiz, UUID> {
+public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, UUID> {
 
-    Optional<Quiz> findFirstByTitle(String title);
+    boolean existsByTopic(String topic);
 }

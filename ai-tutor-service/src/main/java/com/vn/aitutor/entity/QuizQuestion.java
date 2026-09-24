@@ -56,6 +56,9 @@ public class QuizQuestion {
     @Column(name = "points", nullable = false)
     private int points = 1;
 
+    @Column(name = "topic", length = 255)
+    private String topic;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

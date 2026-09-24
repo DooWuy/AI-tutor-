@@ -38,3 +38,4 @@ spring:
 app:
   analytics:
     seed-demo: true
+    knowledge-gap-job: true

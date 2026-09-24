@@ -22,6 +22,7 @@ app:
       end-month-day: "01-15"
   analytics:
     seed-demo: false
+    knowledge-gap-job: false
 
 management:
   endpoints:

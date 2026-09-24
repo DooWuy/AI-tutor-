@@ -1,9 +1,12 @@
 package com.vn.aitutor.config;
 
 import com.vn.aitutor.analytics.AcademicCalendar;
+import com.vn.aitutor.entity.ChatMessage;
 import com.vn.aitutor.entity.ChatSession;
 import com.vn.aitutor.entity.Quiz;
 import com.vn.aitutor.entity.QuizAttempt;
+import com.vn.aitutor.entity.QuizAttemptAnswer;
+import com.vn.aitutor.entity.QuizQuestion;
 import com.vn.aitutor.entity.SchoolClass;
 import com.vn.aitutor.entity.Student;
 import com.vn.aitutor.entity.Teacher;
@@ -11,11 +14,15 @@ import com.vn.aitutor.entity.TeacherClassAssignment;
 import com.vn.aitutor.entity.User;
 import com.vn.aitutor.entity.enums.ChatSessionStatus;
 import com.vn.aitutor.entity.enums.Gender;
+import com.vn.aitutor.entity.enums.SenderType;
 import com.vn.aitutor.entity.enums.QuizDifficulty;
 import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.entity.enums.SubjectCode;
+import com.vn.aitutor.repository.ChatMessageRepository;
 import com.vn.aitutor.repository.ChatSessionRepository;
+import com.vn.aitutor.repository.QuizAttemptAnswerRepository;
 import com.vn.aitutor.repository.QuizAttemptRepository;
+import com.vn.aitutor.repository.QuizQuestionRepository;
 import com.vn.aitutor.repository.QuizRepository;
 import com.vn.aitutor.repository.SchoolClassRepository;
 import com.vn.aitutor.repository.StudentRepository;
@@ -25,7 +32,9 @@ import com.vn.aitutor.repository.UserRepository;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -57,7 +66,10 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
     private final TeacherClassAssignmentRepository assignmentRepository;
     private final QuizRepository quizRepository;
     private final QuizAttemptRepository quizAttemptRepository;
+    private final QuizQuestionRepository quizQuestionRepository;
+    private final QuizAttemptAnswerRepository quizAttemptAnswerRepository;
     private final ChatSessionRepository chatSessionRepository;
+    private final ChatMessageRepository chatMessageRepository;
     private final PasswordEncoder passwordEncoder;
     private final AcademicCalendar academicCalendar;
 
@@ -65,7 +77,7 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         if (userRepository.existsByEmail(DEMO_TEACHER_EMAIL)) {
-            log.info("Analytics demo data already present — skip seeding");
+            seedKnowledgeGapsIfMissing();
             return;
         }
         seed();
@@ -109,6 +121,7 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
         quiz = quizRepository.save(quiz);
 
         List<Student> students = new ArrayList<>();
+        List<QuizAttempt> attempts = new ArrayList<>();
         for (int i = 0; i < 40; i++) {
             String fullName = i == 0 ? "Nguyễn Văn A" : "Học sinh 12A1 " + String.format("%02d", i + 1);
             User studentUser = persistUser(
@@ -145,7 +158,7 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
                 attempt.setDurationSeconds(1800);
                 int dayOffset = (i + attemptIndex) % 7;
                 attempt.setSubmittedAt(now.minus(Duration.ofDays(dayOffset)).minus(Duration.ofMinutes(i * 3L)));
-                quizAttemptRepository.save(attempt);
+                attempts.add(quizAttemptRepository.save(attempt));
             }
         }
 
@@ -158,6 +171,131 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
             session.setLastMessageAt(now.plus(Duration.ofMinutes(40)));
             chatSessionRepository.save(session);
         }
+        seedKnowledgeGapFixture(quiz, students, attempts);
+    }
+
+    private void seedKnowledgeGapsIfMissing() {
+        SchoolClass schoolClass = schoolClassRepository.findFirstByNameOrderByCreatedAtDesc("12A1").orElse(null);
+        if (schoolClass == null) {
+            log.warn("Skip knowledge-gap demo seed: class 12A1 not found");
+            return;
+        }
+        Quiz quiz = quizRepository.findFirstByTitle("Kiểm tra Toán tuần — Tiệm cận").orElse(null);
+        if (quiz == null) {
+            log.warn("Skip knowledge-gap demo seed: demo quiz not found");
+            return;
+        }
+        List<Student> students = studentRepository.findByClassEntity_IdOrderByStudentCodeAsc(schoolClass.getId());
+        List<QuizAttempt> attempts = quizAttemptRepository.findByClassAndQuiz(schoolClass.getId(), quiz.getId());
+        if (attempts.isEmpty()) {
+            log.warn("Skip knowledge-gap demo seed: no existing attempts to attach answers to");
+            return;
+        }
+        alignDemoAttemptsToRecentWindow(attempts);
+        if (quizQuestionRepository.existsByTopic("Thể tích hình nón")) {
+            return;
+        }
+        seedKnowledgeGapFixture(quiz, students, attempts);
+        log.info("Seeded knowledge-gap fixture on existing 12A1 attempts without changing scores");
+    }
+
+    /**
+     * Demo attempts are timestamped once. After a few days they fall out of LAST_7_DAYS and the
+     * AC-02 30/40 fixture disappears. Move only stale rows back; scores stay untouched.
+     */
+    private void alignDemoAttemptsToRecentWindow(List<QuizAttempt> attempts) {
+        Instant now = Instant.now();
+        Instant oldestAllowed = now.minus(Duration.ofDays(6));
+        boolean changed = false;
+        for (int index = 0; index < attempts.size(); index++) {
+            QuizAttempt attempt = attempts.get(index);
+            if (attempt.getSubmittedAt() == null || attempt.getSubmittedAt().isBefore(oldestAllowed)) {
+                attempt.setSubmittedAt(now.minus(Duration.ofDays(index % 7)).minus(Duration.ofMinutes(index)));
+                changed = true;
+            }
+        }
+        if (changed) {
+            quizAttemptRepository.saveAll(attempts);
+            log.info("Moved stale demo quiz attempts back into the last 7 days without changing scores");
+        }
+    }
+
+    private void seedKnowledgeGapFixture(Quiz quiz, List<Student> students, List<QuizAttempt> attempts) {
+        if (quizQuestionRepository.existsByTopic("Thể tích hình nón")) {
+            return;
+        }
+        QuizQuestion cone = question(quiz, "Thể tích hình nón", "Thể tích hình nón được tính bằng công thức nào?", 1);
+        QuizQuestion asymptote = question(quiz, "Tiệm cận", "Đường tiệm cận đứng của hàm số nằm ở đâu?", 2);
+        cone = quizQuestionRepository.save(cone);
+        asymptote = quizQuestionRepository.save(asymptote);
+
+        Map<java.util.UUID, List<QuizAttempt>> byStudent = new HashMap<>();
+        for (QuizAttempt attempt : attempts) {
+            byStudent.computeIfAbsent(attempt.getStudent().getId(), ignored -> new ArrayList<>()).add(attempt);
+        }
+        for (int fallback = 0; fallback < students.size(); fallback++) {
+            Student student = students.get(fallback);
+            int index = demoIndex(student, fallback);
+            List<QuizAttempt> studentAttempts = byStudent.getOrDefault(student.getId(), List.of());
+            for (QuizAttempt attempt : studentAttempts) {
+                saveAnswer(attempt, cone, index >= 30);
+                saveAnswer(attempt, asymptote, index >= 4);
+            }
+            if (index < 30) {
+                askAboutCone(student);
+            }
+        }
+    }
+
+    private QuizQuestion question(Quiz quiz, String topic, String text, int order) {
+        QuizQuestion question = new QuizQuestion();
+        question.setQuiz(quiz);
+        question.setTopic(topic);
+        question.setQuestionText(text);
+        question.setOptions(List.of(
+                Map.of("key", "A", "text", "Đáp án A"),
+                Map.of("key", "B", "text", "Đáp án B")));
+        question.setCorrectOptionKey("A");
+        question.setOrderIndex(order);
+        question.setPoints(1);
+        return question;
+    }
+
+    private void saveAnswer(QuizAttempt attempt, QuizQuestion question, boolean correct) {
+        QuizAttemptAnswer answer = new QuizAttemptAnswer();
+        answer.setAttempt(attempt);
+        answer.setQuestion(question);
+        answer.setSelectedOptionKey(correct ? "A" : "B");
+        answer.setCorrect(correct);
+        quizAttemptAnswerRepository.save(answer);
+    }
+
+    private void askAboutCone(Student student) {
+        ChatSession session = new ChatSession();
+        session.setStudent(student);
+        session.setSubject(SubjectCode.TOAN.name());
+        session.setTitle("Hỏi thể tích hình nón");
+        session.setStatus(ChatSessionStatus.CLOSED);
+        session.setLastMessageAt(Instant.EPOCH);
+        session = chatSessionRepository.save(session);
+
+        ChatMessage message = new ChatMessage();
+        message.setChatSession(session);
+        message.setSenderType(SenderType.STUDENT);
+        message.setContent("Em chưa hiểu thể tích hình nón, thầy chữa giúp em với.");
+        chatMessageRepository.save(message);
+    }
+
+    private int demoIndex(Student student, int fallback) {
+        String code = student.getStudentCode();
+        if (code != null && code.length() >= 2) {
+            try {
+                return Integer.parseInt(code.substring(code.length() - 2)) - 1;
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
     }
 
     private User persistUser(String username, String email, String fullName, Role role) {

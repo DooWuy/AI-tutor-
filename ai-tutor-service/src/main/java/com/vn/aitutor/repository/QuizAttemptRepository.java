@@ -2,6 +2,7 @@ package com.vn.aitutor.repository;
 
 import com.vn.aitutor.entity.QuizAttempt;
 import com.vn.aitutor.repository.projection.DaySecondsRow;
+import com.vn.aitutor.repository.projection.RawScoreRow;
 import com.vn.aitutor.repository.projection.ScoreSumCountRow;
 import com.vn.aitutor.repository.projection.StudentScoreRow;
 import com.vn.aitutor.repository.projection.WeeklyScoreRow;
@@ -137,6 +138,44 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
                     """,
             nativeQuery = true)
     List<StudentScoreRow> studentScores(
+            @Param("classId") UUID classId,
+            @Param("fromTs") Instant fromTs,
+            @Param("toTs") Instant toTs,
+            @Param("subject") String subject);
+
+    @Query(
+            """
+            SELECT qa FROM QuizAttempt qa
+            JOIN FETCH qa.student s
+            WHERE s.classEntity.id = :classId AND qa.quiz.id = :quizId
+            """)
+    List<QuizAttempt> findByClassAndQuiz(@Param("classId") UUID classId, @Param("quizId") UUID quizId);
+
+    @Query(
+            value = """
+                    SELECT s.student_code AS studentCode,
+                           u.full_name AS fullName,
+                           sc.name AS className,
+                           q.subject AS subject,
+                           q.title AS quizTitle,
+                           qa.score AS score,
+                           qa.duration_seconds AS durationSeconds,
+                           qa.submitted_at AS submittedAt
+                    FROM quiz_attempts qa
+                    JOIN quizzes q ON q.id = qa.quiz_id
+                    JOIN students s ON s.id = qa.student_id
+                    JOIN users u ON u.id = s.user_id
+                    JOIN school_classes sc ON sc.id = s.class_id
+                    WHERE s.class_id = :classId
+                      AND u.is_deleted = FALSE
+                      AND u.is_active = TRUE
+                      AND qa.submitted_at >= :fromTs
+                      AND qa.submitted_at <= :toTs
+                      AND (:subject IS NULL OR q.subject = :subject)
+                    ORDER BY qa.submitted_at, s.student_code
+                    """,
+            nativeQuery = true)
+    List<RawScoreRow> findRawScores(
             @Param("classId") UUID classId,
             @Param("fromTs") Instant fromTs,
             @Param("toTs") Instant toTs,
