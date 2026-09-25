@@ -1,6 +1,10 @@
 server:
   port: 8088
 
+app:
+  analytics:
+    knowledge-gap-job: true
+
 spring:
   datasource:
     url: ${DB_URL}

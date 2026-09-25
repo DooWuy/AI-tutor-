@@ -2,6 +2,7 @@ package com.vn.aitutor.service.impl;
 
 import com.vn.aitutor.analytics.AcademicCalendar;
 import com.vn.aitutor.analytics.KpiCalculator;
+import com.vn.aitutor.service.AnalyticsAccess;
 import com.vn.aitutor.dto.response.analytics.AnalyticsFiltersResponse;
 import com.vn.aitutor.dto.response.analytics.AppliedFiltersDto;
 import com.vn.aitutor.dto.response.analytics.ClassOptionDto;
@@ -18,7 +19,6 @@ import com.vn.aitutor.entity.enums.ReportPeriod;
 import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.entity.enums.SubjectCode;
 import com.vn.aitutor.exception.ResourceForbiddenException;
-import com.vn.aitutor.exception.ResourceNotFoundException;
 import com.vn.aitutor.repository.ChatSessionRepository;
 import com.vn.aitutor.repository.QuizAttemptRepository;
 import com.vn.aitutor.repository.SchoolClassRepository;
@@ -54,6 +54,7 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
 
     private static final String[] WEEKDAY_LABELS = {"", "T2", "T3", "T4", "T5", "T6", "T7", "CN"};
 
+    private final AnalyticsAccess analyticsAccess;
     private final AcademicCalendar academicCalendar;
     private final SchoolClassRepository schoolClassRepository;
     private final TeacherClassAssignmentRepository assignmentRepository;
@@ -143,10 +144,7 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
             ReportPeriod period,
             LocalDate from,
             LocalDate to) {
-        SchoolClass schoolClass = schoolClassRepository
-                .findById(classId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp học"));
-        assertCanReadClass(principal, classId);
+        SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, classId);
 
         String subjectFilter = SubjectCode.normalizeFilter(subject);
         ReportPeriod resolvedPeriod = period == null ? ReportPeriod.LAST_7_DAYS : period;
@@ -281,17 +279,6 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
             if (dow >= 1 && dow <= 7) {
                 target[dow] += row.getTotalSeconds();
             }
-        }
-    }
-
-    private void assertCanReadClass(UserPrincipal principal, UUID classId) {
-        User user = principal.getUsers();
-        if (user.getRole() == Role.ADMIN) {
-            return;
-        }
-        Teacher teacher = requireTeacher(user.getId());
-        if (!assignmentRepository.existsByTeacher_IdAndSchoolClass_Id(teacher.getId(), classId)) {
-            throw new ResourceForbiddenException("Giáo viên không được phân quyền xem lớp học này");
         }
     }
 

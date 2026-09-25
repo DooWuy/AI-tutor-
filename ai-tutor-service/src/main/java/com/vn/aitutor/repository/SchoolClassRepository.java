@@ -25,4 +25,6 @@ public interface SchoolClassRepository extends JpaRepository<SchoolClass, UUID> 
 
     @Query("SELECT c FROM SchoolClass c ORDER BY c.gradeLevel, c.name")
     List<SchoolClass> findAllOrdered();
+
+    Optional<SchoolClass> findFirstByNameOrderByCreatedAtDesc(String name);
 }
