@@ -110,8 +110,8 @@ public class ScheduleServiceImpl implements IScheduleService {
             List<ScheduleSlotDto> slots = objectMapper.readValue(extractedJsonText, new TypeReference<List<ScheduleSlotDto>>() {});
 
             return OcrExtractionResponse.builder()
-                    .status("success")
-                    .data(slots)
+                    .name("Thời khóa biểu tự động")
+                    .slots(slots)
                     .build();
 
         } catch (RestClientException e) {

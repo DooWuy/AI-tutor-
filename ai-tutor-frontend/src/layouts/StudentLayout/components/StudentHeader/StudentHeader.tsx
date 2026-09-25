@@ -1,10 +1,33 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { styles } from './StudentHeader.styles';
+import { logout, getStoredSession } from '../../../../services/authApi';
 
 export const StudentHeader: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const session = getStoredSession();
+  const user = session ? session.user : null;
+  const fullName = user?.fullName || 'Người dùng';
+  const avatarUrl = user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=0A5EB0&color=fff`;
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   const getNavLinkClass = (path: string) => {
     return location.pathname.includes(path) ? styles.navLinkActive : styles.navLink;
@@ -28,7 +51,6 @@ export const StudentHeader: React.FC = () => {
             <Link className={styles.navLink} to="#">Hỏi đáp SGK</Link>
             <Link className={styles.navLink} to="#">Luyện đề</Link>
             <Link className={styles.navLink} to="#">Bảng vàng</Link>
-            <Link className={getNavLinkClass('/student/profile')} to="/student/profile">Hồ sơ cá nhân</Link>
           </nav>
         </div>
         
@@ -59,13 +81,33 @@ export const StudentHeader: React.FC = () => {
             <span className="">Quét TKB</span>
           </button>
           
-          {/* Profile Chip */}
-          <div className={styles.profileChip}>
-            <img className={styles.profileAvatar} alt="Profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2kipIr3-Rta9JHZ3VanqgaI4hWi1ryv7w2XdHDPCVIsar5hiAaTXoDoh_HMbv2jsN-bgK7gRrjLz_fphFGXfWwYtyeztIql-e9AdQsIfiUt0tzsI3h8ilFl_84mF2PhSQv38QK9cDx_JNtCdWFcR2BCNAMYUC24ecvbsUweZtxtDRn0wocKiKEXSQsPhpBFkIYPrnhnwad48sM4_d69eXVSq3aWci2OY2vm-Lty4LAo1hkj94z8IsbA" />
-            <div className={styles.profileInfo}>
-              <p className={styles.profileName}>Nguyễn Văn An</p>
-              <p className={styles.profileClass}>Lớp 10A1 - THPT Chuyên</p>
+          {/* Profile Chip & Dropdown */}
+          <div className={styles.profileChipWrapper} ref={dropdownRef}>
+            <div className={styles.profileChip} onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+              <img className={styles.profileAvatar} alt="Profile" src={avatarUrl} />
+              <div className={styles.profileInfo}>
+                <p className={styles.profileName}>{fullName}</p>
+                <p className={styles.profileClass}>Lớp 10A1 - THPT Chuyên</p>
+              </div>
             </div>
+            
+            {/* Dropdown Menu */}
+            {isDropdownOpen && (
+              <div className={styles.dropdownMenu}>
+                <div 
+                  className={styles.dropdownItem} 
+                  onClick={() => { setIsDropdownOpen(false); navigate('/student/profile'); }}
+                >
+                  <span className={styles.dropdownIcon}>person</span>
+                  <span>Hồ sơ cá nhân</span>
+                </div>
+                <div className={styles.dropdownDivider}></div>
+                <div className={styles.dropdownItem} onClick={handleLogout}>
+                  <span className={`${styles.dropdownIcon} text-error`}>logout</span>
+                  <span className="text-error font-medium">Đăng xuất</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

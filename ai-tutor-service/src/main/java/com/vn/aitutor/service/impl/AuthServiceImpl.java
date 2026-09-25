@@ -62,6 +62,8 @@ public class AuthServiceImpl implements IAuthService {
 
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refresh_token";
     private static final int REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
+    private static final String ACCESS_TOKEN_COOKIE_NAME = "access_token";
+    private static final int ACCESS_TOKEN_MAX_AGE = 24 * 60 * 60; // 1 day in seconds
 
     @Override
     public ApiResponse<String> setupPassword(SetupPasswordRequest request) {
@@ -112,6 +114,7 @@ public class AuthServiceImpl implements IAuthService {
 
         // Set HttpOnly Cookie for refresh token
         setRefreshTokenCookie(response, refreshToken);
+        setAccessTokenCookie(response, accessToken);
 
         UserResponse userResponse = mapToUserResponse(user);
 
@@ -169,6 +172,7 @@ public class AuthServiceImpl implements IAuthService {
 
         // Set HttpOnly Cookie for refresh token
         setRefreshTokenCookie(response, refreshToken);
+        setAccessTokenCookie(response, accessToken);
 
         // Send registration success email asynchronously
         mailService.sendRegistrationSuccessEmail(savedUser.getEmail(), savedUser.getFullName());
@@ -211,6 +215,7 @@ public class AuthServiceImpl implements IAuthService {
         }
 
         clearRefreshTokenCookie(response);
+        clearAccessTokenCookie(response);
 
         return ApiResponse.<String>builder()
                 .success(true)
@@ -247,6 +252,7 @@ public class AuthServiceImpl implements IAuthService {
         // Save new refresh token and set cookie
         refreshTokenService.saveRefreshToken(newRefreshToken);
         setRefreshTokenCookie(response, newRefreshToken);
+        setAccessTokenCookie(response, newAccessToken);
 
         UserResponse userResponse = mapToUserResponse(user);
 
@@ -261,6 +267,13 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if (ACCESS_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
@@ -292,6 +305,28 @@ public class AuthServiceImpl implements IAuthService {
 
     private void clearRefreshTokenCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("None")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private void setAccessTokenCookie(HttpServletResponse response, String accessToken) {
+        ResponseCookie cookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE_NAME, accessToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(ACCESS_TOKEN_MAX_AGE)
+                .sameSite("None")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private void clearAccessTokenCookie(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(true)
                 .path("/")

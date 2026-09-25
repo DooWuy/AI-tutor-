@@ -20,9 +20,14 @@ export const styles = {
   notificationDot: 'absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest',
   scannerBtn: 'hidden lg:flex items-center gap-1.5 px-3.5 py-1.5 bg-primary text-on-primary hover:bg-primary-container rounded-lg font-label-sm text-label-sm font-semibold shadow-sm transition active:scale-95',
   scannerIcon: 'material-symbols-outlined text-sm',
-  profileChip: 'flex items-center gap-2 pl-2 border-l border-outline-variant',
+  profileChipWrapper: 'relative',
+  profileChip: 'flex items-center gap-2 pl-2 border-l border-outline-variant cursor-pointer hover:bg-surface-container/50 py-1 pr-1 rounded transition-colors',
   profileAvatar: 'w-9 h-9 rounded-full object-cover ring-2 ring-primary-fixed',
   profileInfo: 'hidden xl:block text-left',
   profileName: 'font-semibold text-xs leading-none text-on-surface',
-  profileClass: 'text-[11px] text-on-surface-variant font-medium mt-0.5'
+  profileClass: 'text-[11px] text-on-surface-variant font-medium mt-0.5',
+  dropdownMenu: 'absolute right-0 top-full mt-2 w-48 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg py-1.5 z-50 flex flex-col overflow-hidden',
+  dropdownItem: 'flex items-center gap-2.5 px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container-high transition-colors text-left w-full cursor-pointer',
+  dropdownIcon: 'material-symbols-outlined text-[20px] text-on-surface-variant',
+  dropdownDivider: 'h-px w-full bg-outline-variant/50 my-1'
 };

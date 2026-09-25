@@ -1,37 +1,11 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState, useEffect, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { login, logout } from '../../services/authApi'
-import type { AuthSession, User } from '../../types/auth'
+import { login, logout, getStoredSession, persistSession } from '../../services/authApi'
+import type { AuthSession } from '../../types/auth'
 import { LoginBackground } from './components/LoginBackground'
 import { styles } from './LoginPage.styles'
 
-const ACCESS_TOKEN_KEY = 'ai-tutor.access-token'
-const USER_KEY = 'ai-tutor.user'
-
-function readStoredSession(): AuthSession | null {
-  for (const storage of [localStorage, sessionStorage]) {
-    const accessToken = storage.getItem(ACCESS_TOKEN_KEY)
-    const rawUser = storage.getItem(USER_KEY)
-    if (!accessToken || !rawUser) continue
-    try { return { accessToken, user: JSON.parse(rawUser) as User } }
-    catch { storage.removeItem(ACCESS_TOKEN_KEY); storage.removeItem(USER_KEY) }
-  }
-  return null
-}
-
-function persistSession(session: AuthSession, remember: boolean) {
-  clearSession()
-  const storage = remember ? localStorage : sessionStorage
-  storage.setItem(ACCESS_TOKEN_KEY, session.accessToken)
-  storage.setItem(USER_KEY, JSON.stringify(session.user))
-}
-
-function clearSession() {
-  for (const storage of [localStorage, sessionStorage]) {
-    storage.removeItem(ACCESS_TOKEN_KEY)
-    storage.removeItem(USER_KEY)
-  }
-}
+// session functions imported from authApi
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -41,11 +15,21 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
-  const [session, setSession] = useState<AuthSession | null>(() => readStoredSession())
+  const [session, setSession] = useState<AuthSession | null>(() => getStoredSession())
   
   const firstName = useMemo(() => session?.user.fullName?.trim().split(/\s+/).at(-1), [session])
 
   const navigate = useNavigate()
+
+  // Redirect automatically if session exists
+  useEffect(() => {
+    if (session) {
+      let target = '/student/dashboard'
+      if (session.user.role === 'ADMIN') target = '/admin/dashboard'
+      else if (session.user.role === 'TEACHER') target = '/teacher/dashboard'
+      navigate(target, { replace: true })
+    }
+  }, [session, navigate])
 
   function validate() {
     const errors: { email?: string; password?: string } = {}
@@ -62,8 +46,10 @@ export default function LoginPage() {
     try {
       const nextSession = await login({ email: email.trim(), password })
       persistSession(nextSession, remember); setSession(nextSession); setPassword('')
-      // Redirect to the dashboard after a short delay or immediately
-      navigate('/student/dashboard')
+      let target = '/student/dashboard'
+      if (nextSession.user.role === 'ADMIN') target = '/admin/dashboard'
+      else if (nextSession.user.role === 'TEACHER') target = '/teacher/dashboard'
+      navigate(target, { replace: true })
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Không thể đăng nhập. Vui lòng thử lại.')
     } finally { setIsSubmitting(false) }
@@ -72,8 +58,8 @@ export default function LoginPage() {
   async function handleLogout() {
     if (!session) return
     setIsSubmitting(true)
-    try { await logout(session.accessToken) } catch { /* Clear stale local sessions */ }
-    finally { clearSession(); setSession(null); setMessage(null); setIsSubmitting(false) }
+    await logout()
+    setSession(null); setMessage(null); setIsSubmitting(false)
   }
 
   return (
