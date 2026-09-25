@@ -19,6 +19,7 @@ import com.vn.aitutor.repository.StudentRepository;
 import com.vn.aitutor.repository.TeacherRepository;
 import com.vn.aitutor.repository.UserRepository;
 import com.vn.aitutor.service.IMailService;
+import com.vn.aitutor.service.ISchoolClassService;
 import com.vn.aitutor.service.IUserService;
 import com.vn.aitutor.service.ICloudinaryService;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,7 @@ public class UserServiceImpl implements IUserService {
     private final IMailService mailService;
     private final ICloudinaryService cloudinaryService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final ISchoolClassService schoolClassService;
 
     @Override
     public PageResponseDTO<UserResponse> getAllProfile(Role role, String search, PageRequest pageRequest) {
@@ -121,6 +123,10 @@ public class UserServiceImpl implements IUserService {
             student.setGradeLevel(request.getGradeLevel());
             student.setClassName(request.getClassName());
             student.setEmail(request.getEmail());
+            if (StringUtils.hasText(request.getClassName())) {
+                student.setClassEntity(schoolClassService.findOrCreate(
+                        request.getSchoolName(), request.getGradeLevel(), request.getClassName()));
+            }
             studentRepository.save(student);
         } else if (request.getRole() == Role.TEACHER) {
             if (request.getDepartment() == null || request.getDepartment().isBlank()) {
@@ -200,7 +206,13 @@ public class UserServiceImpl implements IUserService {
             studentRepository.findByUserId(user.getId()).ifPresent(student -> {
                 if (request.getSchoolName() != null) student.setSchoolName(request.getSchoolName());
                 if (request.getGradeLevel() != null) student.setGradeLevel(request.getGradeLevel());
-                if (request.getClassName() != null) student.setClassName(request.getClassName());
+                if (request.getClassName() != null) {
+                    student.setClassName(request.getClassName());
+                    if (StringUtils.hasText(request.getClassName())) {
+                        student.setClassEntity(schoolClassService.findOrCreate(
+                                student.getSchoolName(), student.getGradeLevel(), request.getClassName()));
+                    }
+                }
                 studentRepository.save(student);
             });
         } else if (user.getRole() == Role.TEACHER) {
