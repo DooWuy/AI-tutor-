@@ -2,12 +2,35 @@ import React, { useState, useEffect, useRef } from 'react';
 import { styles } from './TimetablePage.styles';
 import type { ScheduleSlotDto } from '../../../types/schedule';
 import { extractScheduleFromImage, createSchedule, getActiveSchedule } from '../../../services/scheduleApi';
+import { getDayDate, getFullDayDate, getTomorrowDayName, getNormalizedDay } from '../../../utils/dateUtils';
+
+const DEFAULT_PERIODS_FALLBACK = [
+  { startTime: '07:00:00', endTime: '07:45:00' },
+  { startTime: '07:50:00', endTime: '08:35:00' },
+  { startTime: '08:50:00', endTime: '09:35:00' },
+  { startTime: '09:40:00', endTime: '10:25:00' },
+  { startTime: '10:30:00', endTime: '11:15:00' },
+  { startTime: '13:30:00', endTime: '14:15:00' },
+  { startTime: '14:20:00', endTime: '15:05:00' },
+  { startTime: '15:25:00', endTime: '16:10:00' },
+];
 
 export const TimetablePage: React.FC = () => {
-  const [showSettings, setShowSettings] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
   const [slots, setSlots] = useState<ScheduleSlotDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [defaultPeriods, setDefaultPeriods] = useState(() => {
+    const saved = localStorage.getItem('timetable_default_periods');
+    return saved ? JSON.parse(saved) : DEFAULT_PERIODS_FALLBACK;
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const weekStart = getFullDayDate(0);
+  const weekEnd = getFullDayDate(6);
+  const tomorrowDayName = getTomorrowDayName();
+  const normalizedDay = getNormalizedDay();
 
   useEffect(() => {
     loadActiveSchedule();
@@ -53,10 +76,108 @@ export const TimetablePage: React.FC = () => {
     }
   };
 
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, sourceDay: number, sourceIndex: number) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({ sourceDay, sourceIndex }));
+    e.dataTransfer.effectAllowed = 'move';
+    e.currentTarget.style.opacity = '0.4';
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    e.currentTarget.style.opacity = '1';
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTableCellElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLTableCellElement>, targetDay: number, targetIndex: number) => {
+    e.preventDefault();
+    const data = e.dataTransfer.getData('application/json');
+    if (!data) return;
+    
+    const { sourceDay, sourceIndex } = JSON.parse(data);
+    if (sourceDay === targetDay && sourceIndex === targetIndex) return;
+
+    setSlots(prevSlots => {
+      const newSlots = [...prevSlots];
+      
+      const sourceDaySlots = newSlots.filter(s => s.dayOfWeek === sourceDay).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+      const targetDaySlots = newSlots.filter(s => s.dayOfWeek === targetDay).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+      
+      const sourceSlot = sourceDaySlots[sourceIndex];
+      const targetSlot = targetDaySlots[targetIndex];
+
+      if (!sourceSlot) return prevSlots;
+
+      if (targetSlot) {
+        // Swap slots
+        const tempDay = sourceSlot.dayOfWeek;
+        const tempStart = sourceSlot.startTime;
+        const tempEnd = sourceSlot.endTime;
+
+        sourceSlot.dayOfWeek = targetSlot.dayOfWeek;
+        sourceSlot.startTime = targetSlot.startTime;
+        sourceSlot.endTime = targetSlot.endTime;
+
+        targetSlot.dayOfWeek = tempDay;
+        targetSlot.startTime = tempStart;
+        targetSlot.endTime = tempEnd;
+      } else {
+        // Move to an empty slot
+        sourceSlot.dayOfWeek = targetDay;
+        sourceSlot.startTime = defaultPeriods[targetIndex]?.startTime || '00:00:00';
+        sourceSlot.endTime = defaultPeriods[targetIndex]?.endTime || '00:00:00';
+      }
+      return newSlots;
+    });
+  };
+
+  const handleDeleteSlot = (day: number, index: number) => {
+    if (!window.confirm('Bạn có chắc muốn xóa tiết học này?')) return;
+    
+    setSlots(prevSlots => {
+      const newSlots = [...prevSlots];
+      const daySlots = newSlots.filter(s => s.dayOfWeek === day).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+      const slotToDelete = daySlots[index];
+      
+      if (slotToDelete) {
+        return newSlots.filter(s => s !== slotToDelete);
+      }
+      return prevSlots;
+    });
+  };
+
+  const handleAddSlot = (day: number, index: number) => {
+    const subjectName = window.prompt('Nhập tên môn học mới:');
+    if (!subjectName || !subjectName.trim()) return;
+
+    setSlots(prevSlots => {
+      const newSlot: ScheduleSlotDto = {
+        dayOfWeek: day,
+        startTime: defaultPeriods[index]?.startTime || '00:00:00',
+        endTime: defaultPeriods[index]?.endTime || '00:00:00',
+        subjectName: subjectName.trim(),
+      };
+      return [...prevSlots, newSlot];
+    });
+  };
+
   const getSubjectCard = (day: number, index: number) => {
     const daySlots = slots.filter(s => s.dayOfWeek === day).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
     const slot = daySlots[index];
-    if (!slot) return <td key={`${day}-${index}`} className={styles.emptyCell}><span className="text-[11px] italic">Trống</span></td>;
+    if (!slot) return (
+      <td 
+        key={`${day}-${index}`} 
+        className={`${styles.emptyCell} cursor-pointer hover:bg-surface-variant/50 transition group relative`}
+        onDragOver={handleDragOver}
+        onDrop={(e) => handleDrop(e, day, index)}
+        onClick={() => handleAddSlot(day, index)}
+      >
+        <span className="text-[11px] italic text-on-surface-variant group-hover:hidden">Trống</span>
+        <span className="hidden group-hover:flex material-symbols-outlined text-primary text-sm absolute inset-0 items-center justify-center">add</span>
+      </td>
+    );
     
     let cardClass = styles.cardSurface;
     let badgeClass = styles.badgeSurface;
@@ -70,8 +191,27 @@ export const TimetablePage: React.FC = () => {
     else if (name.includes('sử') || name.includes('địa')) { cardClass = styles.cardAmber; badgeClass = styles.badgeAmber; }
 
     return (
-      <td className={styles.cellBase} key={`${day}-${index}`}>
-        <div className={cardClass}>
+      <td 
+        className={styles.cellBase} 
+        key={`${day}-${index}`}
+        onDragOver={handleDragOver}
+        onDrop={(e) => handleDrop(e, day, index)}
+      >
+        <div 
+          className={`${cardClass} group relative`}
+          draggable
+          onDragStart={(e) => handleDragStart(e, day, index)}
+          onDragEnd={handleDragEnd}
+          style={{ cursor: 'grab' }}
+        >
+          <button 
+            onClick={() => handleDeleteSlot(day, index)}
+            className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 p-1 hover:bg-black/10 rounded-full transition-opacity text-error flex items-center justify-center"
+            title="Xóa tiết học"
+          >
+            <span className="material-symbols-outlined text-[14px]">close</span>
+          </button>
+          
           <span className={badgeClass}>{slot.subjectName}</span>
           <p className={styles.subjectTitle}>{slot.subjectName}</p>
           <p className={styles.subjectDesc}>
@@ -125,7 +265,7 @@ export const TimetablePage: React.FC = () => {
               <button className={styles.weekBtn}>
                 <span className="material-symbols-outlined text-lg">chevron_left</span>
               </button>
-              <div className={styles.weekText}>Tuần này: 18/11 - 24/11/2024</div>
+              <div className={styles.weekText}>Tuần này: {weekStart} - {weekEnd}</div>
               <button className={styles.weekBtn}>
                 <span className="material-symbols-outlined text-lg">chevron_right</span>
               </button>
@@ -155,7 +295,7 @@ export const TimetablePage: React.FC = () => {
                 <span className={styles.bannerSubtitle}>Đã tối ưu 100% tuần này</span>
               </div>
               <p className={styles.bannerText}>
-                Phát hiện ngày mai <strong className="text-primary font-bold">(Thứ Ba)</strong> có <span className="text-tertiary font-semibold underline decoration-tertiary decoration-2">1 bài kiểm tra 15 phút môn Hóa Học</span> và <span className="text-error font-semibold">2 bài tập Toán</span> chưa hoàn thành.
+                Phát hiện ngày mai <strong className="text-primary font-bold">({tomorrowDayName})</strong> có <span className="text-tertiary font-semibold underline decoration-tertiary decoration-2">1 bài kiểm tra 15 phút môn Hóa Học</span> và <span className="text-error font-semibold">2 bài tập Toán</span> chưa hoàn thành.
               </p>
             </div>
           </div>
@@ -178,7 +318,7 @@ export const TimetablePage: React.FC = () => {
           <div className={styles.tableHeader}>
             <div className={styles.tableHeaderTitleGroup}>
               <span className="material-symbols-outlined text-primary">calendar_view_week</span>
-              <h2 className={styles.tableHeaderTitle}>Lưới thời khóa biểu học kỳ 1 (Năm học 2024 - 2025)</h2>
+              <h2 className={styles.tableHeaderTitle}>Lưới thời khóa biểu học kỳ 1 (Năm học {currentYear} - {currentYear + 1})</h2>
             </div>
             <div className={styles.tableHeaderActions}>
               <button 
@@ -321,17 +461,41 @@ export const TimetablePage: React.FC = () => {
               <thead>
                 <tr className="border-b border-outline-variant bg-surface-container-low text-xs font-semibold text-on-surface-variant">
                   <th className={styles.thTime}>Tiết / Khung giờ</th>
-                  <th className={styles.thBase}>Thứ Hai <span className={styles.thNormalDate}>18/11</span></th>
-                  <th className={styles.thToday}>
-                    <div className={styles.thTodayBadge}>Hôm nay</div>
-                    <div className="mt-2">Thứ Ba</div>
-                    <span className={styles.thTodayDate}>19/11</span>
+                  <th className={normalizedDay === 0 ? styles.thToday : styles.thBase}>
+                    {normalizedDay === 0 && <div className={styles.thTodayBadge}>Hôm nay</div>}
+                    <div className={normalizedDay === 0 ? "mt-2" : ""}>Thứ Hai</div>
+                    <span className={normalizedDay === 0 ? styles.thTodayDate : styles.thNormalDate}>{getDayDate(0)}</span>
                   </th>
-                  <th className={styles.thBase}>Thứ Tư <span className={styles.thNormalDate}>20/11</span></th>
-                  <th className={styles.thBase}>Thứ Năm <span className={styles.thNormalDate}>21/11</span></th>
-                  <th className={styles.thBase}>Thứ Sáu <span className={styles.thNormalDate}>22/11</span></th>
-                  <th className={styles.thBase}>Thứ Bảy <span className={styles.thNormalDate}>23/11</span></th>
-                  <th className={styles.thBase}>Chủ Nhật <span className={styles.thNormalDate}>24/11</span></th>
+                  <th className={normalizedDay === 1 ? styles.thToday : styles.thBase}>
+                    {normalizedDay === 1 && <div className={styles.thTodayBadge}>Hôm nay</div>}
+                    <div className={normalizedDay === 1 ? "mt-2" : ""}>Thứ Ba</div>
+                    <span className={normalizedDay === 1 ? styles.thTodayDate : styles.thNormalDate}>{getDayDate(1)}</span>
+                  </th>
+                  <th className={normalizedDay === 2 ? styles.thToday : styles.thBase}>
+                    {normalizedDay === 2 && <div className={styles.thTodayBadge}>Hôm nay</div>}
+                    <div className={normalizedDay === 2 ? "mt-2" : ""}>Thứ Tư</div>
+                    <span className={normalizedDay === 2 ? styles.thTodayDate : styles.thNormalDate}>{getDayDate(2)}</span>
+                  </th>
+                  <th className={normalizedDay === 3 ? styles.thToday : styles.thBase}>
+                    {normalizedDay === 3 && <div className={styles.thTodayBadge}>Hôm nay</div>}
+                    <div className={normalizedDay === 3 ? "mt-2" : ""}>Thứ Năm</div>
+                    <span className={normalizedDay === 3 ? styles.thTodayDate : styles.thNormalDate}>{getDayDate(3)}</span>
+                  </th>
+                  <th className={normalizedDay === 4 ? styles.thToday : styles.thBase}>
+                    {normalizedDay === 4 && <div className={styles.thTodayBadge}>Hôm nay</div>}
+                    <div className={normalizedDay === 4 ? "mt-2" : ""}>Thứ Sáu</div>
+                    <span className={normalizedDay === 4 ? styles.thTodayDate : styles.thNormalDate}>{getDayDate(4)}</span>
+                  </th>
+                  <th className={normalizedDay === 5 ? styles.thToday : styles.thBase}>
+                    {normalizedDay === 5 && <div className={styles.thTodayBadge}>Hôm nay</div>}
+                    <div className={normalizedDay === 5 ? "mt-2" : ""}>Thứ Bảy</div>
+                    <span className={normalizedDay === 5 ? styles.thTodayDate : styles.thNormalDate}>{getDayDate(5)}</span>
+                  </th>
+                  <th className={normalizedDay === 6 ? styles.thToday : styles.thBase}>
+                    {normalizedDay === 6 && <div className={styles.thTodayBadge}>Hôm nay</div>}
+                    <div className={normalizedDay === 6 ? "mt-2" : ""}>Chủ Nhật</div>
+                    <span className={normalizedDay === 6 ? styles.thTodayDate : styles.thNormalDate}>{getDayDate(6)}</span>
+                  </th>
                 </tr>
               </thead>
                             <tbody className={styles.tbody}>
@@ -451,7 +615,7 @@ export const TimetablePage: React.FC = () => {
           <div className={styles.sidebarCard}>
             <div className={styles.sidebarCardHeader}>
               <div className="flex items-center gap-2">
-                <h3 className={styles.sidebarCardTitle}>Cần chuẩn bị cho ngày mai (Thứ Ba)</h3>
+                <h3 className={styles.sidebarCardTitle}>Cần chuẩn bị cho ngày mai ({tomorrowDayName})</h3>
               </div>
               <span className={styles.sidebarBadge}>4 môn học</span>
             </div>
@@ -547,6 +711,78 @@ export const TimetablePage: React.FC = () => {
 
         </div>
       </div>
+
+      {/* SETTINGS MODAL */}
+      {showSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-surface rounded-2xl w-[500px] max-w-full overflow-hidden shadow-xl flex flex-col">
+            <div className="px-6 py-4 border-b border-outline-variant flex items-center justify-between">
+              <h2 className="text-xl font-bold text-on-surface">Cài đặt khung giờ học</h2>
+              <button onClick={() => setShowSettings(false)} className="text-on-surface-variant hover:text-on-surface">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[60vh] space-y-4">
+              <p className="text-sm text-on-surface-variant mb-4">
+                Tùy chỉnh khung giờ bắt đầu và kết thúc cho từng tiết học để hệ thống tự động gán khi bạn kéo thả môn học vào ô trống.
+              </p>
+              
+              <div className="space-y-3">
+                {defaultPeriods.map((period: any, idx: number) => (
+                  <div key={idx} className="flex items-center gap-4">
+                    <div className="w-20 text-sm font-semibold text-on-surface">
+                      {idx < 5 ? `Tiết ${idx + 1} Sáng` : `Tiết ${idx - 4} Chiều`}
+                    </div>
+                    <input 
+                      type="time" 
+                      value={period.startTime.substring(0, 5)} 
+                      onChange={(e) => {
+                        const newPeriods = [...defaultPeriods];
+                        newPeriods[idx].startTime = e.target.value + ":00";
+                        setDefaultPeriods(newPeriods);
+                      }}
+                      className="px-3 py-1.5 border border-outline rounded-lg text-sm bg-surface"
+                    />
+                    <span className="text-on-surface-variant">-</span>
+                    <input 
+                      type="time" 
+                      value={period.endTime.substring(0, 5)} 
+                      onChange={(e) => {
+                        const newPeriods = [...defaultPeriods];
+                        newPeriods[idx].endTime = e.target.value + ":00";
+                        setDefaultPeriods(newPeriods);
+                      }}
+                      className="px-3 py-1.5 border border-outline rounded-lg text-sm bg-surface"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 border-t border-outline-variant flex justify-end gap-3 bg-surface-container-lowest">
+              <button 
+                onClick={() => {
+                  setDefaultPeriods(DEFAULT_PERIODS_FALLBACK);
+                  localStorage.removeItem('timetable_default_periods');
+                }}
+                className="px-4 py-2 text-sm font-semibold text-error hover:bg-error-container rounded-lg transition"
+              >
+                Khôi phục mặc định
+              </button>
+              <button 
+                onClick={() => {
+                  localStorage.setItem('timetable_default_periods', JSON.stringify(defaultPeriods));
+                  setShowSettings(false);
+                }}
+                className="px-5 py-2 text-sm font-semibold text-on-primary bg-primary rounded-lg shadow-sm hover:shadow transition"
+              >
+                Lưu cài đặt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

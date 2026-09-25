@@ -19,12 +19,7 @@ function resolveErrorMessage(payload: any, status: number) {
   return `Thao tác không thành công (HTTP ${status}). Vui lòng thử lại.`
 }
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('ai-tutor.access-token') || sessionStorage.getItem('ai-tutor.access-token');
-  return {
-    'Authorization': `Bearer ${token}`
-  };
-};
+
 
 export async function extractScheduleFromImage(file: File): Promise<OcrExtractionResponse> {
   const formData = new FormData();
@@ -32,7 +27,7 @@ export async function extractScheduleFromImage(file: File): Promise<OcrExtractio
 
   const response = await fetch(`${API_BASE_URL}/schedules/extract-ocr`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    credentials: 'include',
     body: formData,
   });
 
@@ -46,9 +41,9 @@ export async function extractScheduleFromImage(file: File): Promise<OcrExtractio
 export async function createSchedule(request: ScheduleCreateRequest): Promise<ScheduleResponse> {
   const response = await fetch(`${API_BASE_URL}/schedules`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
-      'Content-Type': 'application/json',
-      ...getAuthHeaders()
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(request),
   });
@@ -63,7 +58,7 @@ export async function createSchedule(request: ScheduleCreateRequest): Promise<Sc
 export async function getActiveSchedule(): Promise<ScheduleResponse> {
   const response = await fetch(`${API_BASE_URL}/schedules/active`, {
     method: 'GET',
-    headers: getAuthHeaders()
+    credentials: 'include'
   });
 
   const payload = await parseJson<ScheduleResponse>(response);

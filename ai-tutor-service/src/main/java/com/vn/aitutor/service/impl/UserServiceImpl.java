@@ -99,9 +99,7 @@ public class UserServiceImpl implements IUserService {
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         
-        // Random mật khẩu phức tạp tạm thời để qua DB constraint (không dùng)
-        String randomComplexPassword = UUID.randomUUID().toString() + "!A1";
-        user.setPasswordHash(passwordEncoder.encode(randomComplexPassword));
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setFullName(request.getFullName());
         user.setRole(request.getRole());
         user.setGender(Gender.OTHER);

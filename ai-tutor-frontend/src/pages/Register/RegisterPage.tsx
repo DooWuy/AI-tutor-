@@ -131,23 +131,6 @@ export default function RegisterPage() {
                 </div>
                 <h1 className={styles.auth.title}>Tạo tài khoản AI Tutor miễn phí</h1>
                 <p className={styles.auth.subtitle}>Bắt đầu hành trình chinh phục điểm 9+ cùng gia sư AI thông minh đồng hành 24/7.</p>
-                
-                <button type="button" className={styles.auth.googleBtn} onClick={() => setMessage('Đăng ký bằng Google chưa khả dụng trong bản MVP.')}>
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" fill="#4285F4"></path>
-                    <path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.15C3.26 21.36 7.33 24 12 24z" fill="#34A853"></path>
-                    <path d="M5.28 14.27a7.22 7.22 0 0 1 0-4.54V6.58H1.24a11.96 11.96 0 0 0 0 10.84l4.04-3.15z" fill="#FBBC05"></path>
-                    <path d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.24 6.58l4.04 3.15c.95-2.83 3.6-4.98 6.72-4.98z" fill="#EA4335"></path>
-                  </svg>
-                  <span className={styles.auth.googleBtnText}>Đăng ký nhanh với Google</span>
-                </button>
-                
-                <div className={styles.auth.dividerWrapper}>
-                  <div className={styles.auth.dividerLine}>
-                    <div className={styles.auth.dividerLineInner}></div>
-                  </div>
-                  <span className={styles.auth.dividerText}>Hoặc điền thông tin</span>
-                </div>
 
                 {message && (
                   <div className={styles.auth.alertError}>
