@@ -14,21 +14,11 @@ spring:
       max-request-size: 6MB
 
 app:
-  frontend:
-    url: ${APP_FRONTEND_URL:http://localhost:5173}
   avatar:
     max-file-size: 5MB
   jwt:
     secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
     expiration: ${JWT_EXPIRATION:86400000}
-  academic:
-    timezone: Asia/Ho_Chi_Minh
-    semester1:
-      start-month-day: "08-15"
-      end-month-day: "01-15"
-  analytics:
-    seed-demo: false
-    knowledge-gap-job: false
 
 management:
   endpoints:
@@ -47,5 +37,5 @@ cloudinary:
 
 gemini:
   api:
-    key: ${GEMINI_API_KEY:}
+    key: ${GEMINI_API_KEY}
     url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent

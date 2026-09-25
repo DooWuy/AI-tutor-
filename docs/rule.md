@@ -28,3 +28,26 @@ API vÃ  quy táº¯c nghiá»‡p vá»¥
 - `gender`: `MALE`, `FEMALE`, `OTHER`.
 - `studyPreferences`: JSON object tá»‘i Ä‘a 8 KB; chá»‰ chá»©a giÃ¡ trá»‹ primitive hoáº·c máº£ng primitive, khÃ´ng nháº­n object lá»“ng tÃ¹y Ã½. Khi Ä‘Æ°á»£c gá»­i, toÃ n bá»™ object cÅ© Ä‘Æ°á»£c thay tháº¿.
 - TrÆ°á»ng khÃ´ng xuáº¥t hiá»‡n trong PATCH Ä‘Æ°á»£c giá»¯ nguyÃªn; chuá»—i rá»—ng cho trÆ°á»ng tÃ¹y chá»n Ä‘Æ°á»£c chuáº©n hÃ³a thÃ nh `null`.
+
+### Quy chu?n Frontend (React & Tailwind)
+
+- **Ki?n trúc và Phân tách Code (Clean Code)**
+    - JSX và CSS (Tailwind classes) ph?i du?c phân tách rành m?ch d? d?m b?o tính d? d?c.
+    - Không vi?t chu?i className quá dài tr?c ti?p vào file JSX. Thay vào dó, gom các chu?i className vào m?t file riêng bi?t có h?u t? .styles.ts (ví d?: LoginPage.styles.ts), export du?i d?ng object phân t?ng theo khu v?c giao di?n.
+    - Trong file JSX/TSX chính, g?i style ra du?i d?ng: className={styles.khu_vuc.element}.
+    - Các file SVG ho?c do?n code minh h?a HTML quá dài ph?i bóc tách ra thành file component riêng (ví d?: LoginBackground.tsx), tuy?t d?i không hardcode làm phình to code JSX.
+
+- **C?u trúc Thu m?c**
+    - Trang (Pages) l?n: Ğ?t vào thu m?c riêng theo c?u trúc src/pages/{PageName}/. File giao di?n chính n?m ? src/pages/{PageName}/{PageName}.tsx.
+    - Component con ph? thu?c c?a m?t trang: Ğ?t ? src/pages/{PageName}/components/.
+    - Styles c?a trang: Ğ?t ? src/pages/{PageName}/{PageName}.styles.ts.
+    - Component dùng chung (UI elements nhu Button, Card...): Ğ?t ? src/components/.
+
+- **Màu s?c và Theme (Tailwind)**
+    - S? d?ng h? th?ng mã màu dã du?c tùy ch?nh trong index.css / c?u hình Tailwind c?a d? án (nhu g-surface, 	ext-on-surface, primary, surface-container, error-container, v.v.).
+    - Tránh dùng mã hex c?ng (#RRGGBB) n?u không th?t s? c?n thi?t. Khuy?n khích s? d?ng bi?n có s?n.
+    - Icon: S? d?ng b? icon **Material Symbols Outlined** thông qua class material-symbols-outlined.
+
+- **Convention Chung**
+    - Format tên các hàm bi?n theo d?ng camelCase, tên Component d?ng PascalCase.
+    - Luôn dùng TypeScript (TSX) có d?nh nghia ki?u rõ ràng.

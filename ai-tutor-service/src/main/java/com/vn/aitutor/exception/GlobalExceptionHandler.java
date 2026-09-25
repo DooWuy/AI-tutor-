@@ -52,6 +52,15 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(ResourceUnauthorizedException.class)
+    public ResponseEntity<ApiResponse<String>> handleUnauthorized(ResourceUnauthorizedException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.<String>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build());
+    }
+
     // Xử lý Validation @Valid
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(MethodArgumentNotValidException ex) {

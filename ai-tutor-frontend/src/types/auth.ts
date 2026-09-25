@@ -6,3 +6,15 @@ export interface User {
 }
 export interface AuthSession { accessToken: string; user: User }
 export interface ApiResponse<T> { data: T; success: boolean; message: string; error?: Record<string, string> | string | null; timestamp: string }
+
+export interface RegisterData {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  fullName: string;
+  phoneNumber?: string;
+  schoolName: string;
+  gradeLevel: string;
+  className?: string;
+}
