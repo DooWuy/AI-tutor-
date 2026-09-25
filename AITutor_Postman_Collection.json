@@ -82,7 +82,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"email\": \"student123@example.com\",\n    \"password\": \"123456Test@\"\n}"
+                            "raw": "{\n    \"email\": \"student123@example.com\",\n    \"password\": \"Password1!\"\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/api/v1/auth/login",

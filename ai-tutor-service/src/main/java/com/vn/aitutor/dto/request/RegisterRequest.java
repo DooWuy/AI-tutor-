@@ -41,7 +41,7 @@ public class RegisterRequest {
     private String schoolName;
 
     @NotBlank(message = "Khối lớp không được để trống")
-    @Pattern(regexp = "^(10|11|12)$", message = "Khối lớp phải là 10, 11 hoặc 12")
+    @Pattern(regexp = "^([1-9]|1[0-2])$", message = "Khối lớp phải từ 1 đến 12")
     private String gradeLevel;
 
     @NotBlank(message = "Tên lớp không được để trống")

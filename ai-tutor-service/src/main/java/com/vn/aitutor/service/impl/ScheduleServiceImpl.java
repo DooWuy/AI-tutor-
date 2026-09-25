@@ -4,6 +4,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.vn.aitutor.dto.ScheduleSlotDto;
 import com.vn.aitutor.dto.request.ScheduleCreateRequest;
 import com.vn.aitutor.dto.response.OcrExtractionResponse;
@@ -48,7 +49,7 @@ public class ScheduleServiceImpl implements IScheduleService {
     @Value("${gemini.api.key:default_key_placeholder}")
     private String geminiApiKey;
 
-    @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent}")
+    @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent}")
     private String geminiApiUrl;
 
     // Giới hạn file 5MB chống OOM DoS
@@ -63,7 +64,7 @@ public class ScheduleServiceImpl implements IScheduleService {
         this.studentRepository = studentRepository;
         
         // [Security Fix] Cấu hình ObjectMapper bỏ qua trường lạ từ AI
-        this.objectMapper = tools.jackson.databind.json.JsonMapper.builder()
+        this.objectMapper = JsonMapper.builder()
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .build();
                 
@@ -87,7 +88,10 @@ public class ScheduleServiceImpl implements IScheduleService {
         }
 
         String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
-        String prompt = "Trích xuất thông tin thời khóa biểu trong ảnh thành mảng JSON. Ánh xạ các 'tiết học' thành giờ thực tế 'startTime' (VD: 07:00:00) và 'endTime' (VD: 09:15:00). Trả về CHỈ một mảng JSON array chứa các object: dayOfWeek (2 đến 8), subjectName, startTime, endTime, teacherName, room. KHÔNG bọc trong markdown (```json).";
+        String prompt = "Trích xuất thông tin thời khóa biểu trong ảnh thành mảng JSON. " +
+            "Ánh xạ các 'tiết học' thành giờ thực tế 'startTime' (VD: 07:00:00) và 'endTime' (VD: 09:15:00). " +
+            "Trả về CHỈ một mảng JSON array chứa các object: dayOfWeek (2 đến 8), subjectName, startTime, endTime, teacherName, room. " +
+            "KHÔNG bọc trong markdown (```json).";
 
         Map<String, Object> requestBody = buildGeminiRequest(prompt, base64Image, mimeType);
 

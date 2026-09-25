@@ -11,6 +11,7 @@ import com.vn.aitutor.dto.response.AuthResponse;
 import com.vn.aitutor.dto.response.UserResponse;
 import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.exception.ResourceConflictException;
+import com.vn.aitutor.exception.ResourceUnauthorizedException;
 import com.vn.aitutor.repository.StudentRepository;
 import com.vn.aitutor.repository.UserRepository;
 import com.vn.aitutor.security.jwt.JwtProvider;
@@ -40,6 +41,8 @@ import com.vn.aitutor.entity.PasswordResetToken;
 import com.vn.aitutor.repository.PasswordResetTokenRepository;
 import com.vn.aitutor.dto.request.SetupPasswordRequest;
 import java.time.LocalDateTime;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 
 @Service
 @RequiredArgsConstructor
@@ -194,8 +197,12 @@ public class AuthServiceImpl implements IAuthService {
     @Override
     public ApiResponse<String> logout(HttpServletRequest request, HttpServletResponse response) {
         String token = getJwtFromRequest(request);
-        if (StringUtils.hasText(token) && jwtProvider.validateToken(token, request)) {
-            tokenBlacklistService.addTokenToBlacklist(token, "access");
+        try {
+            if (StringUtils.hasText(token) && jwtProvider.validateToken(token, request)) {
+                tokenBlacklistService.addTokenToBlacklist(token, "access");
+            }
+        } catch (Exception e) {
+            log.warn("Access token invalid during logout: {}", e.getMessage());
         }
 
         String refreshToken = getRefreshTokenFromCookie(request);
@@ -218,7 +225,7 @@ public class AuthServiceImpl implements IAuthService {
         
         if (!StringUtils.hasText(oldRefreshToken) || !refreshTokenService.isRefreshTokenValid(oldRefreshToken)) {
             clearRefreshTokenCookie(response);
-            throw new ResourceBadRequestException("Refresh token không hợp lệ hoặc đã hết hạn");
+            throw new ResourceUnauthorizedException("Refresh token không hợp lệ hoặc đã hết hạn");
         }
 
         // Token rotation: delete old refresh token
@@ -227,7 +234,7 @@ public class AuthServiceImpl implements IAuthService {
         // Get user from old refresh token
         String username = jwtProvider.getUsernameFromToken(oldRefreshToken);
         if (username == null) {
-            throw new ResourceBadRequestException("Refresh token không hợp lệ hoặc đã hết hạn");
+            throw new ResourceUnauthorizedException("Refresh token không hợp lệ hoặc đã hết hạn");
         }
         
         User user = userRepository.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue(username)
@@ -273,21 +280,25 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
-        Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(REFRESH_TOKEN_MAX_AGE);
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(REFRESH_TOKEN_MAX_AGE)
+                .sameSite("None")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     private void clearRefreshTokenCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("None")
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     private UserResponse mapToUserResponse(User user) {
