@@ -2,6 +2,8 @@ package com.vn.aitutor.exception;
 
 import com.vn.aitutor.dto.response.ApiResponse;
 import io.jsonwebtoken.JwtException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -93,6 +96,44 @@ public class GlobalExceptionHandler {
                         .success(false)
                         .message("Token không hợp lệ hoặc đã hết hạn")
                         .build());
+    }
+
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<ApiResponse<String>> handleDataAccess(DataAccessException ex) {
+        if (historyImmutable(ex)) {
+            log.warn("History mutation blocked by database: {}", rootMessage(ex));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.<String>builder()
+                            .success(false)
+                            .message("Không được sửa hoặc xóa dữ liệu lịch sử")
+                            .build());
+        }
+        log.error("Database error", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.<String>builder()
+                        .success(false)
+                        .message("Lỗi hệ thống nội bộ")
+                        .build());
+    }
+
+    private boolean historyImmutable(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.contains("HISTORY_IMMUTABLE")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private String rootMessage(Throwable error) {
+        Throwable current = error;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current.getMessage();
     }
 
     @ExceptionHandler(Exception.class)

@@ -71,8 +71,8 @@ public final class KpiCalculator {
     }
 
     /**
-     * At-risk if average score &lt; 5.0 OR inactive more than 7 days (null last-activity counts as inactive).
-     * Knowledge-gap criterion is deferred to a later slice.
+     * KPI count: average score &lt; 5.0 OR inactive more than 7 days (null last-activity counts as inactive).
+     * Red/orange list rules, including knowledge gaps, live in {@link AtRiskClassifier}.
      */
     public static boolean isAtRisk(BigDecimal studentAverageScore, Integer inactivityDays) {
         boolean lowScore = studentAverageScore != null

@@ -4,6 +4,7 @@ server:
 app:
   analytics:
     knowledge-gap-job: true
+    at-risk-job: true
 
 spring:
   datasource:

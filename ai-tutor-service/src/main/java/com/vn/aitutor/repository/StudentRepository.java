@@ -32,4 +32,10 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
     long countActiveByClassId(@Param("classId") UUID classId);
 
     List<Student> findByClassEntity_IdOrderByStudentCodeAsc(UUID classId);
+
+    @Query("SELECT s FROM Student s JOIN FETCH s.user WHERE s.classEntity.id = :classId")
+    List<Student> findWithUserByClassId(@Param("classId") UUID classId);
+
+    @Query("SELECT s FROM Student s JOIN FETCH s.user LEFT JOIN FETCH s.classEntity WHERE s.id = :id")
+    Optional<Student> findWithUserById(@Param("id") UUID id);
 }

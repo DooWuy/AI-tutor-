@@ -29,6 +29,7 @@ app:
   analytics:
     seed-demo: false
     knowledge-gap-job: false
+    at-risk-job: false
 
 management:
   endpoints:
