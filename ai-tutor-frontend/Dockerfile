@@ -11,6 +11,11 @@ RUN npm ci || npm install
 # Copy source files
 COPY . .
 
+# Configure API base URL at build time because Vite bakes env values into
+# the static bundle served by Nginx.
+ARG VITE_API_BASE_URL=/api/v1
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
 # Build the application
 RUN npm run build
 
