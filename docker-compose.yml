@@ -78,5 +78,17 @@ services:
       redis:
         condition: service_healthy
 
+  ai-tutor-frontend:
+    build:
+      context: ./ai-tutor-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+    container_name: ai-tutor-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - ai-tutor-service
+
 volumes:
   ai_tutor_pgdata:

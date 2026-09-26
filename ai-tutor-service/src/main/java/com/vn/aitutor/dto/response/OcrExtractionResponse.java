@@ -9,6 +9,6 @@ import java.util.List;
 @Data
 @Builder
 public class OcrExtractionResponse {
-    private String status;
-    private List<ScheduleSlotDto> data;
+    private String name;
+    private List<ScheduleSlotDto> slots;
 }
