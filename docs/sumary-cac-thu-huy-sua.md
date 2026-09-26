@@ -1,0 +1,25 @@
+Tổng Kết Nâng Cấp
+- Chuẩn hóa Flyway migration
+    - Khôi phục V2__create_core_tables.sql chỉ chứa schema lõi như lịch sử ban đầu.
+    - Tách lại V3__analytics_class_assignments.sql cho analytics/lớp học và V4__knowledge_gap_answers.sql cho knowledge-gap.
+    - Lý do: Không được sửa nội dung migration đã phát hành. Việc gộp V3/V4 vào V2 làm checksum Flyway thay đổi, khiến database cũ hoặc môi trường mới có nguy cơ lỗi khi chạy.
+- Làm sạch database development
+    - Reset Docker PostgreSQL volume và để Flyway chạy lại từ V1 đến V4.
+    - Lý do: Database local đã từng chạy bản V2 lỗi, trong đó thực tế đã chứa schema của V3/V4; giữ lại sẽ gây Flyway checksum mismatch.
+    - Lưu ý cho team: ai đã chạy đúng revision lỗi đó cần reset DB dev. Database shared/production không nên reset mà cần quy trình migration/DBA riêng.
+- Cấu hình cookie auth theo môi trường
+    - Local: HttpOnly, SameSite=Lax, không có Secure, hoạt động qua http://localhost.
+    - Production: HttpOnly, SameSite=None, Secure=true, phù hợp HTTPS và frontend/backend khác origin.
+    - Lý do: cấu hình cũ hard-code Secure=true; SameSite=None, nên browser có thể không lưu cookie khi chạy local HTTP.
+- Bổ sung cấu hình frontend URL mặc định
+    - Default: http://localhost:5173; Docker Compose dùng http://localhost:3000.
+    - Lý do: tránh lỗi startup khi người mới chạy backend local mà chưa thiết lập biến APP_FRONTEND_URL; đồng thời CORS nhận đúng frontend dev/Docker.
+- Xác thực runtime
+    - Docker stack đã rebuild và hoạt động: PostgreSQL, Redis, RabbitMQ, backend :8088, frontend :3000.
+    - Flyway history xác nhận V1–V4 đều thành công.
+    - OpenAPI /v3/api-docs trả 200.
+    - Login admin mẫu trả 200; cookie access/refresh có HttpOnly; SameSite=Lax đúng cho local.
+- Tồn tại cần theo dõi
+    - Gradle test local vẫn fail ở bước compile test của module analytics, không liên quan các thay đổi migration/cookie này.
+    - Docker build backend với bootJar -x test đã thành công và service chạy bình thường.
+    - 

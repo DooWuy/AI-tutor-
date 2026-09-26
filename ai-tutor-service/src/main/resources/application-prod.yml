@@ -2,6 +2,10 @@ server:
   port: 8088
 
 app:
+  auth:
+    cookie:
+      secure: true
+      same-site: None
   analytics:
     knowledge-gap-job: true
 

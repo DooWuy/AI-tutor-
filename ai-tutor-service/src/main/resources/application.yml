@@ -14,6 +14,13 @@ spring:
       max-request-size: 6MB
 
 app:
+  frontend:
+    url: ${APP_FRONTEND_URL:http://localhost:5173}
+  auth:
+    cookie:
+      secure: ${APP_AUTH_COOKIE_SECURE:false}
+      same-site: ${APP_AUTH_COOKIE_SAME_SITE:Lax}
+      path: ${APP_AUTH_COOKIE_PATH:/}
   avatar:
     max-file-size: 5MB
   jwt:
@@ -38,4 +45,4 @@ cloudinary:
 gemini:
   api:
     key: ${GEMINI_API_KEY}
-    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent
+    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent

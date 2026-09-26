@@ -43,6 +43,7 @@ import com.vn.aitutor.dto.request.SetupPasswordRequest;
 import java.time.LocalDateTime;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -59,6 +60,15 @@ public class AuthServiceImpl implements IAuthService {
     private final RefreshTokenService refreshTokenService;
     private final IMailService mailService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Value("${app.auth.cookie.secure}")
+    private boolean secureCookie;
+
+    @Value("${app.auth.cookie.same-site}")
+    private String cookieSameSite;
+
+    @Value("${app.auth.cookie.path}")
+    private String cookiePath;
 
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refresh_token";
     private static final int REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -295,10 +305,10 @@ public class AuthServiceImpl implements IAuthService {
     private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
-                .secure(true)
-                .path("/")
+                .secure(secureCookie)
+                .path(cookiePath)
                 .maxAge(REFRESH_TOKEN_MAX_AGE)
-                .sameSite("None")
+                .sameSite(cookieSameSite)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
@@ -306,10 +316,10 @@ public class AuthServiceImpl implements IAuthService {
     private void clearRefreshTokenCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
                 .httpOnly(true)
-                .secure(true)
-                .path("/")
+                .secure(secureCookie)
+                .path(cookiePath)
                 .maxAge(0)
-                .sameSite("None")
+                .sameSite(cookieSameSite)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
@@ -317,10 +327,10 @@ public class AuthServiceImpl implements IAuthService {
     private void setAccessTokenCookie(HttpServletResponse response, String accessToken) {
         ResponseCookie cookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE_NAME, accessToken)
                 .httpOnly(true)
-                .secure(true)
-                .path("/")
+                .secure(secureCookie)
+                .path(cookiePath)
                 .maxAge(ACCESS_TOKEN_MAX_AGE)
-                .sameSite("None")
+                .sameSite(cookieSameSite)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
@@ -328,10 +338,10 @@ public class AuthServiceImpl implements IAuthService {
     private void clearAccessTokenCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE_NAME, "")
                 .httpOnly(true)
-                .secure(true)
-                .path("/")
+                .secure(secureCookie)
+                .path(cookiePath)
                 .maxAge(0)
-                .sameSite("None")
+                .sameSite(cookieSameSite)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }

@@ -82,6 +82,8 @@ services:
     build:
       context: ./ai-tutor-frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
     container_name: ai-tutor-frontend
     ports:
       - "3000:80"
