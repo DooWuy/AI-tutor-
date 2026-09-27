@@ -1,231 +1,325 @@
-# Issue 53 - Student Profile View & Update
+# Issue 53 - Student Profile Epic
 
-## Phạm vi
+## Mục tiêu
 
-Issue 53 chỉ triển khai hồ sơ học sinh theo `FR-PRO-01..04` và `US-13`.
+Chuẩn hóa nghiệp vụ hồ sơ học sinh theo SRS MVP và codebase hiện tại, nhưng không mở rộng quá phạm vi demo. Epic này được tách thành các issue con để team implement lần lượt, tránh trộn profile, bảo mật, dashboard và notification vào cùng một task.
 
-Giữ trong Issue 53:
+## Nguyên tắc phạm vi
 
-- Học sinh xem hồ sơ cá nhân của chính mình qua JWT, không truyền `userId` từ client.
-- Học sinh cập nhật các trường hồ sơ được phép.
-- Upload avatar.
-- Hiển thị email đăng nhập từ `User`.
-- Hiển thị XP, level và streak ở chế độ chỉ đọc.
+- MVP chỉ tập trung vào học sinh xem và cập nhật hồ sơ cá nhân được phép.
+- Email đăng nhập thuộc `User`, không cập nhật qua profile học sinh.
+- `students.email` hiện có trong database được xem là legacy/deprecated trong MVP. Không xóa column ngay để tránh rủi ro migration và lỗi server.
+- Endpoint frontend học sinh nên dùng theo dạng `/students/me`, không truyền `userId` từ client.
+- Các endpoint `/users/{id}` hiện có vẫn giữ cho Admin và tương thích tạm thời.
+- XP, level, streak chỉ hiển thị, không cho học sinh sửa.
+- Notification preferences không thuộc MVP hiện tại.
 
-Tách khỏi Issue 53:
+## Issue 53.1 - Student Profile API: Xem hồ sơ của chính mình
 
-- Đổi mật khẩu: tạo issue bảo mật riêng; backend hiện đã có API nhưng SRS chưa chốt yêu cầu rõ.
-- Dashboard thống kê: thuộc `FR-REP-01`, triển khai trong feature Dashboard.
-- Tổng giờ học, số bài hoàn thành: chưa có nguồn dữ liệu được chốt trong MVP.
-- Badge: thuộc phạm vi Won't Have.
-- Notification preferences/worker: ngoài phạm vi MVP; reminder qua push/email là Won't Have.
+### Mục tiêu
 
-## API contract
+Cho phép học sinh đăng nhập xem hồ sơ cá nhân của chính mình mà không cần truyền `userId` từ client.
 
-Base path: `/api/v1`
+### API đề xuất
 
-Tất cả endpoint dưới đây chỉ dành cho `STUDENT` và dùng JWT hiện tại.
+- `GET /api/v1/students/me`
+- Chỉ role `STUDENT` được gọi.
+- Backend xác định tài khoản từ JWT/session hiện tại.
 
-### GET `/students/me`
+### Response data
 
-Trả về hồ sơ học sinh hiện tại.
+Trả về dữ liệu tổng hợp từ `User` và `Student`.
 
-Response `200`:
+Read-only:
 
-```json
-{
-  "success": true,
-  "message": "Thành công",
-  "data": {
-    "userId": "0d2e3c5b-9a31-42fd-9ab9-3395e46c24d2",
-    "studentId": "6b034e44-12b5-42a0-9c37-45e094a71f33",
-    "studentCode": "STU-12345678",
-    "username": "student123",
-    "email": "student123@example.com",
-    "schoolName": "High School A",
-    "totalXp": 1200,
-    "currentLevel": 4,
-    "currentStreak": 7,
-    "fullName": "Nguyen Van A",
-    "dateOfBirth": "2009-05-12",
-    "gender": "MALE",
-    "phoneNumber": "0987654321",
-    "avatarUrl": "https://res.cloudinary.com/demo/image/upload/avatar.webp",
-    "gradeLevel": "10",
-    "className": "10A1",
-    "studyPreferences": {
-      "subjects": ["math", "english"],
-      "dailyGoalMinutes": 45
-    }
-  },
-  "error": null,
-  "timestamp": "2026-09-22T10:00:00"
-}
-```
+- `userId`
+- `studentId`
+- `studentCode`
+- `username`
+- `email` lấy từ `User.email`
+- `schoolName`
+- `totalXp`
+- `currentLevel`
+- `currentStreak`
 
-### PATCH `/students/me`
+Editable fields hiển thị để FE render form:
 
-Chỉ cập nhật các trường được phép. Trường không xuất hiện được giữ nguyên. Chuỗi rỗng cho trường tùy chọn được chuẩn hóa thành `null`.
+- `fullName`
+- `dateOfBirth`
+- `gender`
+- `phoneNumber`
+- `avatarUrl`
+- `gradeLevel`
+- `className`
+- `studyPreferences`
 
-Request:
+### Acceptance Criteria
 
-```json
-{
-  "fullName": "Nguyen Van A",
-  "dateOfBirth": "2009-05-12",
-  "gender": "MALE",
-  "phoneNumber": "0987654321",
-  "avatarUrl": "https://res.cloudinary.com/demo/image/upload/avatar.webp",
-  "gradeLevel": "10",
-  "className": "10A1",
-  "studyPreferences": {
-    "subjects": ["math", "english"],
-    "dailyGoalMinutes": 45,
-    "darkMode": true
-  }
-}
-```
+- [x] Student gọi API nhận đúng hồ sơ của chính mình.
+- [x] Không nhận `userId`/`studentId` từ request.
+- [x] User không phải `STUDENT` bị từ chối theo rule phân quyền.
+- [x] Nếu tài khoản student chưa có bản ghi `Student`, trả lỗi nghiệp vụ rõ ràng.
+- [x] Response không lấy email từ `students.email`.
 
-Response `200`: giống `GET /students/me`, với dữ liệu mới nhất.
+### Trạng thái triển khai và kiểm chứng
 
-Validation:
+- [x] `StudentProfileController` và service current-user đã được triển khai.
+- [x] `GET /api/v1/students/me` compile thành công và đã kiểm chứng runtime qua Docker.
+- [x] Runtime kiểm chứng: không token trả `401`; Student hợp lệ trả `200` và đúng profile.
+- [ ] Kiểm thử HTTP tự động trong CI chưa được thêm.
 
-- `fullName`: trim khoảng trắng, không rỗng khi gửi, tối đa 255 ký tự.
+## Issue 53.2 - Student Profile API: Cập nhật hồ sơ được phép
+
+### Mục tiêu
+
+Cho phép học sinh cập nhật các trường hồ sơ cá nhân được phép, đồng thời bảo vệ các trường định danh và tiến độ học tập.
+
+### API đề xuất
+
+- `PATCH /api/v1/students/me`
+- Chỉ role `STUDENT`.
+- Cập nhật `User` và `Student` trong cùng transaction.
+
+### Trường được cập nhật
+
+- `fullName`
+- `dateOfBirth`
+- `gender`
+- `phoneNumber`
+- `gradeLevel`
+- `className`
+- `studyPreferences`
+
+### Trường không được cập nhật
+
+- `userId`
+- `studentId`
+- `studentCode`
+- `username`
+- `email`
+- `role`
+- `active` / trạng thái tài khoản
+- `schoolName`
+- `totalXp`
+- `currentLevel`
+- `currentStreak`
+
+### Validation
+
+- `fullName`: không rỗng sau trim, tối đa 255 ký tự.
 - `dateOfBirth`: không được ở tương lai.
-- `phoneNumber`: tùy chọn, đúng định dạng số điện thoại Việt Nam hiện hành của dự án.
-- `gradeLevel`: nếu gửi phải khác rỗng, tối đa 32 ký tự.
-- `className`: tùy chọn, tối đa 64 ký tự.
 - `gender`: `MALE`, `FEMALE`, `OTHER`.
-- `studyPreferences`: JSON object tối đa 8 KB; chỉ chứa primitive hoặc mảng primitive. Khi gửi, toàn bộ object cũ được thay thế.
+- `phoneNumber`: tùy chọn, theo regex số điện thoại Việt Nam hiện có của dự án.
+- `gradeLevel`: nếu gửi lên thì không rỗng, tối đa 32 ký tự.
+- `className`: tùy chọn, tối đa 64 ký tự.
+- `studyPreferences`: JSON object tối đa 8 KB; chỉ chứa primitive hoặc mảng primitive, không nhận object lồng tùy ý.
+- Field không xuất hiện trong PATCH được giữ nguyên.
+- Chuỗi rỗng cho field tùy chọn được chuẩn hóa thành `null`.
 
-### POST `/students/me/avatar`
+### Acceptance Criteria
 
-Upload avatar bằng `multipart/form-data`, field `file`.
+- [x] Student cập nhật được các field trong danh sách cho phép (runtime Docker trả `200`).
+- [x] Các field read-only nếu gửi lên bị từ chối với lỗi `400` rõ ràng theo code allowlist.
+- [x] Update chạy trong cùng transaction cho `User` và `Student`.
+- [x] Response sau update trả về cùng shape với `GET /students/me` theo code mapping.
+- [x] Không ghi hoặc cập nhật `students.email`.
 
-Request:
+### Trạng thái triển khai và kiểm chứng
 
-```text
-POST /api/v1/students/me/avatar
-Content-Type: multipart/form-data
+- [x] Thêm `PATCH /api/v1/students/me` với DTO allowlist và PATCH presence-aware.
+- [x] Chuẩn hóa chuỗi tùy chọn rỗng thành `null`; field không gửi được giữ nguyên.
+- [x] Validate ngày sinh, số điện thoại, độ dài tên/khối/lớp và `studyPreferences`.
+- [x] `./gradlew clean compileJava --no-daemon` đã pass.
+- [x] Runtime Docker đã kiểm chứng PATCH `200`, GET sau PATCH giữ dữ liệu, field `email` trả `400`.
 
-file=<avatar.jpg>
-```
+## Issue 53.3 - Student Avatar Upload
 
-Response `200`:
+### Mục tiêu
 
-```json
-{
-  "success": true,
-  "message": "Tải ảnh đại diện lên thành công",
-  "data": "https://res.cloudinary.com/demo/image/upload/ai_tutor_avatars/avatar.jpg",
-  "error": null,
-  "timestamp": "2026-09-22T10:00:00"
-}
-```
+Cho phép học sinh cập nhật ảnh đại diện của chính mình qua endpoint không cần truyền user id.
 
-Validation:
+### API đề xuất
+
+- `POST /api/v1/students/me/avatar`
+- `multipart/form-data`
+- Field file: `file`
+- Chỉ role `STUDENT`.
+
+### Validation
 
 - File không rỗng.
-- Chấp nhận JPEG, PNG hoặc WebP.
+- Chỉ chấp nhận JPEG, PNG hoặc WebP.
 - Tối đa 5 MB.
-- Kiểm tra MIME type và phần mở rộng.
-- Cloudinary upload dưới `resource_type=image`.
+- Kiểm tra MIME type, phần mở rộng và chữ ký file.
+- Cloudinary upload với `resource_type=image`.
 
-## Bảng trường
+### Acceptance Criteria
 
-| Field | Nguồn | GET | PATCH | Ghi chú |
-| --- | --- | --- | --- | --- |
-| `userId` | `users.id` | Read-only | Không | Lấy từ JWT hiện tại |
-| `studentId` | `students.id` | Read-only | Không | Hồ sơ one-to-one của user |
-| `studentCode` | `students.student_code` | Read-only | Không | Do hệ thống/nhà trường quản lý |
-| `username` | `users.username` | Read-only | Không | Không đổi trong Issue 53 |
-| `email` | `users.email` | Read-only | Không | Không dùng `students.email` |
-| `schoolName` | `students.school_name` | Read-only | Không | Do Admin/nhà trường quản lý |
-| `totalXp` | `students.total_xp` | Read-only | Không | Chỉ hiển thị |
-| `currentLevel` | `students.current_level` | Read-only | Không | Chỉ hiển thị |
-| `currentStreak` | `students.current_streak` | Read-only | Không | Chỉ hiển thị |
-| `fullName` | `users.full_name` | Editable | Có | Cập nhật cùng transaction |
-| `dateOfBirth` | `users.date_of_birth` | Editable | Có | Không ở tương lai |
-| `gender` | `users.gender` | Editable | Có | Enum |
-| `phoneNumber` | `users.phone_number` | Editable | Có | Chuỗi rỗng thành `null` |
-| `avatarUrl` | `users.avatar_url` | Editable | Có | Có thể cập nhật qua upload avatar |
-| `gradeLevel` | `students.grade_level` | Editable | Có | Không rỗng khi gửi |
-| `className` | `students.class_name` | Editable | Có | Chuỗi rỗng thành `null` |
-| `studyPreferences` | `students.study_preferences` | Editable | Có | Replace toàn bộ object |
+- [x] Upload thành công trả về profile response có `avatarUrl` mới; runtime Cloudinary đã trả `200`.
+- [x] `User.avatarUrl` được cập nhật theo transaction sau upload thành công.
+- [x] File sai định dạng/kích thước/MIME/signature trả lỗi validation rõ ràng; runtime file text giả đã trả `400`.
+- [x] Không nhận user id; quyền current-user được bảo vệ bằng `ROLE_STUDENT`.
 
-## Acceptance criteria
+### Trạng thái triển khai và kiểm chứng
 
-- `GET /api/v1/students/me` chỉ cho phép role `STUDENT` và xác định user từ JWT.
-- `PATCH /api/v1/students/me` chỉ cập nhật field editable, không cập nhật email, username, role, trạng thái tài khoản, mã học sinh, trường học, XP, level hoặc streak.
-- Cập nhật `User` và `Student` trong cùng transaction.
-- `POST /api/v1/students/me/avatar` validate file rỗng, MIME, phần mở rộng, kích thước tối đa 5 MB và upload Cloudinary với `resource_type=image`.
-- Email trong response luôn lấy từ `User.email`; database không còn phụ thuộc `students.email`.
-- `/users/{id}` hiện tại vẫn giữ cho Admin và tương thích tạm thời; frontend học sinh chỉ dùng `/students/me`.
-- OpenAPI runtime qua Springdoc có endpoint `/students/me`, `/students/me/avatar`, request/response schema tương ứng.
-- Postman collection có nhóm Student Profile với 3 request tương ứng.
+- [x] Thêm `POST /api/v1/students/me/avatar` với multipart field `file`.
+- [x] Tái sử dụng `AvatarUploadValidator` và Cloudinary `resource_type=image`.
+- [x] Endpoint chỉ cho `ROLE_STUDENT` và không nhận user id.
+- [x] `AvatarUploadValidatorTest` đã pass.
+- [x] Upload Cloudinary HTTP đã kiểm chứng với credential trong `.env.example`.
 
+## Issue 53.4 - Frontend Student Profile Integration
 
-Các task triển khai
+### Mục tiêu
 
- dã xong  1. **PRO-01 — Chuẩn hóa requirement và API contract**
-    - Viết lại Issue 53 theo phạm vi đã chốt.
-    - Bổ sung acceptance criteria, request/response mẫu và bảng trường editable/read-only.
-    - Cập nhật OpenAPI và Postman collection.
-    - Ghi rõ dashboard, password, badge và notification thuộc issue khác.
+Chuyển màn hình `Student/Profile/ProfilePage.tsx` từ dữ liệu mock/local state sang dùng API profile thật.
 
- đã xong 2. **PRO-02 — Đồng bộ database và entity**
-    - Tạo Flyway migration tiếp theo để loại bỏ `students.email`.
-    - Xóa mapping và toàn bộ logic ghi email vào `Student`; email chỉ lấy từ `User`.
-    - Giữ quan hệ one-to-one và unique `students.user_id`.
-    - Không dùng `ddl-auto=update`.
+### Phạm vi FE
 
-3. **PRO-03 — Xây dựng Student Profile backend**
-    - Tạo DTO riêng cho response và PATCH request; không tái sử dụng `UserUpdateRequest`.
-    - Tạo controller/service dành cho `/students/me`.
-    - Truy vấn đồng thời `User` và `Student` từ principal hiện tại.
-    - Mapping đầy đủ dữ liệu cá nhân, học tập và tiến độ.
-    - Trả `404` nếu tài khoản STUDENT không có bản ghi Student tương ứng.
-    - Giữ mọi thay đổi User/Student trong một transaction.
+- Tạo service `studentProfileApi`.
+- Tạo type cho `StudentProfile`.
+- Khi vào `/student/profile`, gọi `GET /api/v1/students/me`.
+- Form edit dùng `PATCH /api/v1/students/me`.
+- Avatar dùng `POST /api/v1/students/me/avatar`.
+- Hiển thị loading, error, empty state cơ bản.
+- Phân biệt rõ read-only và editable fields trên UI.
 
-4. **PRO-04 — Hardening avatar upload**
-    - Chuyển self-service avatar sang `/students/me/avatar`.
-    - Áp dụng allowlist JPEG/PNG/WebP và giới hạn 5 MB ở application config lẫn service validation.
-    - Không dùng tên file gốc làm public ID; tiếp tục sinh UUID.
-    - Trả URL HTTPS mới trong response và cập nhật `User.avatarUrl`.
-    - Không log nội dung file hoặc dữ liệu cá nhân.
+### Acceptance Criteria
 
-5. **PRO-05 — Xây dựng giao diện Student Profile**
-    - Điều kiện tiên quyết: frontend phải có login/session, API client, route guard và refresh-token flow; frontend hiện vẫn là Vite starter nên phần nền này phải được merge trước hoặc theo một task phụ thuộc riêng.
-    - Tạo trang Profile gồm chế độ xem và form chỉnh sửa.
-    - Hiển thị email, mã học sinh, trường, XP, level và streak ở chế độ chỉ đọc.
-    - Cho sửa đúng các trường đã chốt và upload/preview avatar.
-    - Có loading, empty, validation error, API error, save success và retry state.
-    - Sau cập nhật thành công, đồng bộ profile trong auth state/header mà không yêu cầu đăng nhập lại.
+- [x] Trang Profile gọi profile thật từ backend khi mở.
+- [x] Lưu thay đổi gọi PATCH và render lại dữ liệu mới trong state.
+- [x] Read-only fields không có input chỉnh sửa.
+- [x] Lỗi API được hiển thị trong trạng thái lỗi của trang.
+- [x] Profile chính không còn hard-code `Nguyễn Văn An`, `hocsinh@example.com`, XP/streak mock.
 
-6. **PRO-06 — Kiểm thử và tích hợp**
-    - Unit test mapper, validation, partial update và giới hạn `studyPreferences`.
-    - Service test bảo đảm trường khóa không bị thay đổi và rollback khi cập nhật một trong hai entity thất bại.
-    - MockMvc/security test cho unauthenticated `401`, sai role `403`, Student đọc/sửa đúng hồ sơ của mình.
-    - Test avatar hợp lệ, file rỗng, sai MIME/phần mở rộng và vượt 5 MB.
-    - Repository/migration test trên PostgreSQL sạch, gồm kiểm tra cột email trùng đã được loại bỏ.
-    - FE component/API test cho load, edit, validation, upload và error state.
-    - E2E: đăng nhập Student → mở Profile → sửa dữ liệu → upload avatar → reload → dữ liệu vẫn chính xác.
+### Trạng thái triển khai và kiểm chứng
 
-## Acceptance criteria
+- [x] Thêm `studentProfileApi` và type `StudentProfile`.
+- [x] Thêm loading, error, saving, upload và empty/error recovery states.
+- [x] `npm run build` đã pass (`tsc -b` và `vite build`).
+- [x] Dev server phục vụ ứng dụng tại `http://localhost:5173/`.
+- [x] Docker FE tại `http://localhost:3000` đã login và upload avatar qua nginx proxy trả `200`.
+- [ ] Kiểm thử thao tác UI bằng trình duyệt với phiên đăng nhập thật chưa được tự động hóa.
 
-- Học sinh không phải truyền ID và không thể đọc hoặc sửa hồ sơ người khác.
-- GET trả đầy đủ dữ liệu từ cả `User` và `Student`.
-- PATCH chỉ thay đổi trường được phép; email, role, trạng thái, trường học và tiến độ không đổi.
-- Email chỉ tồn tại và được đọc từ bảng `users`.
-- Avatar sai định dạng hoặc vượt 5 MB bị từ chối trước khi lưu URL.
-- XP, level và streak được hiển thị nhưng không có endpoint cập nhật trong feature này.
-- OpenAPI, Postman, migration và toàn bộ test của feature pass.
-- Baseline `gradlew test` hiện thất bại vì không kết nối được PostgreSQL; team cần cung cấp test database/Testcontainers trong PRO-06 để test chạy độc lập trong CI.
+## Issue 53.5 - Change Password & Security
 
-## Thứ tự và phụ thuộc
+### Mục tiêu
 
-1. PRO-01 chốt contract.
-2. PRO-02 và PRO-03 triển khai backend; PRO-05 có thể dựng UI bằng mock contract song song.
-3. PRO-04 hoàn thiện upload sau khi endpoint `/me` sẵn sàng.
-4. PRO-05 tích hợp backend sau khi nền auth frontend hoàn tất.
-5. PRO-06 chạy cuối, sửa lỗi tích hợp và nghiệm thu theo `US-13`.
+Tách đổi mật khẩu khỏi profile update để không làm scope profile bị phình.
+
+### API hiện có
+
+- `POST /api/v1/users/change-password`
+
+### Phạm vi
+
+- FE có thể thêm section/tab Bảo mật sau khi profile core hoàn tất.
+- Request gồm mật khẩu hiện tại, mật khẩu mới, xác nhận mật khẩu mới.
+- Backend kiểm tra mật khẩu hiện tại, độ khớp confirm password và encode password mới.
+
+### Acceptance Criteria
+
+- [x] Form gọi `POST /api/v1/users/change-password` với mật khẩu hiện tại, mới và xác nhận.
+- [x] Mật khẩu mới và xác nhận phải khớp trước khi gửi request.
+- [x] Lỗi backend và lỗi nhập liệu được hiển thị rõ ràng.
+- [x] Không ghi hoặc log mật khẩu trong frontend.
+
+### Trạng thái triển khai và kiểm chứng
+
+- [x] Thêm khu vực Bảo mật trong trang Student Profile.
+- [x] Dùng `credentials: include` để giữ cookie phiên HttpOnly.
+- [x] Khu vực bảo mật mở khi bấm chỉnh sửa hồ sơ và có nút hiện/ẩn cho cả ba ô mật khẩu.
+- [x] `npm run build` đã pass.
+- [x] HTTP đổi mật khẩu đã kiểm chứng `200` với tài khoản test và đã khôi phục mật khẩu ban đầu.
+
+## Issue 53.6 - Profile Summary Stats / Dashboard Link
+
+### Mục tiêu
+
+Hiển thị thông tin tiến độ học tập ở mức MVP, không xây hệ thống achievement nâng cao trong issue profile.
+
+### Phạm vi MVP
+
+- Hiển thị `totalXp`.
+- Hiển thị `currentLevel`.
+- Hiển thị `currentStreak`.
+- Có thể link sang dashboard học sinh nếu cần xem chi tiết.
+
+### Ngoài phạm vi issue này
+
+- Badge system.
+- Biểu đồ thành tích nâng cao.
+- Tổng giờ học từ nhiều module.
+- Notification worker.
+
+### Acceptance Criteria
+
+- [x] Profile hiển thị `totalXp`, `currentLevel`, `currentStreak` từ API.
+- [x] Student không có input chỉnh sửa các giá trị này.
+- [x] Giá trị mặc định `0/1/0` được hiển thị an toàn khi backend trả dữ liệu mặc định.
+
+### Trạng thái triển khai và kiểm chứng
+
+- [x] Thêm ba summary cards theo bảng màu Fidelity Modern.
+- [x] Thêm link `Mở tổng quan` tới `/student/dashboard`.
+- [x] `npm run build` đã pass.
+
+## Backlog sau MVP - Notification Preferences
+
+Phần cài đặt thông báo cá nhân chưa đưa vào MVP vì SRS hiện xem nhắc lịch qua push/email là ngoài phạm vi. Chỉ mở lại khi team đã hoàn thành các luồng Must Have.
+
+### Ý tưởng sau MVP
+
+- Bật/tắt nhắc lịch học.
+- Bật/tắt thông báo AI Tutor.
+- Bật/tắt báo cáo tuần.
+- Chọn kênh nhận thông báo.
+- Worker xử lý lịch gửi thông báo.
+
+## Ghi chú kỹ thuật cho Backend
+
+- Nên thêm `StudentController` thay vì mở rộng thêm logic vào `UserController`.
+- Nên thêm DTO riêng:
+    - `StudentProfileResponse`
+    - `StudentProfileUpdateRequest`
+- Service nên có method riêng cho current student, ví dụ:
+    - `getMyStudentProfile()`
+    - `updateMyStudentProfile(request)`
+    - `uploadMyAvatar(file)`
+- Không xóa ngay `students.email`; trước mắt chỉ không dùng field này trong profile API.
+- Sau khi toàn bộ code không còn dùng `students.email`, có thể tạo migration riêng để drop column nếu team muốn làm sạch schema.
+
+## Mapping với SRS MVP
+
+- `FR-PRO-01`: Hồ sơ học sinh liên kết một-một với tài khoản.
+- `FR-PRO-02`: Học sinh xem và cập nhật các trường hồ sơ được cho phép.
+- `FR-PRO-03`: Hiển thị tổng XP, cấp độ và streak hiện tại.
+- `FR-PRO-04`: Email đăng nhập chỉ lưu tại `User`, không dùng `Student.email` trong profile.
+- `US-13`: Cập nhật hồ sơ.
+
+## Review MVP và hướng nâng cấp tiếp theo
+
+### Kết luận hiện tại
+
+Issue 53 đã hoàn thành phạm vi MVP backend và frontend: học sinh xem/cập nhật hồ sơ của chính mình, upload avatar, đổi mật khẩu và xem các chỉ số XP/cấp độ/streak. Các API đã được kiểm chứng qua Docker; frontend đã pass `npm run build`; upload avatar qua FE Docker port `3000` đã trả `200` và lưu URL Cloudinary.
+
+Một mục kiểm thử vẫn mở: chưa có bộ kiểm thử trình duyệt tự động cho các thao tác click, form, upload và responsive layout. Đây là khoảng trống kiểm thử, không phải blocker runtime của MVP.
+
+### Nâng cấp nên đưa vào project
+
+- [ ] **E2E frontend:** thêm Playwright cho login, load profile, PATCH, upload avatar, hiện/ẩn mật khẩu, đổi mật khẩu và kiểm tra mobile/desktop.
+- [ ] **Nguồn dữ liệu dùng chung:** tạo `StudentProfileContext` hoặc query cache để header và dashboard dùng cùng profile thật; loại bỏ số XP/streak/lớp đang mock ở `StudentHeader` và `DashboardPage`.
+- [ ] **Avatar UX:** thêm crop/preview trước upload, hiển thị tiến độ, giới hạn kích thước phía client và giữ avatar cũ nếu upload thất bại.
+- [ ] **Bảo mật avatar:** thêm giới hạn tần suất upload, kiểm tra kích thước ảnh sau decode và cơ chế xóa ảnh cũ trên Cloudinary khi thay ảnh.
+- [ ] **Đổi mật khẩu:** thêm password strength meter, cảnh báo phiên đăng nhập và yêu cầu đăng nhập lại sau khi đổi mật khẩu nếu chính sách bảo mật yêu cầu.
+- [ ] **API regression tests:** thêm MockMvc/service tests cho quyền `STUDENT`, IDOR, PATCH allowlist, transaction rollback và lỗi Cloudinary; đưa vào CI.
+- [ ] **Contract/OpenAPI:** mô tả đầy đủ request/response/error của ba endpoint profile trong OpenAPI và cập nhật Postman collection theo contract hiện tại.
+- [ ] **Accessibility và polish:** kiểm tra keyboard navigation, focus state, alt text, thông báo cho screen reader và bản dịch thống nhất cho lỗi validation.
+- [ ] **Dashboard summary:** thay số liệu mock trên Dashboard bằng API summary thật, sau đó mở rộng chart/achievement thành issue riêng.
+
+### Nguyên tắc cho các issue nâng cấp
+
+- Giữ ownership theo current user; không thêm `userId` vào URL cho luồng self-service.
+- Không cho frontend chỉnh sửa email, mã học sinh, trường học hoặc chỉ số tiến độ.
+- Không đánh dấu acceptance hoàn tất nếu mới chỉ compile; cần có bằng chứng HTTP hoặc E2E tương ứng.
+- Không đưa credential Cloudinary, JWT hoặc database thật vào repository.
