@@ -12,6 +12,7 @@ const emptyProfile: StudentProfile = {
 const inputClass = 'w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2.5 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15'
 const primaryButton = 'inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition hover:bg-primary-container disabled:cursor-wait disabled:opacity-60'
 const secondaryButton = 'inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-sm font-semibold text-on-surface transition hover:bg-surface-container-low'
+type PasswordFieldErrors = { oldPassword?: string; newPassword?: string; confirmPassword?: string }
 
 function preferencesOf(profile: StudentProfile) {
   const preferences = profile.studyPreferences || {}
@@ -36,6 +37,7 @@ export const ProfilePage = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordNotice, setPasswordNotice] = useState<string | null>(null)
   const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordFieldErrors, setPasswordFieldErrors] = useState<PasswordFieldErrors>({})
   const [visiblePasswords, setVisiblePasswords] = useState({ old: false, next: false, confirm: false })
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -48,6 +50,36 @@ export const ProfilePage = () => {
   const preferences = useMemo(() => preferencesOf(profile), [profile])
   const draftPreferences = useMemo(() => preferencesOf({ ...profile, ...draft }), [draft, profile])
   const avatar = profile.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=005cb8&color=fff&bold=true`
+  const passwordChecks = {
+    minLength: password.newPassword.length >= 8,
+    lowercase: /[a-z]/.test(password.newPassword),
+    uppercase: /[A-Z]/.test(password.newPassword),
+    number: /\d/.test(password.newPassword),
+    special: /[!@#$%^&*()_+=-]/.test(password.newPassword),
+  }
+  const passwordIsStrong = Object.values(passwordChecks).every(Boolean)
+  const passwordsMatch = password.confirmPassword.length > 0 && password.newPassword === password.confirmPassword
+
+  function validatePasswordForm(): PasswordFieldErrors {
+    const errors: PasswordFieldErrors = {}
+    const currentPassword = password.oldPassword
+    const newPassword = password.newPassword
+    const confirmPassword = password.confirmPassword
+
+    if (!currentPassword.trim()) errors.oldPassword = 'Nhập mật khẩu hiện tại để tiếp tục.'
+    if (currentPassword !== currentPassword.trim()) errors.oldPassword = 'Mật khẩu hiện tại không được có khoảng trắng ở đầu hoặc cuối.'
+
+    if (!newPassword.trim()) errors.newPassword = 'Nhập mật khẩu mới.'
+    else if (/\s/.test(newPassword)) errors.newPassword = 'Mật khẩu mới không được chứa khoảng trắng.'
+    else if (!passwordIsStrong) errors.newPassword = 'Mật khẩu mới chưa đạt đủ tiêu chí bên dưới.'
+    else if (newPassword === currentPassword) errors.newPassword = 'Mật khẩu mới phải khác mật khẩu hiện tại.'
+
+    if (!confirmPassword.trim()) errors.confirmPassword = 'Nhập lại mật khẩu mới.'
+    else if (confirmPassword !== confirmPassword.trim()) errors.confirmPassword = 'Xác nhận mật khẩu không được có khoảng trắng ở đầu hoặc cuối.'
+    else if (newPassword !== confirmPassword) errors.confirmPassword = 'Mật khẩu không khớp. Hãy nhập lại.'
+
+    return errors
+  }
 
   function beginEditing() {
     setDraft({ ...profile, studyPreferences: { ...profile.studyPreferences } }); setIsEditing(true); setIsSecurityOpen(true); setNotice(null); setPageError(null)
@@ -82,15 +114,31 @@ export const ProfilePage = () => {
   }
 
   async function submitPassword(event: FormEvent) {
-    event.preventDefault(); setPasswordError(null); setPasswordNotice(null)
-    if (password.newPassword.length < 8) { setPasswordError('Mật khẩu mới phải có ít nhất 8 ký tự.'); return }
-    if (password.newPassword !== password.confirmPassword) { setPasswordError('Mật khẩu mới và xác nhận mật khẩu không khớp.'); return }
+    event.preventDefault(); setPasswordError(null); setPasswordNotice(null); setPasswordFieldErrors({})
+    const errors = validatePasswordForm()
+    if (Object.keys(errors).length > 0) { setPasswordFieldErrors(errors); return }
     setPasswordSaving(true)
     try {
       await changePassword(password.oldPassword, password.newPassword, password.confirmPassword)
-      setPassword({ oldPassword: '', newPassword: '', confirmPassword: '' }); setPasswordNotice('Mật khẩu đã được thay đổi.')
-    } catch (error: unknown) { setPasswordError(error instanceof Error ? error.message : 'Không thể đổi mật khẩu.') }
+      setPassword({ oldPassword: '', newPassword: '', confirmPassword: '' }); setPasswordFieldErrors({}); setPasswordNotice('Mật khẩu đã được thay đổi.')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Không thể đổi mật khẩu.'
+      if (message.toLowerCase().includes('mật khẩu cũ') || message.toLowerCase().includes('hiện tại')) {
+        setPasswordFieldErrors({ oldPassword: message })
+      } else if (message.toLowerCase().includes('xác nhận') || message.toLowerCase().includes('khớp')) {
+        setPasswordFieldErrors({ confirmPassword: message })
+      } else if (message.toLowerCase().includes('mật khẩu mới')) {
+        setPasswordFieldErrors({ newPassword: message })
+      }
+      setPasswordError(message)
+    }
     finally { setPasswordSaving(false) }
+  }
+
+  function updatePasswordField(field: keyof typeof password, value: string) {
+    setPassword((current) => ({ ...current, [field]: value }))
+    setPasswordFieldErrors((current) => ({ ...current, [field]: undefined }))
+    setPasswordError(null)
   }
 
   if (loading) return <div className="flex min-h-[50vh] items-center justify-center text-sm text-on-surface-variant"><span className="material-symbols-outlined mr-2 animate-spin">progress_activity</span>Đang tải hồ sơ...</div>
@@ -122,9 +170,9 @@ export const ProfilePage = () => {
           <span className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary-container text-on-secondary-container"><span className="material-symbols-outlined">shield_lock</span></span><span><span className="block font-semibold text-on-surface">Bảo mật tài khoản</span><span className="mt-1 block text-sm text-on-surface-variant">Đổi mật khẩu và bảo vệ tài khoản học tập.</span></span></span>
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface-container text-on-surface-variant"><span className="material-symbols-outlined">{isSecurityOpen ? 'expand_less' : 'expand_more'}</span></span>
         </button>
-        {isSecurityOpen && <form onSubmit={submitPassword} className="mt-5 border-t border-outline-variant/50 pt-5"><div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {([['oldPassword', 'Mật khẩu hiện tại', 'old'], ['newPassword', 'Mật khẩu mới', 'next'], ['confirmPassword', 'Xác nhận mật khẩu', 'confirm']] as const).map(([field, label, visibility]) => <label key={field} className="text-sm font-medium text-on-surface">{label}<span className="relative mt-1.5 block"><input className={`${inputClass} pr-11`} type={visiblePasswords[visibility] ? 'text' : 'password'} value={password[field]} onChange={(event) => setPassword({ ...password, [field]: event.target.value })} minLength={field !== 'oldPassword' ? 8 : undefined} required /><button type="button" aria-label={visiblePasswords[visibility] ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} title={visiblePasswords[visibility] ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={() => setVisiblePasswords({ ...visiblePasswords, [visibility]: !visiblePasswords[visibility] })} className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-on-surface-variant hover:bg-surface-container hover:text-primary"><span className="material-symbols-outlined text-[19px]">{visiblePasswords[visibility] ? 'visibility_off' : 'visibility'}</span></button></span></label>)}
-        </div><div className="mt-5 flex flex-col gap-3 rounded-lg bg-surface-container-low p-4 sm:flex-row sm:items-center sm:justify-between"><div className="text-sm">{passwordError && <span className="text-error">{passwordError}</span>}{passwordNotice && <span className="text-primary">{passwordNotice}</span>}{!passwordError && !passwordNotice && <span className="text-xs text-on-surface-variant">Dùng tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.</span>}</div><button className={secondaryButton} disabled={passwordSaving}><span className="material-symbols-outlined text-[18px]">lock_reset</span>{passwordSaving ? 'Đang cập nhật...' : 'Đổi mật khẩu'}</button></div></form>}
+        {isSecurityOpen && <form onSubmit={submitPassword} noValidate className="mt-5 border-t border-outline-variant/50 pt-5"><div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {([['oldPassword', 'Mật khẩu hiện tại', 'old'], ['newPassword', 'Mật khẩu mới', 'next'], ['confirmPassword', 'Xác nhận mật khẩu', 'confirm']] as const).map(([field, label, visibility]) => <label key={field} className="text-sm font-medium text-on-surface">{label}<span className="relative mt-1.5 block"><input className={`${inputClass} pr-11 ${passwordFieldErrors[field] ? 'border-error focus:border-error focus:ring-error/15' : ''}`} type={visiblePasswords[visibility] ? 'text' : 'password'} value={password[field]} onChange={(event) => updatePasswordField(field, event.target.value)} minLength={field !== 'oldPassword' ? 8 : undefined} required aria-invalid={Boolean(passwordFieldErrors[field])} aria-describedby={passwordFieldErrors[field] ? `${field}-error` : undefined} /><button type="button" aria-label={visiblePasswords[visibility] ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} title={visiblePasswords[visibility] ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={() => setVisiblePasswords({ ...visiblePasswords, [visibility]: !visiblePasswords[visibility] })} className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-on-surface-variant hover:bg-surface-container hover:text-primary"><span className="material-symbols-outlined text-[19px]">{visiblePasswords[visibility] ? 'visibility_off' : 'visibility'}</span></button></span>{passwordFieldErrors[field] && <span id={`${field}-error`} className="mt-1 block text-xs font-normal text-error">{passwordFieldErrors[field]}</span>}</label>)}
+        </div><div className="mt-4 rounded-lg border border-outline-variant/50 bg-surface-container-low p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-on-surface">Tiêu chí mật khẩu mới</p><span className={`text-xs font-semibold ${password.newPassword.length === 0 ? 'text-on-surface-variant' : passwordIsStrong ? 'text-primary' : 'text-tertiary'}`}>{password.newPassword.length === 0 ? 'Chưa nhập' : passwordIsStrong ? 'Mật khẩu mạnh' : 'Cần bổ sung'}</span></div><div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">{[['minLength', 'Ít nhất 8 ký tự'], ['lowercase', 'Có chữ thường'], ['uppercase', 'Có chữ hoa'], ['number', 'Có chữ số'], ['special', 'Có ký tự đặc biệt']].map(([key, label]) => { const passed = passwordChecks[key as keyof typeof passwordChecks]; return <span key={key} className={`flex items-center gap-2 ${passed ? 'text-primary' : 'text-on-surface-variant'}`}><span className={`grid h-4 w-4 place-items-center rounded-full ${passed ? 'bg-primary text-on-primary' : 'bg-surface-container-highest'}`}><span className="material-symbols-outlined text-[12px]">{passed ? 'check' : 'radio_button_unchecked'}</span></span>{label}</span>})}<span className={`flex items-center gap-2 ${password.newPassword.length > 0 && !/\s/.test(password.newPassword) ? 'text-primary' : 'text-on-surface-variant'}`}><span className={`grid h-4 w-4 place-items-center rounded-full ${password.newPassword.length > 0 && !/\s/.test(password.newPassword) ? 'bg-primary text-on-primary' : 'bg-surface-container-highest'}`}><span className="material-symbols-outlined text-[12px]">{password.newPassword.length > 0 && !/\s/.test(password.newPassword) ? 'check' : 'radio_button_unchecked'}</span></span>Không chứa khoảng trắng</span></div><p className={`mt-3 text-xs ${password.confirmPassword.length === 0 ? 'text-on-surface-variant' : passwordsMatch ? 'text-primary' : 'text-error'}`}>{password.confirmPassword.length === 0 ? 'Nhập lại mật khẩu để kiểm tra độ khớp.' : passwordsMatch ? 'Hai mật khẩu khớp nhau.' : 'Hai mật khẩu chưa khớp.'}</p></div><div className="mt-5 flex flex-col gap-3 rounded-lg bg-surface-container-low p-4 sm:flex-row sm:items-center sm:justify-between"><div className="text-sm">{passwordError && <span className="text-error">{passwordError}</span>}{passwordNotice && <span className="text-primary">{passwordNotice}</span>}{!passwordError && !passwordNotice && <span className="text-xs text-on-surface-variant">Mật khẩu không được trùng thông tin dễ đoán.</span>}</div><button className={secondaryButton} disabled={passwordSaving}><span className="material-symbols-outlined text-[18px]">lock_reset</span>{passwordSaving ? 'Đang cập nhật...' : 'Đổi mật khẩu'}</button></div></form>}
       </section>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/15 bg-primary-fixed/50 px-5 py-4"><div className="flex items-center gap-3"><span className="material-symbols-outlined text-primary">insights</span><div><p className="text-sm font-semibold text-on-primary-fixed">Muốn xem chi tiết tiến độ?</p><p className="text-xs text-on-primary-fixed-variant">Theo dõi lộ trình học tập tại trang tổng quan.</p></div></div><Link className={primaryButton} to="/student/dashboard">Mở tổng quan<span className="material-symbols-outlined text-[18px]">arrow_forward</span></Link></div>
     </div>
