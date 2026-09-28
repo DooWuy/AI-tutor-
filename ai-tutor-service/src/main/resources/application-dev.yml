@@ -39,3 +39,4 @@ app:
   analytics:
     seed-demo: true
     knowledge-gap-job: true
+    at-risk-job: true
