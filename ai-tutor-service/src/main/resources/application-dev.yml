@@ -39,3 +39,6 @@ app:
   analytics:
     seed-demo: true
     knowledge-gap-job: true
+  notifications:
+    pre-class-job: true
+    manual-scan: true

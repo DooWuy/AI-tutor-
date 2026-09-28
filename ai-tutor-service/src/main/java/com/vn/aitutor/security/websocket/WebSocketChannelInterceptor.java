@@ -31,6 +31,10 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
         
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             String authorizationHeader = accessor.getFirstNativeHeader("Authorization");
+            if ((authorizationHeader == null || authorizationHeader.isBlank()) && accessor.getUser() != null) {
+                log.debug("WebSocket CONNECT using handshake principal {}", accessor.getUser().getName());
+                return message;
+            }
             log.debug("WebSocket CONNECT attempt. Auth Header: {}", authorizationHeader != null ? "Present" : "Missing");
 
             if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {

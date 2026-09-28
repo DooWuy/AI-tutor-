@@ -7,6 +7,7 @@ import { StudentLayout } from './layouts/StudentLayout/StudentLayout';
 import { DashboardPage } from './pages/Student/Dashboard/DashboardPage';
 import { TimetablePage } from './pages/Student/Timetable/TimetablePage';
 import { ProfilePage } from './pages/Student/Profile/ProfilePage';
+import { ReviewPage } from './pages/Student/Review/ReviewPage';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="timetable" element={<TimetablePage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="review/:notificationId" element={<ReviewPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

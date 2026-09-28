@@ -121,8 +121,10 @@ export const styles = {
   reminderToggleLeft: 'space-y-0.5',
   reminderToggleTitle: 'font-semibold text-xs text-on-surface',
   reminderToggleSub: 'text-[11px] text-on-surface-variant',
-  toggleBg: 'w-9 h-5 bg-primary rounded-full relative flex items-center px-0.5 cursor-pointer',
+  toggleBg: 'w-9 h-5 bg-primary rounded-full relative flex items-center px-0.5 cursor-pointer shrink-0 disabled:opacity-60',
+  toggleBgOff: 'w-9 h-5 bg-outline-variant rounded-full relative flex items-center px-0.5 cursor-pointer shrink-0 disabled:opacity-60',
   toggleKnob: 'w-4 h-4 bg-white rounded-full shadow-sm transform translate-x-4 transition-transform',
+  toggleKnobOff: 'w-4 h-4 bg-white rounded-full shadow-sm transform translate-x-0 transition-transform',
   
   reminderNextBox: 'p-3 rounded-xl bg-primary-fixed/20 border border-primary/30 space-y-1.5',
   reminderNextTitle: 'flex items-center gap-1.5 font-semibold text-xs text-primary',

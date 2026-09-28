@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { styles } from './StudentHeader.styles';
 import { logout, getStoredSession } from '../../../../services/authApi';
+import { NotificationBell } from './NotificationBell';
 
 export const StudentHeader: React.FC = () => {
   const navigate = useNavigate();
@@ -69,11 +70,7 @@ export const StudentHeader: React.FC = () => {
             <span className="">1,250 XP</span>
           </div>
           
-          {/* Notification Bell */}
-          <button className={styles.notificationBtn} title="Thông báo">
-            <span className="material-symbols-outlined">notifications</span>
-            <span className={styles.notificationDot}></span>
-          </button>
+          <NotificationBell />
           
           {/* Quick AI Scanner Button */}
           <button className={styles.scannerBtn} onClick={() => navigate('/student/timetable')}>

@@ -8,6 +8,9 @@ app:
       same-site: None
   analytics:
     knowledge-gap-job: true
+  notifications:
+    pre-class-job: true
+    manual-scan: false
 
 spring:
   datasource:

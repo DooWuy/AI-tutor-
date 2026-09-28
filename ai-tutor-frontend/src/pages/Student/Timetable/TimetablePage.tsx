@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { styles } from './TimetablePage.styles';
 import type { ScheduleSlotDto } from '../../../types/schedule';
 import { extractScheduleFromImage, createSchedule, getActiveSchedule } from '../../../services/scheduleApi';
+import { getReminderPreferences, updateReminderPreferences } from '../../../services/notificationApi';
+import { useNotifications } from '../../../layouts/StudentLayout/notifications/NotificationContext';
+import type { NextReminder } from '../../../types/notification';
 import { getDayDate, getFullDayDate, getTomorrowDayName, getNormalizedDay } from '../../../utils/dateUtils';
 
 const DEFAULT_PERIODS_FALLBACK = [
@@ -15,8 +18,24 @@ const DEFAULT_PERIODS_FALLBACK = [
   { startTime: '15:25:00', endTime: '16:10:00' },
 ];
 
+function formatReminderWhen(iso: string) {
+  const date = new Date(iso);
+  return new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+  }).format(date);
+}
+
 export const TimetablePage: React.FC = () => {
+  const { requestBrowserPermission } = useNotifications();
   const [showSettings, setShowSettings] = useState(false);
+  const [reminderEnabled, setReminderEnabled] = useState(true);
+  const [nextReminder, setNextReminder] = useState<NextReminder | null>(null);
+  const [reminderSaving, setReminderSaving] = useState(false);
   const [slots, setSlots] = useState<ScheduleSlotDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [defaultPeriods, setDefaultPeriods] = useState(() => {
@@ -34,7 +53,35 @@ export const TimetablePage: React.FC = () => {
 
   useEffect(() => {
     loadActiveSchedule();
+    loadReminderPreferences();
   }, []);
+
+  const loadReminderPreferences = async () => {
+    try {
+      const prefs = await getReminderPreferences();
+      setReminderEnabled(prefs.enabled);
+      setNextReminder(prefs.nextReminder);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleReminder = async () => {
+    const next = !reminderEnabled;
+    try {
+      setReminderSaving(true);
+      const saved = await updateReminderPreferences(next);
+      setReminderEnabled(saved.enabled);
+      setNextReminder(saved.nextReminder);
+      if (saved.enabled) {
+        await requestBrowserPermission();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setReminderSaving(false);
+    }
+  };
 
   const loadActiveSchedule = async () => {
     try {
@@ -68,6 +115,7 @@ export const TimetablePage: React.FC = () => {
     try {
       setIsLoading(true);
       await createSchedule({ name: 'Thời khóa biểu AI', slots });
+      await loadReminderPreferences();
       alert('Đã lưu TKB thành công!');
     } catch (err: any) {
       alert(err.message || 'Lỗi khi lưu');
@@ -677,20 +725,28 @@ export const TimetablePage: React.FC = () => {
             <div className={styles.reminderToggleWrapper}>
               <div className={styles.reminderToggleLeft}>
                 <p className={styles.reminderToggleTitle}>Nhắc bài trước 15 phút</p>
-                <p className={styles.reminderToggleSub}>Gửi qua App AI Tutor & Zalo</p>
+                <p className={styles.reminderToggleSub}>Hiện trên AI Tutor và thông báo trình duyệt</p>
               </div>
-              <div className={styles.toggleBg}>
-                <div className={styles.toggleKnob}></div>
-              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={reminderEnabled}
+                aria-label="Nhắc bài trước 15 phút"
+                className={reminderEnabled ? styles.toggleBg : styles.toggleBgOff}
+                onClick={() => void handleToggleReminder()}
+                disabled={reminderSaving}
+              >
+                <span className={reminderEnabled ? styles.toggleKnob : styles.toggleKnobOff}></span>
+              </button>
             </div>
             
             <div className={styles.reminderNextBox}>
               <div className={styles.reminderNextTitle}>
                 <span className="material-symbols-outlined text-[14px]">schedule</span>
-                Lần nhắc tiếp theo: 07:00 ngày mai
+                {nextReminder ? `Lần nhắc tiếp theo: ${formatReminderWhen(nextReminder.remindAt)}` : 'Chưa có tiết học sắp tới'}
               </div>
               <p className={styles.reminderNextDesc}>
-                "Chuẩn bị vào Tiết 1 Toán học - Thầy Tuấn tại P.302"
+                {nextReminder ? nextReminder.preview : 'Lưu thời khóa biểu để AI Tutor nhắc trước mỗi tiết 15 phút.'}
               </p>
             </div>
           </div>

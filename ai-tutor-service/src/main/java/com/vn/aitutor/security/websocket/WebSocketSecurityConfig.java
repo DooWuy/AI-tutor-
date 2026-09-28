@@ -3,6 +3,7 @@ package com.vn.aitutor.security.websocket;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.web.socket.EnableWebSocketSecurity;
 import org.springframework.security.messaging.access.intercept.MessageMatcherDelegatingAuthorizationManager;
@@ -21,7 +22,11 @@ public class WebSocketSecurityConfig {
                 
         return messages.build();
     }
-    
-    // In Spring Security 6, CSRF is disabled globally in SecurityConfig (Http) or via ChannelSecurity. 
-    // If you face CSRF token issues, you can explicitly disable it for WebSockets by providing a custom CsrfChannelInterceptor bean.
+
+    @Bean(name = "csrfChannelInterceptor")
+    ChannelInterceptor csrfChannelInterceptor() {
+        // HTTP CSRF is off. This bean replaces the XOR STOMP CSRF check so a cookie session can subscribe.
+        return new ChannelInterceptor() {
+        };
+    }
 }

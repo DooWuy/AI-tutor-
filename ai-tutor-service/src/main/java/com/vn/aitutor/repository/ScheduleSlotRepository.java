@@ -26,4 +26,38 @@ public interface ScheduleSlotRepository extends JpaRepository<ScheduleSlot, UUID
             @Param("startTime") LocalTime startTime,
             @Param("endTime") LocalTime endTime
     );
+
+    @Query("""
+            SELECT DISTINCT s FROM ScheduleSlot s
+            JOIN FETCH s.schedule sch
+            JOIN FETCH sch.student st
+            JOIN FETCH st.user u
+            WHERE sch.isActive = true
+              AND u.active = true
+              AND u.isDeleted = false
+              AND s.dayOfWeek = :dayOfWeek
+              AND s.startTime > :afterExclusive
+              AND s.startTime <= :untilInclusive
+            """)
+    List<ScheduleSlot> findDueBetween(
+            @Param("dayOfWeek") Integer dayOfWeek,
+            @Param("afterExclusive") LocalTime afterExclusive,
+            @Param("untilInclusive") LocalTime untilInclusive
+    );
+
+    @Query("""
+            SELECT DISTINCT s FROM ScheduleSlot s
+            JOIN FETCH s.schedule sch
+            JOIN FETCH sch.student st
+            JOIN FETCH st.user u
+            WHERE sch.isActive = true
+              AND u.active = true
+              AND u.isDeleted = false
+              AND s.dayOfWeek = :dayOfWeek
+              AND s.startTime <= :untilInclusive
+            """)
+    List<ScheduleSlot> findDueUntil(
+            @Param("dayOfWeek") Integer dayOfWeek,
+            @Param("untilInclusive") LocalTime untilInclusive
+    );
 }

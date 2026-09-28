@@ -2,6 +2,7 @@ package com.vn.aitutor.repository;
 
 import com.vn.aitutor.entity.QuizAttemptAnswer;
 import com.vn.aitutor.repository.projection.TopicAnswerCountRow;
+import com.vn.aitutor.repository.projection.TopicWrongCountRow;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +40,36 @@ public interface QuizAttemptAnswerRepository extends JpaRepository<QuizAttemptAn
             nativeQuery = true)
     List<TopicAnswerCountRow> aggregateTopicAnswers(
             @Param("classId") UUID classId,
+            @Param("fromTs") Instant fromTs,
+            @Param("toTs") Instant toTs,
+            @Param("subject") String subject);
+
+    @Query(
+            value = """
+                    SELECT q.topic AS topic,
+                           SUM(CASE WHEN ans.is_correct THEN 0 ELSE 1 END) AS "wrongCount",
+                           SUM(CASE WHEN ans.is_correct THEN 1 ELSE 0 END) AS "correctCount"
+                    FROM quiz_attempt_answers ans
+                    JOIN quiz_attempts qa ON qa.id = ans.attempt_id
+                    JOIN quiz_questions q ON q.id = ans.question_id
+                    JOIN quizzes qz ON qz.id = qa.quiz_id
+                    WHERE qa.student_id = :studentId
+                      AND qa.submitted_at >= :fromTs
+                      AND qa.submitted_at <= :toTs
+                      AND qz.subject = :subject
+                      AND q.topic IS NOT NULL
+                      AND btrim(q.topic) <> ''
+                    GROUP BY q.topic
+                    HAVING SUM(CASE WHEN ans.is_correct THEN 0 ELSE 1 END)
+                         > SUM(CASE WHEN ans.is_correct THEN 1 ELSE 0 END)
+                    ORDER BY (SUM(CASE WHEN ans.is_correct THEN 0 ELSE 1 END)
+                            - SUM(CASE WHEN ans.is_correct THEN 1 ELSE 0 END)) DESC,
+                             q.topic ASC
+                    LIMIT 2
+                    """,
+            nativeQuery = true)
+    List<TopicWrongCountRow> findWeakTopics(
+            @Param("studentId") UUID studentId,
             @Param("fromTs") Instant fromTs,
             @Param("toTs") Instant toTs,
             @Param("subject") String subject);

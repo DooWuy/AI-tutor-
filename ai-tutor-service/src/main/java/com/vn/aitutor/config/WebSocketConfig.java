@@ -1,6 +1,7 @@
 package com.vn.aitutor.config;
 
 import com.vn.aitutor.exception.WebSocketExceptionHandler;
+import com.vn.aitutor.security.websocket.JwtHandshakeHandler;
 import com.vn.aitutor.security.websocket.WebSocketChannelInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +19,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketChannelInterceptor webSocketChannelInterceptor;
     private final WebSocketExceptionHandler webSocketExceptionHandler;
+    private final JwtHandshakeHandler jwtHandshakeHandler;
 
     @Value("${RABBITMQ_HOST:localhost}")
     private String rabbitHost;
@@ -38,6 +40,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.setErrorHandler(webSocketExceptionHandler)
                 .addEndpoint("/ws")
+                .setHandshakeHandler(jwtHandshakeHandler)
                 .setAllowedOrigins("http://localhost:5173", frontendUrl);
                 // .withSockJS(); // Enable if you want SockJS fallback
     }
