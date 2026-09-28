@@ -1,348 +1,180 @@
-import React, { useState } from 'react';
-import { styles } from './ProfilePage.styles';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
+import { changePassword, getMyStudentProfile, updateMyStudentProfile, uploadMyAvatar } from '../../../services/studentProfileApi'
+import type { Gender, StudentProfile } from '../../../types/studentProfile'
 
-export const ProfilePage: React.FC = () => {
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [goalMinutes, setGoalMinutes] = useState(45);
-  const [name, setName] = useState('Nguyễn Văn An');
-  const [grade, setGrade] = useState('Lớp 10');
+const emptyProfile: StudentProfile = {
+  userId: '', studentId: '', studentCode: '', username: '', email: '', fullName: '', dateOfBirth: null,
+  gender: 'OTHER', phoneNumber: null, avatarUrl: null, gradeLevel: null, className: null, schoolName: null,
+  studyPreferences: {}, totalXp: 0, currentLevel: 1, currentStreak: 0,
+}
 
-  const adjustGoal = (amount: number) => {
-    setGoalMinutes((prev) => Math.max(15, Math.min(180, prev + amount)));
-  };
+const inputClass = 'w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2.5 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15'
+const primaryButton = 'inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition hover:bg-primary-container disabled:cursor-wait disabled:opacity-60'
+const secondaryButton = 'inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-sm font-semibold text-on-surface transition hover:bg-surface-container-low'
+type PasswordFieldErrors = { oldPassword?: string; newPassword?: string; confirmPassword?: string }
 
-  const toggleEditMode = () => {
-    setIsEditMode(!isEditMode);
-  };
+function preferencesOf(profile: StudentProfile) {
+  const preferences = profile.studyPreferences || {}
+  return {
+    dailyGoalMinutes: typeof preferences.dailyGoalMinutes === 'number' ? preferences.dailyGoalMinutes : 45,
+    favoriteSubjects: Array.isArray(preferences.favoriteSubjects)
+      ? preferences.favoriteSubjects.filter((value): value is string => typeof value === 'string') : [],
+  }
+}
+
+export const ProfilePage = () => {
+  const [profile, setProfile] = useState(emptyProfile)
+  const [draft, setDraft] = useState<StudentProfile>(emptyProfile)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSecurityOpen, setIsSecurityOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [pageError, setPageError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [password, setPassword] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' })
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordNotice, setPasswordNotice] = useState<string | null>(null)
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordFieldErrors, setPasswordFieldErrors] = useState<PasswordFieldErrors>({})
+  const [visiblePasswords, setVisiblePasswords] = useState({ old: false, next: false, confirm: false })
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    getMyStudentProfile().then((data) => { setProfile(data); setDraft(data) })
+      .catch((error: unknown) => setPageError(error instanceof Error ? error.message : 'Không thể tải hồ sơ.'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const preferences = useMemo(() => preferencesOf(profile), [profile])
+  const draftPreferences = useMemo(() => preferencesOf({ ...profile, ...draft }), [draft, profile])
+  const avatar = profile.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=005cb8&color=fff&bold=true`
+  const passwordChecks = {
+    minLength: password.newPassword.length >= 8,
+    lowercase: /[a-z]/.test(password.newPassword),
+    uppercase: /[A-Z]/.test(password.newPassword),
+    number: /\d/.test(password.newPassword),
+    special: /[!@#$%^&*()_+=-]/.test(password.newPassword),
+  }
+  const passwordIsStrong = Object.values(passwordChecks).every(Boolean)
+  const passwordsMatch = password.confirmPassword.length > 0 && password.newPassword === password.confirmPassword
+
+  function validatePasswordForm(): PasswordFieldErrors {
+    const errors: PasswordFieldErrors = {}
+    const currentPassword = password.oldPassword
+    const newPassword = password.newPassword
+    const confirmPassword = password.confirmPassword
+
+    if (!currentPassword.trim()) errors.oldPassword = 'Nhập mật khẩu hiện tại để tiếp tục.'
+    if (currentPassword !== currentPassword.trim()) errors.oldPassword = 'Mật khẩu hiện tại không được có khoảng trắng ở đầu hoặc cuối.'
+
+    if (!newPassword.trim()) errors.newPassword = 'Nhập mật khẩu mới.'
+    else if (/\s/.test(newPassword)) errors.newPassword = 'Mật khẩu mới không được chứa khoảng trắng.'
+    else if (!passwordIsStrong) errors.newPassword = 'Mật khẩu mới chưa đạt đủ tiêu chí bên dưới.'
+    else if (newPassword === currentPassword) errors.newPassword = 'Mật khẩu mới phải khác mật khẩu hiện tại.'
+
+    if (!confirmPassword.trim()) errors.confirmPassword = 'Nhập lại mật khẩu mới.'
+    else if (confirmPassword !== confirmPassword.trim()) errors.confirmPassword = 'Xác nhận mật khẩu không được có khoảng trắng ở đầu hoặc cuối.'
+    else if (newPassword !== confirmPassword) errors.confirmPassword = 'Mật khẩu không khớp. Hãy nhập lại.'
+
+    return errors
+  }
+
+  function beginEditing() {
+    setDraft({ ...profile, studyPreferences: { ...profile.studyPreferences } }); setIsEditing(true); setIsSecurityOpen(true); setNotice(null); setPageError(null)
+  }
+
+  function cancelEditing() { setDraft(profile); setIsEditing(false); setIsSecurityOpen(false) }
+
+  function setPreference(key: string, value: unknown) {
+    setDraft((current) => ({ ...current, studyPreferences: { ...(current.studyPreferences || {}), [key]: value } }))
+  }
+
+  async function saveProfile(event: FormEvent) {
+    event.preventDefault(); setSaving(true); setPageError(null); setNotice(null)
+    try {
+      const data = await updateMyStudentProfile({
+        fullName: draft.fullName?.trim(), dateOfBirth: draft.dateOfBirth || null, gender: draft.gender,
+        phoneNumber: draft.phoneNumber?.trim() || null, gradeLevel: draft.gradeLevel?.trim(),
+        className: draft.className?.trim() || null, studyPreferences: draft.studyPreferences || {},
+      })
+      setProfile(data); setDraft(data); setIsEditing(false); setNotice('Hồ sơ đã được cập nhật.')
+    } catch (error: unknown) { setPageError(error instanceof Error ? error.message : 'Không thể lưu hồ sơ.') }
+    finally { setSaving(false) }
+  }
+
+  async function handleAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]; event.target.value = ''
+    if (!file) return
+    setUploading(true); setPageError(null); setNotice(null)
+    try { setProfile(await uploadMyAvatar(file)); setNotice('Ảnh đại diện đã được cập nhật.') }
+    catch (error: unknown) { setPageError(error instanceof Error ? error.message : 'Không thể tải ảnh đại diện.') }
+    finally { setUploading(false) }
+  }
+
+  async function submitPassword(event: FormEvent) {
+    event.preventDefault(); setPasswordError(null); setPasswordNotice(null); setPasswordFieldErrors({})
+    const errors = validatePasswordForm()
+    if (Object.keys(errors).length > 0) { setPasswordFieldErrors(errors); return }
+    setPasswordSaving(true)
+    try {
+      await changePassword(password.oldPassword, password.newPassword, password.confirmPassword)
+      setPassword({ oldPassword: '', newPassword: '', confirmPassword: '' }); setPasswordFieldErrors({}); setPasswordNotice('Mật khẩu đã được thay đổi.')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Không thể đổi mật khẩu.'
+      if (message.toLowerCase().includes('mật khẩu cũ') || message.toLowerCase().includes('hiện tại')) {
+        setPasswordFieldErrors({ oldPassword: message })
+      } else if (message.toLowerCase().includes('xác nhận') || message.toLowerCase().includes('khớp')) {
+        setPasswordFieldErrors({ confirmPassword: message })
+      } else if (message.toLowerCase().includes('mật khẩu mới')) {
+        setPasswordFieldErrors({ newPassword: message })
+      }
+      setPasswordError(message)
+    }
+    finally { setPasswordSaving(false) }
+  }
+
+  function updatePasswordField(field: keyof typeof password, value: string) {
+    setPassword((current) => ({ ...current, [field]: value }))
+    setPasswordFieldErrors((current) => ({ ...current, [field]: undefined }))
+    setPasswordError(null)
+  }
+
+  if (loading) return <div className="flex min-h-[50vh] items-center justify-center text-sm text-on-surface-variant"><span className="material-symbols-outlined mr-2 animate-spin">progress_activity</span>Đang tải hồ sơ...</div>
+  if (pageError && !profile.userId) return <div className="rounded-xl border border-error/20 bg-error-container p-6 text-sm text-on-error-container"><strong>Không thể tải hồ sơ.</strong><p className="mt-1">{pageError}</p><button className={`${secondaryButton} mt-4`} onClick={() => window.location.reload()}>Thử lại</button></div>
 
   return (
-    <div className={styles.container}>
-      <div className={styles.headerSection}>
-        <div className={styles.profileCard}>
-          <div className={styles.avatarWrapper}>
-            <div className={styles.avatarImageWrapper}>
-              <img
-                className={styles.avatarImage}
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPXORE5frg-gSF48tPqNsK7u-BpPJXsK9BTmOfNmDRpEzYaCyp_Vuov02GKOpKK347WGOZK-KnElyonFikGDpShmJdnw_QdyucjDD463LTBTPlBsiXbCiM90RhSbzvGxsC5VnoUwNI7WOxLX6m957yyEbfAOo2_8m3B2YDgs3-hfWF7JgWgCvQuPFGRWumGqzK9THsZrcJbRbGDeyiwfKb2On4whKEU0zSRkjYB7ECnaiMSOx_OzIc"
-                alt="Avatar"
-              />
-            </div>
-            <button className={styles.editAvatarBtn} title="Đổi ảnh đại diện">
-              <span className="material-symbols-outlined text-[16px]">photo_camera</span>
-            </button>
-          </div>
-          <div className={styles.profileInfo}>
-            <div className={styles.nameRow}>
-              <span className={styles.name}>{name}</span>
-              <span className={styles.verifiedIcon}>verified</span>
-              <span className={styles.schoolYearBadge}>
-                <span className="material-symbols-outlined text-[13px]">school</span>
-                <span>Niên khóa 2024 - 2027</span>
-              </span>
-            </div>
-            <div className={styles.detailsRow}>
-              <span className={styles.detailItem}>
-                <span className="material-symbols-outlined text-[16px] text-secondary">school</span>
-                <span>{grade} • THPT Chuyên Hà Nội - Amsterdam</span>
-              </span>
-              <span className={styles.detailItem}>
-                <span className="material-symbols-outlined text-[16px] text-secondary">fingerprint</span>
-                Mã định danh: <span className="font-semibold text-on-surface">HS-2025-8869</span>
-              </span>
-            </div>
-            <div className={styles.emailRow}>
-              <span className="material-symbols-outlined text-[14px]">lock</span>
-              <span>Email tài khoản cố định:</span>
-              <span className={styles.emailText}>hocsinh@example.com</span>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.actionSection}>
-          {!isEditMode ? (
-            <button className={styles.actionBtnPrimary} onClick={toggleEditMode}>
-              <span className="material-symbols-outlined text-[18px]">edit_note</span>
-              Chỉnh sửa hồ sơ
-            </button>
-          ) : (
-            <>
-              <button className={styles.actionBtnSecondary} onClick={toggleEditMode}>Hủy</button>
-              <button className={styles.actionBtnPrimary} onClick={toggleEditMode}>
-                <span className="material-symbols-outlined text-[18px]">check</span>
-                Lưu thay đổi
-              </button>
-            </>
-          )}
-        </div>
+    <div className="space-y-6 pb-10">
+      <div className="flex flex-col gap-4 border-b border-outline-variant/60 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div><p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">Hồ sơ học tập</p><h1 className="text-2xl font-semibold text-on-surface sm:text-3xl">Hồ sơ của mình</h1><p className="mt-1 text-sm text-on-surface-variant">Thông tin cá nhân, tiến độ và thiết lập học tập.</p></div>
+        {!isEditing && <button className={primaryButton} onClick={beginEditing}><span className="material-symbols-outlined text-[18px]">edit</span>Chỉnh sửa hồ sơ</button>}
       </div>
+      {pageError && <div className="rounded-lg border border-error/20 bg-error-container px-4 py-3 text-sm text-on-error-container">{pageError}</div>}
+      {notice && <div className="rounded-lg border border-primary/20 bg-primary-fixed px-4 py-3 text-sm text-on-primary-fixed-variant">{notice}</div>}
 
-      <div className={styles.bentoGrid}>
-        {/* XP Card */}
-        <div className={`${styles.bentoCard} ${styles.bentoCardDefault}`}>
-          <div className={styles.bentoHeader}>
-            <span className={`${styles.bentoTitle} ${styles.bentoTitleDefault}`}>Điểm tích lũy</span>
-            <div className={`${styles.bentoIconWrapper} ${styles.bentoIconPrimary}`}>
-              <span className="material-symbols-outlined text-[16px]">bolt</span>
-            </div>
-          </div>
-          <div>
-            <div className={styles.bentoValueDefault}>
-              1,250 <span className="text-[13px] font-normal text-secondary">/ 1,500 XP</span>
-            </div>
-            <div className={styles.progressBarTrack}>
-              <div className={styles.progressBarFill} style={{ width: '83%' }}></div>
-            </div>
-          </div>
-          <span className={`${styles.bentoFooter} ${styles.bentoFooterPrimary}`}>Còn 250 XP để thăng Cấp 5</span>
+      <section className="rounded-xl border border-outline-variant/50 bg-surface-container-lowest p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="relative shrink-0"><img src={avatar} alt={`Ảnh đại diện của ${profile.fullName}`} className="h-24 w-24 rounded-2xl object-cover ring-4 ring-primary-fixed sm:h-28 sm:w-28" /><button type="button" aria-label="Đổi ảnh đại diện" title="Đổi ảnh đại diện" onClick={() => fileRef.current?.click()} disabled={uploading} className="absolute -bottom-2 -right-2 grid h-9 w-9 place-items-center rounded-full bg-primary text-on-primary shadow-md transition hover:bg-primary-container disabled:opacity-60"><span className="material-symbols-outlined text-[18px]">photo_camera</span></button><input ref={fileRef} className="hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatar} /></div>
+          <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-semibold text-on-surface">{profile.fullName}</h2><span className="rounded-full bg-primary-fixed px-2.5 py-1 text-xs font-semibold text-on-primary-fixed-variant">Học sinh</span></div><p className="mt-1 text-sm text-on-surface-variant">{profile.schoolName || 'Chưa cập nhật trường'} {profile.className ? `• ${profile.className}` : ''}</p><div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-on-surface-variant"><span><strong className="text-on-surface">Mã học sinh:</strong> {profile.studentCode}</span><span><strong className="text-on-surface">Email:</strong> {profile.email}</span></div></div>
+          <div className="rounded-lg bg-surface-container-low px-4 py-3 text-center sm:min-w-[132px]"><p className="text-xs text-on-surface-variant">Mục tiêu hôm nay</p><p className="mt-1 text-lg font-semibold text-primary">{preferences.dailyGoalMinutes} phút</p></div>
         </div>
+      </section>
 
-        {/* Level Card */}
-        <div className={`${styles.bentoCard} ${styles.bentoCardDefault}`}>
-          <div className={styles.bentoHeader}>
-            <span className={`${styles.bentoTitle} ${styles.bentoTitleDefault}`}>Cấp độ hiện tại</span>
-            <div className={`${styles.bentoIconWrapper} ${styles.bentoIconSecondary}`}>
-              <span className="material-symbols-outlined text-[16px]">military_tech</span>
-            </div>
-          </div>
-          <div>
-            <div className={styles.bentoValueSmall}>Cấp 4</div>
-            <div className={`${styles.bentoSubtitle} ${styles.bentoSubtitleSecondary}`}>Học sinh Chuyên Cần</div>
-          </div>
-          <span className={`${styles.bentoFooter} ${styles.bentoFooterSecondary}`}>Hạng 12 trong toàn trường</span>
-        </div>
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">{[["bolt", 'Tổng XP', profile.totalXp.toLocaleString('vi-VN'), 'Điểm tích lũy'], ['military_tech', 'Cấp độ', `Cấp ${profile.currentLevel}`, 'Tiến bộ của bạn'], ['local_fire_department', 'Chuỗi ngày học', `${profile.currentStreak} ngày`, 'Duy trì thói quen']].map(([icon, label, value, hint]) => <div key={label} className="rounded-xl border border-outline-variant/50 bg-surface-container-lowest p-4 shadow-sm"><div className="flex items-center justify-between"><span className="text-sm text-on-surface-variant">{label}</span><span className="grid h-8 w-8 place-items-center rounded-lg bg-primary-fixed text-primary"><span className="material-symbols-outlined text-[18px]">{icon}</span></span></div><p className="mt-3 text-2xl font-semibold text-on-surface">{value}</p><p className="mt-1 text-xs text-on-surface-variant">{hint}</p></div>)}</section>
 
-        {/* Streak Card */}
-        <div className={`${styles.bentoCard} ${styles.bentoCardHighlight}`}>
-          <div className={styles.bentoHeader}>
-            <span className={`${styles.bentoTitle} ${styles.bentoTitleHighlight}`}>Chuỗi ngày học</span>
-            <div className={`${styles.bentoIconWrapper} ${styles.bentoIconTertiary}`}>
-              <span className="material-symbols-outlined text-[16px]">local_fire_department</span>
-            </div>
-          </div>
-          <div>
-            <div className={styles.bentoValueHighlight}>
-              14 Ngày <span className="text-base">🔥</span>
-            </div>
-            <div className={`${styles.bentoSubtitle} ${styles.bentoSubtitleHighlight}`}>Duy trì xuất sắc!</div>
-          </div>
-          <span className={`${styles.bentoFooter} ${styles.bentoFooterHighlight}`}>Mục tiêu: Đạt huy hiệu 30 ngày</span>
-        </div>
+      {isEditing ? <form onSubmit={saveProfile} className="rounded-xl border border-primary/20 bg-surface-container-lowest p-5 shadow-sm sm:p-6"><div className="mb-5 flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold text-on-surface">Chỉnh sửa thông tin</h2><p className="mt-1 text-sm text-on-surface-variant">Email, mã học sinh và chỉ số học tập được bảo vệ.</p></div><span className="material-symbols-outlined text-primary">edit_note</span></div><div className="grid grid-cols-1 gap-4 md:grid-cols-2"><label className="text-sm font-medium text-on-surface">Họ và tên<input className={`${inputClass} mt-1.5`} value={draft.fullName || ''} onChange={(event) => setDraft({ ...draft, fullName: event.target.value })} required maxLength={255} /></label><label className="text-sm font-medium text-on-surface">Ngày sinh<input className={`${inputClass} mt-1.5`} type="date" value={draft.dateOfBirth || ''} onChange={(event) => setDraft({ ...draft, dateOfBirth: event.target.value || null })} /></label><label className="text-sm font-medium text-on-surface">Giới tính<select className={`${inputClass} mt-1.5`} value={draft.gender || 'OTHER'} onChange={(event) => setDraft({ ...draft, gender: event.target.value as Gender })}><option value="MALE">Nam</option><option value="FEMALE">Nữ</option><option value="OTHER">Khác</option></select></label><label className="text-sm font-medium text-on-surface">Số điện thoại<input className={`${inputClass} mt-1.5`} value={draft.phoneNumber || ''} onChange={(event) => setDraft({ ...draft, phoneNumber: event.target.value })} placeholder="0912345678" /></label><label className="text-sm font-medium text-on-surface">Khối lớp<input className={`${inputClass} mt-1.5`} value={draft.gradeLevel || ''} onChange={(event) => setDraft({ ...draft, gradeLevel: event.target.value })} maxLength={32} /></label><label className="text-sm font-medium text-on-surface">Tên lớp<input className={`${inputClass} mt-1.5`} value={draft.className || ''} onChange={(event) => setDraft({ ...draft, className: event.target.value })} maxLength={64} /></label></div><div className="mt-5 rounded-lg bg-surface-container-low p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-sm font-semibold text-on-surface">Tùy chọn học tập</h3><p className="mt-1 text-xs text-on-surface-variant">Thiết lập để AI Tutor điều chỉnh nhịp học.</p></div><label className="text-sm font-medium text-on-surface">Mục tiêu mỗi ngày<input className={`${inputClass} mt-1.5 w-36`} type="number" min="15" max="180" step="5" value={draftPreferences.dailyGoalMinutes} onChange={(event) => setPreference('dailyGoalMinutes', Number(event.target.value))} /></label></div><div className="mt-4 flex flex-wrap gap-2">{['MATH', 'PHYSICS', 'CHEMISTRY', 'ENGLISH'].map((subject) => { const selected = draftPreferences.favoriteSubjects.includes(subject); return <button type="button" key={subject} onClick={() => setPreference('favoriteSubjects', selected ? draftPreferences.favoriteSubjects.filter((item) => item !== subject) : [...draftPreferences.favoriteSubjects, subject])} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${selected ? 'border-primary bg-primary text-on-primary' : 'border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary hover:text-primary'}`}>{subject}</button> })}</div></div><div className="mt-6 flex flex-col-reverse justify-end gap-2 sm:flex-row"><button type="button" className={secondaryButton} onClick={cancelEditing}>Hủy</button><button type="submit" className={primaryButton} disabled={saving}>{saving ? <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> : <span className="material-symbols-outlined text-[18px]">save</span>}{saving ? 'Đang lưu...' : 'Lưu thay đổi'}</button></div></form> : <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.1fr_.9fr]"><section className="rounded-xl border border-outline-variant/50 bg-surface-container-lowest p-5 shadow-sm"><div className="mb-4 flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-lg bg-primary-fixed text-primary"><span className="material-symbols-outlined">badge</span></span><div><h2 className="font-semibold text-on-surface">Thông tin cá nhân</h2><p className="text-xs text-on-surface-variant">Thông tin dùng trong hồ sơ học tập</p></div></div><dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">{[['Họ và tên', profile.fullName], ['Ngày sinh', profile.dateOfBirth || 'Chưa cập nhật'], ['Giới tính', profile.gender || 'Chưa cập nhật'], ['Số điện thoại', profile.phoneNumber || 'Chưa cập nhật'], ['Khối lớp', profile.gradeLevel || 'Chưa cập nhật'], ['Tên lớp', profile.className || 'Chưa cập nhật']].map(([label, value]) => <div key={label} className="rounded-lg bg-surface-container-low p-3"><dt className="text-xs text-on-surface-variant">{label}</dt><dd className="mt-1 text-sm font-semibold text-on-surface">{value}</dd></div>)}</dl><div className="mt-4 flex items-center gap-2 rounded-lg border border-outline-variant/50 bg-surface-container-low p-3 text-xs text-on-surface-variant"><span className="material-symbols-outlined text-[17px] text-secondary">lock</span>Email đăng nhập cố định: <strong className="text-on-surface">{profile.email}</strong></div></section><section className="rounded-xl border border-outline-variant/50 bg-surface-container-lowest p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-lg bg-secondary-container text-on-secondary-container"><span className="material-symbols-outlined">psychology</span></span><div><h2 className="font-semibold text-on-surface">Tùy chọn học tập</h2><p className="text-xs text-on-surface-variant">Cá nhân hóa nhịp học cùng AI</p></div></div><span className="rounded-full bg-secondary-container px-2.5 py-1 text-[11px] font-semibold text-on-secondary-container">AI Tutor</span></div><div className="rounded-lg bg-surface-container-low p-4"><p className="text-xs text-on-surface-variant">Môn học ưu tiên</p><div className="mt-2 flex flex-wrap gap-2">{preferences.favoriteSubjects.length ? preferences.favoriteSubjects.map((subject) => <span key={subject} className="rounded-full bg-primary-fixed px-3 py-1.5 text-xs font-semibold text-on-primary-fixed-variant">{subject}</span>) : <span className="text-sm text-on-surface-variant">Chưa chọn môn học</span>}</div></div><div className="mt-3 flex items-center justify-between rounded-lg bg-tertiary-fixed/60 p-4"><div><p className="text-xs text-on-tertiary-fixed-variant">Mục tiêu học mỗi ngày</p><p className="mt-1 text-xl font-semibold text-on-tertiary-fixed">{preferences.dailyGoalMinutes} phút</p></div><span className="material-symbols-outlined text-tertiary">hourglass_top</span></div></section></div>}
 
-        {/* Last Active */}
-        <div className={`${styles.bentoCard} ${styles.bentoCardDefault}`}>
-          <div className={styles.bentoHeader}>
-            <span className={`${styles.bentoTitle} ${styles.bentoTitleDefault}`}>Hoạt động gần nhất</span>
-            <div className={`${styles.bentoIconWrapper} ${styles.bentoIconNeutral}`}>
-              <span className="material-symbols-outlined text-[16px]">history_toggle_off</span>
-            </div>
-          </div>
-          <div>
-            <div className={styles.bentoValueMedium}>Hôm nay, 10:45 AM</div>
-            <div className={`${styles.bentoSubtitle} ${styles.bentoSubtitleNeutral}`}>Giải 5 bài tập Hình học 10</div>
-          </div>
-          <span className={`${styles.bentoFooter} ${styles.bentoFooterPrimary} flex items-center gap-1`}>
-            <span className="w-2 h-2 rounded-full bg-primary animate-ping"></span>
-            Đang trực tuyến
-          </span>
-        </div>
-      </div>
-
-      <div className={styles.mainContentGrid}>
-        {/* VIEW MODE */}
-        {!isEditMode ? (
-          <>
-            <div className={styles.mainColumn}>
-              <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <div className={styles.cardTitleWrapper}>
-                    <div className={`${styles.cardIconWrapper} ${styles.cardIconPrimary}`}>
-                      <span className="material-symbols-outlined text-[18px]">badge</span>
-                    </div>
-                    <h2 className={styles.cardTitle}>Thông tin cá nhân & Tài khoản</h2>
-                  </div>
-                  <span className={`${styles.cardBadge} ${styles.cardBadgeSecondary}`}>Hệ thống SGK 2018</span>
-                </div>
-                <div className={styles.infoRowContainer}>
-                  <div className={styles.infoRow}>
-                    <div className={styles.infoRowCol}>
-                      <span className={styles.infoLabel}>Họ và tên học sinh</span>
-                      <span className={styles.infoValue}>{name}</span>
-                    </div>
-                    <span className={styles.infoIcon}>person</span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <div className={styles.infoRowCol}>
-                      <span className={styles.infoLabel}>Khối lớp theo học</span>
-                      <span className={styles.infoValue}>{grade} (Chương trình mới)</span>
-                    </div>
-                    <span className={styles.infoIcon}>menu_book</span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <div className={styles.infoRowCol}>
-                      <div className="flex items-center gap-1.5">
-                        <span className={styles.infoLabel}>Email đăng nhập chính</span>
-                        <span className="material-symbols-outlined text-[14px] text-secondary">lock</span>
-                      </div>
-                      <span className={styles.infoValue}>hocsinh@example.com</span>
-                      <span className={styles.infoDesc}>Đã xác minh qua Google OTP. Không thể đổi trực tiếp.</span>
-                    </div>
-                    <span className={styles.infoIcon}>mail</span>
-                  </div>
-                  <div className={styles.infoGrid}>
-                    <div className={styles.infoGridItem}>
-                      <span className={styles.infoLabel}>Mã học sinh</span>
-                      <span className={styles.infoValueSmall}>HS-2025-8869</span>
-                    </div>
-                    <div className={styles.infoGridItem}>
-                      <span className={styles.infoLabel}>Ngày tham gia</span>
-                      <span className={styles.infoValueSmall}>15/09/2024</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className={styles.mainColumn}>
-              <div className={`${styles.card} h-full`}>
-                <div className={styles.cardHeader}>
-                  <div className={styles.cardTitleWrapper}>
-                    <div className={`${styles.cardIconWrapper} ${styles.cardIconSecondary}`}>
-                      <span className="material-symbols-outlined text-[18px]">psychology</span>
-                    </div>
-                    <h2 className={styles.cardTitle}>Tùy chọn học tập cá nhân hóa</h2>
-                  </div>
-                  <span className={`${styles.cardBadge} ${styles.cardBadgePrimary}`}>AI Đồng hành</span>
-                </div>
-                <div className="flex flex-col gap-2 p-space-md rounded-lg bg-surface-container-low">
-                  <span className={`${styles.infoLabel} font-medium`}>Môn học ưu tiên luyện tập</span>
-                  <div className={styles.chipContainer}>
-                    <span className={styles.chip}>
-                      <span className="material-symbols-outlined text-[14px]">calculate</span> Toán học
-                    </span>
-                    <span className={styles.chip}>
-                      <span className="material-symbols-outlined text-[14px]">science</span> Vật lý
-                    </span>
-                  </div>
-                </div>
-                <div className={styles.goalBanner}>
-                  <div className={styles.goalLeft}>
-                    <div className={styles.goalIconWrapper}>
-                      <span className="material-symbols-outlined text-[22px]">hourglass_top</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className={`${styles.infoLabel} font-medium`}>Mục tiêu học mỗi ngày</span>
-                      <span className="font-body-md text-[16px] font-bold text-on-surface">{goalMinutes} phút / ngày</span>
-                    </div>
-                  </div>
-                  <span className="font-label-sm text-[12px] text-primary font-semibold bg-surface-container-lowest px-3 py-1 rounded-lg shadow-sm">
-                    Khuyến nghị chuẩn
-                  </span>
-                </div>
-                <div className={styles.preferenceCard}>
-                  <span className={`${styles.infoLabel} font-medium`}>Phong cách giải thích AI ưa thích</span>
-                  <div className={styles.preferenceItem}>
-                    <div className={styles.preferenceIconWrapper}>
-                      <span className="material-symbols-outlined text-[18px]">format_list_numbered</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-body-md text-[14px] font-semibold text-on-surface">Giải thích từng bước chi tiết (Step-by-step)</span>
-                      <span className={styles.formHint}>Phù hợp học sinh ôn tập SGK và nắm chắc bản chất công thức.</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          /* EDIT MODE */
-          <div className="col-span-full flex flex-col gap-space-lg">
-            <div className={styles.editBanner}>
-              <div className={styles.editBannerLeft}>
-                <div className={styles.editBannerIconWrapper}>
-                  <span className="material-symbols-outlined text-[20px]">edit</span>
-                </div>
-                <div>
-                  <div className={styles.editBannerTitle}>Bạn đang ở chế độ chỉnh sửa hồ sơ</div>
-                  <div className={styles.editBannerDesc}>Hãy cập nhật thông tin học tập chính xác và nhấn Lưu thay đổi bên dưới.</div>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
-              <div className="lg:col-span-7 flex flex-col gap-space-lg">
-                <div className={styles.card}>
-                  <div className={styles.cardHeader}>
-                    <div className={styles.cardTitleWrapper}>
-                      <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
-                      <h2 className={styles.cardTitle}>Trường thông tin được phép chỉnh sửa</h2>
-                    </div>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Họ và tên học sinh <span className="text-error">*</span></label>
-                    <input 
-                      type="text" 
-                      className={styles.formInput} 
-                      value={name} 
-                      onChange={(e) => setName(e.target.value)} 
-                    />
-                    <span className={styles.formHint}>Nhập đầy đủ họ và tên thật để hiển thị đúng chuẩn.</span>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Khối lớp hiện tại <span className="text-error">*</span></label>
-                    <div className="relative">
-                      <select 
-                        className={styles.formSelect} 
-                        value={grade} 
-                        onChange={(e) => setGrade(e.target.value)}
-                      >
-                        <option value="Lớp 10">Lớp 10 (Bộ SGK Kết nối tri thức & Cánh diều)</option>
-                        <option value="Lớp 11">Lớp 11 (Chương trình GDPT mới)</option>
-                        <option value="Lớp 12">Lớp 12 (Ôn thi THPT Quốc gia)</option>
-                        <option value="Khác">Khác / Thí sinh tự do</option>
-                      </select>
-                      <span className="material-symbols-outlined text-on-surface-variant text-[20px] absolute right-3 top-3 pointer-events-none">expand_more</span>
-                    </div>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Mục tiêu học mỗi ngày (Thời lượng luyện đề)</label>
-                    <div className={styles.stepper}>
-                      <button className={styles.stepperBtn} onClick={() => adjustGoal(-15)}>
-                        <span className="material-symbols-outlined text-[18px]">remove</span>
-                      </button>
-                      <div className="flex items-baseline gap-1 px-space-sm">
-                        <span className="font-headline-lg text-[22px] font-bold text-primary">{goalMinutes}</span>
-                        <span className="font-label-sm text-label-sm font-medium text-secondary">phút / ngày</span>
-                      </div>
-                      <button className={styles.stepperBtn} onClick={() => adjustGoal(15)}>
-                        <span className="material-symbols-outlined text-[18px]">add</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="lg:col-span-5 flex flex-col gap-space-lg">
-                <div className={styles.readOnlyCard}>
-                  <div className={styles.readOnlyHeader}>
-                    <span className="material-symbols-outlined text-secondary text-[20px]">lock</span>
-                    <h3 className={styles.readOnlyTitle}>Thông tin bảo mật cố định (Read-Only)</h3>
-                  </div>
-                  <p className={styles.readOnlyDesc}>Các trường thông tin này được bảo vệ nhằm đảm bảo tính toàn vẹn dữ liệu học bạ và thứ hạng bảng vàng.</p>
-                  <div className="flex flex-col gap-space-sm">
-                    <div className={styles.readOnlyItem}>
-                      <div className="flex flex-col">
-                        <span className={styles.formHint}>Email đăng nhập Google</span>
-                        <span className={styles.infoValueSmall}>hocsinh@example.com</span>
-                      </div>
-                      <div className={styles.readOnlyBadge}>
-                        <span className="material-symbols-outlined text-[13px]">lock</span>
-                        Không được sửa
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      <section className="rounded-xl border border-outline-variant/50 bg-surface-container-lowest p-5 shadow-sm sm:p-6">
+        <button type="button" className="flex w-full items-center justify-between gap-4 text-left" onClick={() => setIsSecurityOpen((open) => !open)} aria-expanded={isSecurityOpen}>
+          <span className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-secondary-container text-on-secondary-container"><span className="material-symbols-outlined">shield_lock</span></span><span><span className="block font-semibold text-on-surface">Bảo mật tài khoản</span><span className="mt-1 block text-sm text-on-surface-variant">Đổi mật khẩu và bảo vệ tài khoản học tập.</span></span></span>
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface-container text-on-surface-variant"><span className="material-symbols-outlined">{isSecurityOpen ? 'expand_less' : 'expand_more'}</span></span>
+        </button>
+        {isSecurityOpen && <form onSubmit={submitPassword} noValidate className="mt-5 border-t border-outline-variant/50 pt-5"><div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {([['oldPassword', 'Mật khẩu hiện tại', 'old'], ['newPassword', 'Mật khẩu mới', 'next'], ['confirmPassword', 'Xác nhận mật khẩu', 'confirm']] as const).map(([field, label, visibility]) => <label key={field} className="text-sm font-medium text-on-surface">{label}<span className="relative mt-1.5 block"><input className={`${inputClass} pr-11 ${passwordFieldErrors[field] ? 'border-error focus:border-error focus:ring-error/15' : ''}`} type={visiblePasswords[visibility] ? 'text' : 'password'} value={password[field]} onChange={(event) => updatePasswordField(field, event.target.value)} minLength={field !== 'oldPassword' ? 8 : undefined} required aria-invalid={Boolean(passwordFieldErrors[field])} aria-describedby={passwordFieldErrors[field] ? `${field}-error` : undefined} /><button type="button" aria-label={visiblePasswords[visibility] ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} title={visiblePasswords[visibility] ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={() => setVisiblePasswords({ ...visiblePasswords, [visibility]: !visiblePasswords[visibility] })} className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-on-surface-variant hover:bg-surface-container hover:text-primary"><span className="material-symbols-outlined text-[19px]">{visiblePasswords[visibility] ? 'visibility_off' : 'visibility'}</span></button></span>{passwordFieldErrors[field] && <span id={`${field}-error`} className="mt-1 block text-xs font-normal text-error">{passwordFieldErrors[field]}</span>}</label>)}
+        </div><div className="mt-4 rounded-lg border border-outline-variant/50 bg-surface-container-low p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-on-surface">Tiêu chí mật khẩu mới</p><span className={`text-xs font-semibold ${password.newPassword.length === 0 ? 'text-on-surface-variant' : passwordIsStrong ? 'text-primary' : 'text-tertiary'}`}>{password.newPassword.length === 0 ? 'Chưa nhập' : passwordIsStrong ? 'Mật khẩu mạnh' : 'Cần bổ sung'}</span></div><div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">{[['minLength', 'Ít nhất 8 ký tự'], ['lowercase', 'Có chữ thường'], ['uppercase', 'Có chữ hoa'], ['number', 'Có chữ số'], ['special', 'Có ký tự đặc biệt']].map(([key, label]) => { const passed = passwordChecks[key as keyof typeof passwordChecks]; return <span key={key} className={`flex items-center gap-2 ${passed ? 'text-primary' : 'text-on-surface-variant'}`}><span className={`grid h-4 w-4 place-items-center rounded-full ${passed ? 'bg-primary text-on-primary' : 'bg-surface-container-highest'}`}><span className="material-symbols-outlined text-[12px]">{passed ? 'check' : 'radio_button_unchecked'}</span></span>{label}</span>})}<span className={`flex items-center gap-2 ${password.newPassword.length > 0 && !/\s/.test(password.newPassword) ? 'text-primary' : 'text-on-surface-variant'}`}><span className={`grid h-4 w-4 place-items-center rounded-full ${password.newPassword.length > 0 && !/\s/.test(password.newPassword) ? 'bg-primary text-on-primary' : 'bg-surface-container-highest'}`}><span className="material-symbols-outlined text-[12px]">{password.newPassword.length > 0 && !/\s/.test(password.newPassword) ? 'check' : 'radio_button_unchecked'}</span></span>Không chứa khoảng trắng</span></div><p className={`mt-3 text-xs ${password.confirmPassword.length === 0 ? 'text-on-surface-variant' : passwordsMatch ? 'text-primary' : 'text-error'}`}>{password.confirmPassword.length === 0 ? 'Nhập lại mật khẩu để kiểm tra độ khớp.' : passwordsMatch ? 'Hai mật khẩu khớp nhau.' : 'Hai mật khẩu chưa khớp.'}</p></div><div className="mt-5 flex flex-col gap-3 rounded-lg bg-surface-container-low p-4 sm:flex-row sm:items-center sm:justify-between"><div className="text-sm">{passwordError && <span className="text-error">{passwordError}</span>}{passwordNotice && <span className="text-primary">{passwordNotice}</span>}{!passwordError && !passwordNotice && <span className="text-xs text-on-surface-variant">Mật khẩu không được trùng thông tin dễ đoán.</span>}</div><button className={secondaryButton} disabled={passwordSaving}><span className="material-symbols-outlined text-[18px]">lock_reset</span>{passwordSaving ? 'Đang cập nhật...' : 'Đổi mật khẩu'}</button></div></form>}
+      </section>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/15 bg-primary-fixed/50 px-5 py-4"><div className="flex items-center gap-3"><span className="material-symbols-outlined text-primary">insights</span><div><p className="text-sm font-semibold text-on-primary-fixed">Muốn xem chi tiết tiến độ?</p><p className="text-xs text-on-primary-fixed-variant">Theo dõi lộ trình học tập tại trang tổng quan.</p></div></div><Link className={primaryButton} to="/student/dashboard">Mở tổng quan<span className="material-symbols-outlined text-[18px]">arrow_forward</span></Link></div>
     </div>
-  );
-};
+  )
+}
