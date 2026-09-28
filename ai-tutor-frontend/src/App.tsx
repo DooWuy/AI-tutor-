@@ -8,6 +8,10 @@ import { DashboardPage } from './pages/Student/Dashboard/DashboardPage';
 import { TimetablePage } from './pages/Student/Timetable/TimetablePage';
 import { ProfilePage } from './pages/Student/Profile/ProfilePage';
 
+import { TeacherLayout } from './layouts/TeacherLayout/TeacherLayout';
+import AnalyticsPage from './pages/Teacher/Analytics/AnalyticsPage';
+import { Navigate } from 'react-router-dom';
+
 function App() {
   return (
     <BrowserRouter>
@@ -21,6 +25,13 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="timetable" element={<TimetablePage />} />
           <Route path="profile" element={<ProfilePage />} />
+        </Route>
+
+        {/* Teacher Routes */}
+        <Route path="/teacher" element={<TeacherLayout />}>
+          <Route index element={<Navigate to="/teacher/analytics" replace />} />
+          <Route path="dashboard" element={<Navigate to="/teacher/analytics" replace />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

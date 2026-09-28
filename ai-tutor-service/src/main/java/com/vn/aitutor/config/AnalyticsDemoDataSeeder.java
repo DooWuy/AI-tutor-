@@ -78,18 +78,36 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        entityManager
-                .createNativeQuery("SELECT set_config('app.allow_history_maintenance', 'true', true)")
-                .getSingleResult();
-        if (userRepository.existsByEmail(DEMO_TEACHER_EMAIL)) {
-            seedKnowledgeGapsIfMissing();
-            return;
+        enableHistoryMaintenance();
+        try {
+            if (userRepository.existsByEmail(DEMO_TEACHER_EMAIL)) {
+                seedKnowledgeGapsIfMissing();
+                return;
+            }
+            seed();
+            log.info(
+                    "Seeded analytics demo teacher {} / {} (class 12A1, 40 students, 80 quiz attempts totaling 640)",
+                    DEMO_TEACHER_EMAIL,
+                    DEMO_TEACHER_PASSWORD);
+        } finally {
+            disableHistoryMaintenance();
         }
-        seed();
-        log.info(
-                "Seeded analytics demo teacher {} / {} (class 12A1, 40 students, 80 quiz attempts totaling 640)",
-                DEMO_TEACHER_EMAIL,
-                DEMO_TEACHER_PASSWORD);
+    }
+
+    private void enableHistoryMaintenance() {
+        entityManager
+                .createNativeQuery("SELECT set_config('app.allow_history_maintenance', 'true', false)")
+                .getSingleResult();
+    }
+
+    private void disableHistoryMaintenance() {
+        try {
+            entityManager.flush();
+        } finally {
+            entityManager
+                    .createNativeQuery("SELECT set_config('app.allow_history_maintenance', 'false', false)")
+                    .getSingleResult();
+        }
     }
 
     private void seed() {
