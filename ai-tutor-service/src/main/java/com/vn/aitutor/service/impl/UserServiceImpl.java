@@ -278,6 +278,10 @@ public class UserServiceImpl implements IUserService {
             throw new ResourceBadRequestException("Mật khẩu cũ không chính xác");
         }
 
+        if (request.getOldPassword().equals(request.getNewPassword())) {
+            throw new ResourceBadRequestException("Mật khẩu mới phải khác mật khẩu cũ");
+        }
+
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new ResourceBadRequestException("Mật khẩu mới và mật khẩu xác nhận không khớp");
         }
