@@ -29,6 +29,7 @@ import com.vn.aitutor.repository.StudentRepository;
 import com.vn.aitutor.repository.TeacherClassAssignmentRepository;
 import com.vn.aitutor.repository.TeacherRepository;
 import com.vn.aitutor.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -72,10 +73,12 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
     private final ChatMessageRepository chatMessageRepository;
     private final PasswordEncoder passwordEncoder;
     private final AcademicCalendar academicCalendar;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        entityManager.createNativeQuery("SET LOCAL app.allow_history_maintenance = 'true'").executeUpdate();
         if (userRepository.existsByEmail(DEMO_TEACHER_EMAIL)) {
             seedKnowledgeGapsIfMissing();
             return;
