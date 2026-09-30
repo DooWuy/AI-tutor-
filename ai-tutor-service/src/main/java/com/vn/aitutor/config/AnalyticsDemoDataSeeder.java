@@ -78,16 +78,36 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        entityManager.createNativeQuery("SET LOCAL app.allow_history_maintenance = 'true'").executeUpdate();
-        if (userRepository.existsByEmail(DEMO_TEACHER_EMAIL)) {
-            seedKnowledgeGapsIfMissing();
-            return;
+        enableHistoryMaintenance();
+        try {
+            if (userRepository.existsByEmail(DEMO_TEACHER_EMAIL)) {
+                seedKnowledgeGapsIfMissing();
+                return;
+            }
+            seed();
+            log.info(
+                    "Seeded analytics demo teacher {} / {} (class 12A1, 40 students, 80 quiz attempts totaling 640)",
+                    DEMO_TEACHER_EMAIL,
+                    DEMO_TEACHER_PASSWORD);
+        } finally {
+            disableHistoryMaintenance();
         }
-        seed();
-        log.info(
-                "Seeded analytics demo teacher {} / {} (class 12A1, 40 students, 80 quiz attempts totaling 640)",
-                DEMO_TEACHER_EMAIL,
-                DEMO_TEACHER_PASSWORD);
+    }
+
+    private void enableHistoryMaintenance() {
+        entityManager
+                .createNativeQuery("SELECT set_config('app.allow_history_maintenance', 'true', false)")
+                .getSingleResult();
+    }
+
+    private void disableHistoryMaintenance() {
+        try {
+            entityManager.flush();
+        } finally {
+            entityManager
+                    .createNativeQuery("SELECT set_config('app.allow_history_maintenance', 'false', false)")
+                    .getSingleResult();
+        }
     }
 
     private void seed() {
@@ -175,6 +195,7 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
             chatSessionRepository.save(session);
         }
         seedKnowledgeGapFixture(quiz, students, attempts);
+        applyAc03Fixture(attempts);
     }
 
     private void seedKnowledgeGapsIfMissing() {
@@ -195,11 +216,11 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
             return;
         }
         alignDemoAttemptsToRecentWindow(attempts);
-        if (quizQuestionRepository.existsByTopic("Thể tích hình nón")) {
-            return;
+        if (!quizQuestionRepository.existsByTopic("Thể tích hình nón")) {
+            seedKnowledgeGapFixture(quiz, students, attempts);
+            log.info("Seeded knowledge-gap fixture on existing 12A1 attempts without changing scores");
         }
-        seedKnowledgeGapFixture(quiz, students, attempts);
-        log.info("Seeded knowledge-gap fixture on existing 12A1 attempts without changing scores");
+        applyAc03Fixture(attempts);
     }
 
     /**
@@ -221,6 +242,59 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
             quizAttemptRepository.saveAll(attempts);
             log.info("Moved stale demo quiz attempts back into the last 7 days without changing scores");
         }
+    }
+
+    private void applyAc03Fixture(List<QuizAttempt> attempts) {
+        Student nguyen = studentRepository.findByStudentCode("STU-12A1-01").orElse(null);
+        if (nguyen != null && (nguyen.getParentEmail() == null || nguyen.getParentEmail().isBlank())) {
+            nguyen.setParentName("Phụ huynh Nguyễn Văn A");
+            nguyen.setParentEmail("phuhuynh.nguyenvana@aitutor.vn");
+            studentRepository.save(nguyen);
+        }
+        List<QuizAttempt> nguyenAttempts = attempts.stream()
+                .filter(attempt -> attempt.getStudent() != null
+                        && "STU-12A1-01".equals(attempt.getStudent().getStudentCode()))
+                .toList();
+        boolean alreadyLow = nguyenAttempts.size() == 2
+                && nguyenAttempts.stream().allMatch(attempt -> isScore(attempt.getScore(), 4.5));
+        if (!alreadyLow && nguyenAttempts.size() == 2
+                && nguyenAttempts.stream().allMatch(attempt -> isScore(attempt.getScore(), 8.0))) {
+            for (QuizAttempt attempt : nguyenAttempts) {
+                attempt.setScore(4.5);
+            }
+            int compensated = 0;
+            for (int number = 34; number <= 40 && compensated < 7; number++) {
+                String code = "STU-12A1-" + String.format("%02d", number);
+                for (QuizAttempt attempt : attempts) {
+                    if (attempt.getStudent() != null
+                            && code.equals(attempt.getStudent().getStudentCode())
+                            && isScore(attempt.getScore(), 8.0)) {
+                        attempt.setScore(9.0);
+                        compensated++;
+                        break;
+                    }
+                }
+            }
+            quizAttemptRepository.saveAll(attempts);
+            log.info("Set Nguyễn Văn A quiz average to 4.5 and kept the class total at 640");
+        }
+        Student orange = studentRepository.findByStudentCode("STU-12A1-36").orElse(null);
+        if (orange != null) {
+            Instant now = Instant.now();
+            Integer inactiveDays = orange.getLastActivityDate() == null
+                    ? null
+                    : (int) java.time.temporal.ChronoUnit.DAYS.between(
+                            orange.getLastActivityDate().atZone(academicCalendar.zoneId()).toLocalDate(),
+                            now.atZone(academicCalendar.zoneId()).toLocalDate());
+            if (inactiveDays == null || inactiveDays <= 7) {
+                orange.setLastActivityDate(now.minus(Duration.ofDays(8)));
+                studentRepository.save(orange);
+            }
+        }
+    }
+
+    private boolean isScore(Double score, double expected) {
+        return score != null && Math.abs(score - expected) < 0.001;
     }
 
     private void seedKnowledgeGapFixture(Quiz quiz, List<Student> students, List<QuizAttempt> attempts) {

@@ -8,6 +8,7 @@ app:
       same-site: None
   analytics:
     knowledge-gap-job: true
+    at-risk-job: true
   notifications:
     pre-class-job: true
     manual-scan: false

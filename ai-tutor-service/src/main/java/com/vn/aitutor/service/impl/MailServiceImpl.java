@@ -64,4 +64,15 @@ public class MailServiceImpl implements IMailService {
             log.error("Lỗi khi gửi email cấp tài khoản đến {}: {}", toEmail, e.getMessage());
         }
     }
+
+    @Override
+    public void sendParentAlertEmail(String toEmail, String subject, String body) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject(subject);
+        message.setText(body);
+        mailSender.send(message);
+        log.info("Đã gửi cảnh báo phụ huynh đến: {}", toEmail);
+    }
 }

@@ -73,6 +73,15 @@ public class Student {
     @Column(name = "last_activity_date")
     private Instant lastActivityDate;
 
+    @Column(name = "parent_name", length = 255)
+    private String parentName;
+
+    @Column(name = "parent_email", length = 255)
+    private String parentEmail;
+
+    @Column(name = "parent_phone", length = 32)
+    private String parentPhone;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "study_preferences", nullable = false, columnDefinition = "jsonb")
     private Map<String, Object> studyPreferences = new HashMap<>();
