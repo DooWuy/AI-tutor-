@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE users (
     id UUID PRIMARY KEY,
     username VARCHAR(255) NOT NULL,
@@ -243,3 +244,170 @@ CREATE TABLE password_reset_tokens (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_password_reset_token_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
+CREATE TABLE school_classes (
+    id UUID PRIMARY KEY,
+    name VARCHAR(64) NOT NULL,
+    grade_level VARCHAR(32) NOT NULL,
+    school_name VARCHAR(255),
+    academic_year VARCHAR(16) NOT NULL,
+    homeroom_teacher_id UUID,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_school_classes_homeroom
+        FOREIGN KEY (homeroom_teacher_id) REFERENCES teachers (id) ON DELETE SET NULL
+);
+
+CREATE UNIQUE INDEX uk_school_classes_school_year_name
+    ON school_classes (COALESCE(school_name, ''), academic_year, name);
+
+CREATE INDEX idx_school_classes_homeroom ON school_classes (homeroom_teacher_id);
+
+CREATE TABLE teacher_class_assignments (
+    id UUID PRIMARY KEY,
+    teacher_id UUID NOT NULL,
+    class_id UUID NOT NULL,
+    subject VARCHAR(64),
+    is_homeroom BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_tca_teacher FOREIGN KEY (teacher_id) REFERENCES teachers (id) ON DELETE CASCADE,
+    CONSTRAINT fk_tca_class FOREIGN KEY (class_id) REFERENCES school_classes (id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX uk_tca_teacher_class_subject
+    ON teacher_class_assignments (teacher_id, class_id, COALESCE(subject, ''));
+
+CREATE INDEX idx_tca_teacher_id ON teacher_class_assignments (teacher_id);
+CREATE INDEX idx_tca_class_id ON teacher_class_assignments (class_id);
+
+ALTER TABLE students ADD COLUMN class_id UUID;
+
+ALTER TABLE students
+    ADD CONSTRAINT fk_students_class
+    FOREIGN KEY (class_id) REFERENCES school_classes (id) ON DELETE SET NULL;
+
+CREATE INDEX idx_students_class_id ON students (class_id);
+
+INSERT INTO school_classes (id, name, grade_level, school_name, academic_year, created_at)
+SELECT gen_random_uuid(),
+       btrim(s.class_name),
+       COALESCE(MAX(s.grade_level), ''),
+       s.school_name,
+       CASE
+           WHEN EXTRACT(MONTH FROM CURRENT_DATE) < 8
+               THEN (EXTRACT(YEAR FROM CURRENT_DATE)::int - 1)::text
+                    || '-'
+                    || EXTRACT(YEAR FROM CURRENT_DATE)::int::text
+           ELSE EXTRACT(YEAR FROM CURRENT_DATE)::int::text
+                    || '-'
+                    || (EXTRACT(YEAR FROM CURRENT_DATE)::int + 1)::text
+       END,
+       NOW()
+FROM students s
+WHERE s.class_name IS NOT NULL
+  AND btrim(s.class_name) <> ''
+GROUP BY btrim(s.class_name), s.school_name;
+
+UPDATE students st
+SET class_id = sc.id
+FROM school_classes sc
+WHERE st.class_name IS NOT NULL
+  AND btrim(st.class_name) = sc.name
+  AND COALESCE(st.school_name, '') = COALESCE(sc.school_name, '');
+
+CREATE INDEX idx_quiz_attempts_submitted_at ON quiz_attempts (submitted_at);
+CREATE INDEX idx_chat_sessions_student_last_msg ON chat_sessions (student_id, last_message_at);
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(32) NOT NULL,
+    link VARCHAR(1024),
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_notifications_user_id ON notifications (user_id);
+ALTER TABLE quiz_questions
+    ADD COLUMN topic VARCHAR(255);
+
+CREATE TABLE quiz_attempt_answers (
+    id UUID PRIMARY KEY,
+    attempt_id UUID NOT NULL,
+    question_id UUID NOT NULL,
+    selected_option_key VARCHAR(64),
+    is_correct BOOLEAN NOT NULL,
+    CONSTRAINT fk_qaa_attempt FOREIGN KEY (attempt_id) REFERENCES quiz_attempts (id) ON DELETE CASCADE,
+    CONSTRAINT fk_qaa_question FOREIGN KEY (question_id) REFERENCES quiz_questions (id) ON DELETE RESTRICT,
+    CONSTRAINT uk_quiz_attempt_answers_attempt_question UNIQUE (attempt_id, question_id)
+);
+
+CREATE INDEX idx_quiz_attempt_answers_attempt_id ON quiz_attempt_answers (attempt_id);
+CREATE INDEX idx_quiz_attempt_answers_question_id ON quiz_attempt_answers (question_id);
+ALTER TABLE students
+    ADD COLUMN parent_name VARCHAR(255),
+    ADD COLUMN parent_email VARCHAR(255),
+    ADD COLUMN parent_phone VARCHAR(32);
+
+CREATE TABLE parent_alert_messages (
+    id UUID PRIMARY KEY,
+    student_id UUID NOT NULL,
+    class_id UUID NOT NULL,
+    sender_user_id UUID NOT NULL,
+    body VARCHAR(1000) NOT NULL,
+    channel VARCHAR(16) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    error_message VARCHAR(500),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_pam_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
+    CONSTRAINT fk_pam_class FOREIGN KEY (class_id) REFERENCES school_classes (id) ON DELETE CASCADE,
+    CONSTRAINT fk_pam_sender FOREIGN KEY (sender_user_id) REFERENCES users (id) ON DELETE RESTRICT
+);
+
+CREATE INDEX idx_parent_alert_messages_student_id ON parent_alert_messages (student_id);
+CREATE INDEX idx_parent_alert_messages_class_id ON parent_alert_messages (class_id);
+CREATE TABLE class_alert_settings (
+    class_id UUID PRIMARY KEY,
+    score_threshold NUMERIC(4, 1) NOT NULL,
+    inactivity_days INTEGER NOT NULL,
+    max_gap_topics INTEGER NOT NULL,
+    message_template VARCHAR(2000) NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_by UUID,
+    CONSTRAINT fk_alert_settings_class FOREIGN KEY (class_id) REFERENCES school_classes (id) ON DELETE CASCADE,
+    CONSTRAINT fk_alert_settings_user FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE SET NULL,
+    CONSTRAINT ck_alert_score CHECK (score_threshold > 0 AND score_threshold <= 10),
+    CONSTRAINT ck_alert_inactive CHECK (inactivity_days >= 0 AND inactivity_days <= 365),
+    CONSTRAINT ck_alert_gaps CHECK (max_gap_topics >= 1 AND max_gap_topics <= 50)
+);
+
+CREATE OR REPLACE FUNCTION reject_history_mutation()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF current_setting('app.allow_history_maintenance', true) IS DISTINCT FROM 'true' THEN
+        RAISE EXCEPTION 'HISTORY_IMMUTABLE'
+            USING ERRCODE = '42501';
+    END IF;
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_quiz_attempts_immutable
+    BEFORE UPDATE OR DELETE ON quiz_attempts
+    FOR EACH ROW
+    EXECUTE FUNCTION reject_history_mutation();
+
+CREATE TRIGGER trg_chat_messages_immutable
+    BEFORE UPDATE OR DELETE ON chat_messages
+    FOR EACH ROW
+    EXECUTE FUNCTION reject_history_mutation();
+
+CREATE TRIGGER trg_parent_alert_messages_immutable
+    BEFORE UPDATE OR DELETE ON parent_alert_messages
+    FOR EACH ROW
+    EXECUTE FUNCTION reject_history_mutation();

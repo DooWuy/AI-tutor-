@@ -22,6 +22,6 @@ export interface ScheduleResponse {
 }
 
 export interface OcrExtractionResponse {
-  status: string;
-  data: ScheduleSlotDto[];
+  name?: string;
+  slots: ScheduleSlotDto[];
 }

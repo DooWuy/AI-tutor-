@@ -26,8 +26,8 @@ export const styles = {
   bannerActionGroup: 'flex items-center gap-2.5 flex-shrink-0',
   bannerPrimaryBtn: 'px-4 py-2 bg-primary text-on-primary hover:bg-primary-container text-xs font-semibold rounded-xl transition shadow-sm active:scale-95 flex items-center gap-1.5',
   bannerSecondaryBtn: 'px-3.5 py-2 bg-surface-container-lowest hover:bg-surface-container-high text-on-surface text-xs font-semibold rounded-xl border border-outline-variant transition active:scale-95',
-  gridContainer: 'grid grid-cols-1 xl:grid-cols-12 gap-6 items-start',
-  tableWrapper: 'xl:col-span-9 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm flex flex-col overflow-hidden custom-scrollbar',
+  gridContainer: 'grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start',
+  tableWrapper: 'lg:col-span-8 xl:col-span-9 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm flex flex-col overflow-hidden custom-scrollbar',
   
   // Settings Panel (Tùy chỉnh số tiết)
   settingsPanel: 'p-4 bg-surface-container-low border-b border-outline-variant',
@@ -97,7 +97,7 @@ export const styles = {
   eveningRow: 'bg-indigo-50 border-y border-indigo-100',
   
   // Right Sidebar Wrapper
-  sidebarWrapper: 'xl:col-span-3 space-y-5',
+  sidebarWrapper: 'lg:col-span-4 xl:col-span-3 space-y-5',
   
   // Sidebar Card
   sidebarCard: 'bg-surface-container-lowest rounded-2xl border border-outline-variant p-5 shadow-sm space-y-4',

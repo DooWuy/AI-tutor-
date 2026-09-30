@@ -1,6 +1,11 @@
 import { styles } from './DashboardPage.styles';
+import { getStoredSession } from '../../../services/authApi';
 
 export const DashboardPage = () => {
+  const session = getStoredSession();
+  const user = session ? session.user : null;
+  const fullName = user?.fullName || 'Người dùng';
+
   return (
     <div className={styles.container}>
       {/* Hero / Welcome Personalized Banner */}
@@ -13,7 +18,7 @@ export const DashboardPage = () => {
               <span>Học tập cùng Trợ lý AI thế hệ mới</span>
             </div>
             <h1 className={styles.heroTitle}>
-              Chào buổi sáng, Nguyễn Văn An! 👋
+              Chào buổi sáng, {fullName}! 👋
             </h1>
             <p className={styles.heroSubtitle}>
               Hôm nay bạn có <strong className="text-on-surface font-semibold">3 nhiệm vụ</strong> cần hoàn thành. Bạn đã đạt <strong className="text-primary font-semibold">60% mục tiêu</strong> học 45 phút mỗi ngày!

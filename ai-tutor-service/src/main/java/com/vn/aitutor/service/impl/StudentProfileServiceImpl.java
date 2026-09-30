@@ -157,7 +157,8 @@ public class StudentProfileServiceImpl implements IStudentProfileService {
 
     private boolean isPrimitiveOrPrimitiveArray(Object value) {
         if (value == null || value instanceof String || value instanceof Number || value instanceof Boolean) return true;
-        if (value instanceof List<?> list) return list.stream().allMatch(this::isPrimitive);
+        if (value instanceof Map) return true;
+        if (value instanceof List<?> list) return list.stream().allMatch(item -> isPrimitive(item) || item instanceof Map);
         return false;
     }
 

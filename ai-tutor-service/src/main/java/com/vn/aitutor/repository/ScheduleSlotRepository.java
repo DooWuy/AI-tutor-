@@ -26,4 +26,6 @@ public interface ScheduleSlotRepository extends JpaRepository<ScheduleSlot, UUID
             @Param("startTime") LocalTime startTime,
             @Param("endTime") LocalTime endTime
     );
+
+    List<ScheduleSlot> findByDayOfWeekAndStartTimeAndSchedule_IsActiveTrue(Integer dayOfWeek, LocalTime startTime);
 }

@@ -189,6 +189,107 @@ public class ScheduleServiceImpl implements IScheduleService {
         return mapToResponse(schedule, slotDtos);
     }
 
+    @Override
+    @Transactional
+    public ScheduleSlotDto updateScheduleSlot(UUID userId, UUID slotId, ScheduleSlotDto request) {
+        ScheduleSlot slot = scheduleSlotRepository.findById(slotId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tiết học này."));
+
+        if (!slot.getSchedule().getStudent().getUser().getId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền chỉnh sửa tiết học này.");
+        }
+
+        // Validate time
+        if (request.getStartTime() == null || request.getEndTime() == null || !request.getStartTime().isBefore(request.getEndTime())) {
+            throw new ResourceBadRequestException("Giờ kết thúc phải sau giờ bắt đầu.");
+        }
+
+        // Lấy tất cả các slot khác trong cùng thời khóa biểu
+        List<ScheduleSlot> otherSlots = scheduleSlotRepository.findByScheduleId(slot.getSchedule().getId()).stream()
+                .filter(s -> !s.getId().equals(slotId))
+                .collect(Collectors.toList());
+
+        // Ánh xạ thành DTO để dùng lại hàm validateScheduleSlots
+        List<ScheduleSlotDto> allDtos = otherSlots.stream().map(s -> ScheduleSlotDto.builder()
+                .id(s.getId())
+                .dayOfWeek(s.getDayOfWeek())
+                .startTime(s.getStartTime())
+                .endTime(s.getEndTime())
+                .subjectName(s.getSubjectName())
+                .build()).collect(Collectors.toList());
+
+        // Cập nhật DTO với data mới và thêm vào danh sách để check overlap
+        request.setId(slotId);
+        allDtos.add(request);
+        
+        validateScheduleSlots(allDtos);
+
+        // Lưu thông tin
+        slot.setDayOfWeek(request.getDayOfWeek());
+        slot.setStartTime(request.getStartTime());
+        slot.setEndTime(request.getEndTime());
+        slot.setSubjectName(request.getSubjectName());
+        slot.setTeacherName(request.getTeacherName());
+        slot.setRoom(request.getRoom());
+        slot.setScheduleType(request.getScheduleType());
+        
+        ScheduleSlot saved = scheduleSlotRepository.save(slot);
+        request.setId(saved.getId());
+        return request;
+    }
+
+    @Override
+    @Transactional
+    public ScheduleSlotDto addScheduleSlot(UUID userId, ScheduleSlotDto request) {
+        Schedule schedule = scheduleRepository.findActiveScheduleByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thời khóa biểu đang hoạt động. Vui lòng lưu một TKB trước khi thêm tiết."));
+
+        // Validate time
+        if (request.getStartTime() == null || request.getEndTime() == null || !request.getStartTime().isBefore(request.getEndTime())) {
+            throw new ResourceBadRequestException("Giờ kết thúc phải sau giờ bắt đầu.");
+        }
+
+        // Check overlap with existing slots
+        List<ScheduleSlot> existingSlots = scheduleSlotRepository.findByScheduleId(schedule.getId());
+        List<ScheduleSlotDto> allDtos = existingSlots.stream().map(s -> ScheduleSlotDto.builder()
+                .id(s.getId())
+                .dayOfWeek(s.getDayOfWeek())
+                .startTime(s.getStartTime())
+                .endTime(s.getEndTime())
+                .subjectName(s.getSubjectName())
+                .build()).collect(Collectors.toList());
+
+        allDtos.add(request);
+        validateScheduleSlots(allDtos);
+
+        ScheduleSlot slot = new ScheduleSlot();
+        slot.setSchedule(schedule);
+        slot.setDayOfWeek(request.getDayOfWeek());
+        slot.setStartTime(request.getStartTime());
+        slot.setEndTime(request.getEndTime());
+        slot.setSubjectName(request.getSubjectName());
+        slot.setTeacherName(request.getTeacherName());
+        slot.setRoom(request.getRoom());
+        slot.setScheduleType(request.getScheduleType());
+
+        ScheduleSlot saved = scheduleSlotRepository.save(slot);
+        request.setId(saved.getId());
+        return request;
+    }
+
+    @Override
+    @Transactional
+    public void deleteScheduleSlot(UUID userId, UUID slotId) {
+        ScheduleSlot slot = scheduleSlotRepository.findById(slotId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tiết học này."));
+
+        if (!slot.getSchedule().getStudent().getUser().getId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xóa tiết học này.");
+        }
+
+        scheduleSlotRepository.delete(slot);
+    }
+
     private void validateScheduleSlots(List<ScheduleSlotDto> slots) {
         // Group by day of week
         Map<Integer, List<ScheduleSlotDto>> slotsByDay = slots.stream()

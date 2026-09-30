@@ -59,4 +59,46 @@ public class ScheduleController {
                 .data(response)
                 .build());
     }
+
+    @PostMapping("/slots")
+    public ResponseEntity<ApiResponse<com.vn.aitutor.dto.ScheduleSlotDto>> addScheduleSlot(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestBody com.vn.aitutor.dto.ScheduleSlotDto request) {
+        
+        com.vn.aitutor.dto.ScheduleSlotDto response = scheduleService.addScheduleSlot(userPrincipal.getUsers().getId(), request);
+        
+        return ResponseEntity.ok(ApiResponse.<com.vn.aitutor.dto.ScheduleSlotDto>builder()
+                .success(true)
+                .message("Thêm tiết học thành công")
+                .data(response)
+                .build());
+    }
+
+    @PutMapping("/slots/{slotId}")
+    public ResponseEntity<ApiResponse<com.vn.aitutor.dto.ScheduleSlotDto>> updateScheduleSlot(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable java.util.UUID slotId,
+            @RequestBody com.vn.aitutor.dto.ScheduleSlotDto request) {
+        
+        com.vn.aitutor.dto.ScheduleSlotDto response = scheduleService.updateScheduleSlot(userPrincipal.getUsers().getId(), slotId, request);
+        
+        return ResponseEntity.ok(ApiResponse.<com.vn.aitutor.dto.ScheduleSlotDto>builder()
+                .success(true)
+                .message("Cập nhật tiết học thành công")
+                .data(response)
+                .build());
+    }
+
+    @DeleteMapping("/slots/{slotId}")
+    public ResponseEntity<ApiResponse<Void>> deleteScheduleSlot(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable java.util.UUID slotId) {
+        
+        scheduleService.deleteScheduleSlot(userPrincipal.getUsers().getId(), slotId);
+        
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Đã xóa tiết học khỏi lịch trình")
+                .build());
+    }
 }

@@ -67,3 +67,49 @@ export async function getActiveSchedule(): Promise<ScheduleResponse> {
   }
   return payload.data;
 }
+
+export async function updateScheduleSlot(slotId: string, data: any): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/schedules/slots/${slotId}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data),
+  });
+
+  const payload = await parseJson<any>(response);
+  if (!response.ok || !payload?.success) {
+    throw new Error(resolveErrorMessage(payload, response.status));
+  }
+  return payload.data;
+}
+
+export async function addScheduleSlot(data: any): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/schedules/slots`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data),
+  });
+
+  const payload = await parseJson<any>(response);
+  if (!response.ok || !payload?.success) {
+    throw new Error(resolveErrorMessage(payload, response.status));
+  }
+  return payload.data;
+}
+
+export async function deleteScheduleSlot(slotId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/schedules/slots/${slotId}`, {
+    method: 'DELETE',
+    credentials: 'include'
+  });
+
+  const payload = await parseJson<void>(response);
+  if (!response.ok || !payload?.success) {
+    throw new Error(resolveErrorMessage(payload, response.status));
+  }
+}
