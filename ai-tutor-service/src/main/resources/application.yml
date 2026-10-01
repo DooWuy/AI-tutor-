@@ -10,8 +10,8 @@ spring:
     open-in-view: false
   servlet:
     multipart:
-      max-file-size: 5MB
-      max-request-size: 6MB
+      max-file-size: 50MB
+      max-request-size: 55MB
 
 app:
   frontend:
@@ -55,3 +55,7 @@ gemini:
   api:
     key: ${GEMINI_API_KEY}
     url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent
+
+llamaparse:
+  api:
+    key: 

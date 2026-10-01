@@ -31,7 +31,7 @@ import org.hibernate.type.SqlTypes;
 )
 public class DocumentChunk {
 
-    public static final int EMBEDDING_DIMENSIONS = 1536;
+    public static final int EMBEDDING_DIMENSIONS = 384;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -50,7 +50,7 @@ public class DocumentChunk {
 
     @JdbcTypeCode(SqlTypes.VECTOR)
     @Array(length = EMBEDDING_DIMENSIONS)
-    @Column(name = "embedding", columnDefinition = "vector(1536)")
+    @Column(name = "embedding", columnDefinition = "vector(384)")
     private float[] embedding;
 
     @JdbcTypeCode(SqlTypes.JSON)

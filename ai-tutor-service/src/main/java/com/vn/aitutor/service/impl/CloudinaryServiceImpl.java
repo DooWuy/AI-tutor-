@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.io.File;
 
 @Service
 @RequiredArgsConstructor
@@ -32,5 +35,18 @@ public class CloudinaryServiceImpl implements ICloudinaryService {
 
         Map uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadParams);
         return uploadResult.get("secure_url").toString();
+    }
+
+    @Override
+    public String uploadDocument(MultipartFile file) throws IOException {
+        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        File directory = new File("uploads/documents");
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+        File dest = new File(directory, fileName);
+        Files.copy(file.getInputStream(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        
+        return "/uploads/documents/" + fileName;
     }
 }

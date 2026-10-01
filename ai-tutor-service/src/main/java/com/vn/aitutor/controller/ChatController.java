@@ -1,31 +1,37 @@
 package com.vn.aitutor.controller;
 
+import com.vn.aitutor.dto.request.ChatRequest;
+import com.vn.aitutor.security.principal.UserPrincipal;
+import com.vn.aitutor.service.IChatService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
-import org.springframework.stereotype.Controller;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.security.Principal;
+import java.util.UUID;
 
-@Controller
+@RestController
+@RequestMapping("/api/v1/chat-sessions")
+@RequiredArgsConstructor
 @Slf4j
 public class ChatController {
 
-    /**
-     * Nhận message từ client gửi lên kênh /app/chat.sendMessage
-     * Sau đó phát (broadcast) tới tất cả những ai đang lắng nghe kênh /topic/public
-     */
-    @MessageMapping("/chat.sendMessage")
-    @SendTo("/topic/public")
-    public String sendMessage(@Payload String chatMessage, SimpMessageHeaderAccessor headerAccessor) {
-        Principal user = headerAccessor.getUser();
-        String username = (user != null) ? user.getName() : "Anonymous";
+    private final IChatService chatService;
+
+    @PostMapping(value = "/{sessionId}/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamChat(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable UUID sessionId,
+            @RequestBody ChatRequest request) {
+            
+        log.info("Received chat message for session {} from user {}", sessionId, userPrincipal.getUsers().getId());
         
-        log.info("Received message from user {}: {}", username, chatMessage);
-        
-        // Format lại message để gửi đi
-        return username + ": " + chatMessage;
+        return chatService.streamChatWithAI(
+                userPrincipal.getUsers().getId(), 
+                sessionId, 
+                request.getMessage()
+        );
     }
 }
