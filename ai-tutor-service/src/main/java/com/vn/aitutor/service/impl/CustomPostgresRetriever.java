@@ -2,9 +2,8 @@ package com.vn.aitutor.service.impl;
 
 import com.vn.aitutor.entity.DocumentChunk;
 import com.vn.aitutor.repository.DocumentChunkRepository;
+import com.vn.aitutor.service.ChunkEmbeddingService;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Query;
@@ -24,14 +23,13 @@ import java.util.stream.Collectors;
 public class CustomPostgresRetriever implements ContentRetriever {
 
     private final DocumentChunkRepository documentChunkRepository;
-    private final EmbeddingModel embeddingModel = new AllMiniLmL6V2EmbeddingModel();
+    private final ChunkEmbeddingService embeddingService;
 
     @Override
     public List<Content> retrieve(Query query) {
         log.info("RAG Query: {}", query.text());
-        
-        // 1. Embed the query to 384 dimensions
-        float[] queryVector = embeddingModel.embed(query.text()).content().vector();
+
+        float[] queryVector = embeddingService.embed(List.of(query.text()))[0];
         
         // 2. Convert float[] to Postgres vector string format: "[0.1, 0.2, ...]"
         String vectorString = Arrays.toString(queryVector);

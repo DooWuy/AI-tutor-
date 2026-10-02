@@ -71,6 +71,7 @@ services:
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - LLAMAPARSE_API_KEY=${LLAMAPARSE_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

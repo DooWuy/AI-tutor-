@@ -18,7 +18,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.contentstream.operator.Operator;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -36,7 +35,7 @@ class PdfReportWriterTest {
         assertTrue(bytes.length > 4);
         assertTrue(bytes[0] == '%' && bytes[1] == 'P' && bytes[2] == 'D' && bytes[3] == 'F');
 
-        try (PDDocument document = Loader.loadPDF(bytes)) {
+        try (PDDocument document = PDDocument.load(bytes)) {
             String text = new PDFTextStripper().getText(document);
             assertTrue(text.contains("THPT AI Tutor"));
             assertTrue(text.contains("AI Tutor"));
@@ -62,7 +61,8 @@ class PdfReportWriterTest {
                     }
                 }
                 PDFStreamParser parser = new PDFStreamParser(page);
-                for (Object token : parser.parse()) {
+                parser.parse();
+                for (Object token : parser.getTokens()) {
                     if (token instanceof Operator operator) {
                         String op = operator.getName();
                         if ("l".equals(op) || "re".equals(op) || "c".equals(op)) {
