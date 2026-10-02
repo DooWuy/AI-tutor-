@@ -10,7 +10,7 @@ import com.vn.aitutor.dto.request.UpdateRoleRequest;
 import com.vn.aitutor.dto.request.UserCreateRequest;
 import com.vn.aitutor.dto.request.UserUpdateRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.PageResponseDTO;
+import com.vn.aitutor.dto.response.PageResponseDto;
 import com.vn.aitutor.dto.response.UserResponse;
 import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.exception.ResourceConflictException;
@@ -60,14 +60,14 @@ public class UserServiceImpl implements IUserService {
     private final ISchoolClassService schoolClassService;
 
     @Override
-    public PageResponseDTO<UserResponse> getAllProfile(Role role, String search, PageRequest pageRequest) {
+    public PageResponseDto<UserResponse> getAllProfile(Role role, String search, PageRequest pageRequest) {
         Page<User> usersPage = userRepository.searchUsers(role, search, pageRequest);
 
         List<UserResponse> items = usersPage.getContent().stream()
                 .map(this::mapToUserResponse)
                 .collect(Collectors.toList());
 
-        return PageResponseDTO.<UserResponse>builder()
+        return PageResponseDto.<UserResponse>builder()
                 .content(items)
                 .page(usersPage.getNumber() + 1)
                 .size(usersPage.getSize())

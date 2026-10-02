@@ -15,11 +15,11 @@ import com.vn.aitutor.dto.response.analytics.ParentMessageSendResponse;
 import com.vn.aitutor.entity.enums.ReportPeriod;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.IAnalyticsService;
-import com.vn.aitutor.service.impl.AlertSettingsService;
-import com.vn.aitutor.service.impl.AtRiskService;
-import com.vn.aitutor.service.impl.KnowledgeGapService;
-import com.vn.aitutor.service.impl.ParentMessageService;
-import com.vn.aitutor.service.impl.ReportExportService;
+import com.vn.aitutor.service.IAlertSettingsService;
+import com.vn.aitutor.service.IAtRiskService;
+import com.vn.aitutor.service.IKnowledgeGapService;
+import com.vn.aitutor.service.IParentMessageService;
+import com.vn.aitutor.service.IReportExportService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -49,11 +49,11 @@ public class AnalyticsController {
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
     private final IAnalyticsService analyticsService;
-    private final KnowledgeGapService knowledgeGapService;
-    private final ReportExportService reportExportService;
-    private final AtRiskService atRiskService;
-    private final ParentMessageService parentMessageService;
-    private final AlertSettingsService alertSettingsService;
+    private final IKnowledgeGapService knowledgeGapService;
+    private final IReportExportService reportExportService;
+    private final IAtRiskService atRiskService;
+    private final IParentMessageService parentMessageService;
+    private final IAlertSettingsService alertSettingsService;
 
     @GetMapping("/filters")
     public ResponseEntity<ApiResponse<AnalyticsFiltersResponse>> getFilters(
@@ -139,7 +139,7 @@ public class AnalyticsController {
             @RequestParam(defaultValue = "LAST_7_DAYS") ReportPeriod period,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        ReportExportService.ExportFile file =
+        IReportExportService.ExportFile file =
                 reportExportService.exportExcel(principal, classId, subject, period, from, to);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.filename() + "\"")

@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 public interface IUserService {
-    PageResponseDTO<UserResponse> getAllProfile(Role role, String search, PageRequest pageRequest) throws ResourceConflictException, ResourceBadRequestException, ResourceForbiddenException;
+    PageResponseDto<UserResponse> getAllProfile(Role role, String search, PageRequest pageRequest) throws ResourceConflictException, ResourceBadRequestException, ResourceForbiddenException;
     ApiResponse<UserResponse> getProfileById(UUID id) throws ResourceConflictException, ResourceNotFoundException;
     ApiResponse<UserResponse> createProfile(UserCreateRequest userCreateRequest) throws ResourceConflictException, ResourceBadRequestException, ResourceForbiddenException;
     ApiResponse<UserResponse> updateProfile(UUID id, UserUpdateRequest userUpdateRequest) throws ResourceConflictException, ResourceNotFoundException, ResourceForbiddenException;

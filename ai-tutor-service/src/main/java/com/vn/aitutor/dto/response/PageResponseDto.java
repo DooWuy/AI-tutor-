@@ -1,14 +1,14 @@
 package com.vn.aitutor.dto.response;
 
-import lombok.*;
 import java.util.List;
+import lombok.*;
 
 @AllArgsConstructor
 @Builder
 @Setter
 @Getter
 @NoArgsConstructor
-public class PageResponseDTO <T>{
+public class PageResponseDto<T> {
     private Integer page;
     private Integer size;
     private Long totalElements;

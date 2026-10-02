@@ -6,7 +6,7 @@ import com.vn.aitutor.dto.request.UpdateRoleRequest;
 import com.vn.aitutor.dto.request.UserCreateRequest;
 import com.vn.aitutor.dto.request.UserUpdateRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.PageResponseDTO;
+import com.vn.aitutor.dto.response.PageResponseDto;
 import com.vn.aitutor.dto.response.UserResponse;
 import com.vn.aitutor.service.IUserService;
 import jakarta.validation.Valid;
@@ -30,7 +30,7 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<PageResponseDTO<UserResponse>> getAllProfile(
+    public ResponseEntity<PageResponseDto<UserResponse>> getAllProfile(
             @RequestParam(required = false) Role role,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "1") int page,

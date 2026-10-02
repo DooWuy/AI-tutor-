@@ -1,7 +1,7 @@
 package com.vn.aitutor.security.config;
 
 import com.vn.aitutor.exception.AccessDeniedException;
-import com.vn.aitutor.exception.JwtAuthenticationEntryPoint;
+import com.vn.aitutor.security.jwt.JwtAuthenticationEntryPoint;
 import com.vn.aitutor.security.filter.RateLimitingFilter;
 import com.vn.aitutor.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
