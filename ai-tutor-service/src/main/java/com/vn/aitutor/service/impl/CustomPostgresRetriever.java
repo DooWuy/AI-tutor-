@@ -1,20 +1,21 @@
-package com.vn.aitutor.service.ai;
+package com.vn.aitutor.service.impl;
 
-import com.vn.aitutor.context.RagContextHolder;
 import com.vn.aitutor.entity.DocumentChunk;
 import com.vn.aitutor.repository.DocumentChunkRepository;
 import com.vn.aitutor.service.ChunkEmbeddingService;
-import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Query;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import dev.langchain4j.data.document.Metadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import com.vn.aitutor.context.RagContextHolder;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,14 +30,14 @@ public class CustomPostgresRetriever implements ContentRetriever {
         log.info("RAG Query: {}", query.text());
 
         float[] queryVector = embeddingService.embed(List.of(query.text()))[0];
-
+        
         // 2. Convert float[] to Postgres vector string format: "[0.1, 0.2, ...]"
         String vectorString = Arrays.toString(queryVector);
 
         // 3. Search database for top 5 most similar chunks (with optional filters)
         RagContextHolder.RagContext context = RagContextHolder.getContext();
         List<DocumentChunk> topChunks;
-
+        
         if (context != null && (context.getSubject() != null || context.getGradeLevel() != null)) {
             log.info("RAG Filtering - Subject: {}, Grade: {}", context.getSubject(), context.getGradeLevel());
             topChunks = documentChunkRepository.findTopSimilarChunksWithFilter(

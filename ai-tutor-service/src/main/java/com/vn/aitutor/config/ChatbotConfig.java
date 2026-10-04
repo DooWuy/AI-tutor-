@@ -1,7 +1,7 @@
 package com.vn.aitutor.config;
 
 import com.vn.aitutor.agent.AiTutorChatAgent;
-import com.vn.aitutor.service.ai.CustomPostgresRetriever;
+import com.vn.aitutor.service.impl.CustomPostgresRetriever;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;

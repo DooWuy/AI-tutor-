@@ -1,8 +1,8 @@
-package com.vn.aitutor.job;
+package com.vn.aitutor.config;
 
 import com.vn.aitutor.entity.SchoolClass;
 import com.vn.aitutor.repository.SchoolClassRepository;
-import com.vn.aitutor.service.IAtRiskService;
+import com.vn.aitutor.service.impl.AtRiskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class AtRiskScanJob {
 
     private final SchoolClassRepository schoolClassRepository;
-    private final IAtRiskService atRiskService;
+    private final AtRiskService atRiskService;
 
     @Scheduled(cron = "0 20 1 * * *", zone = "Asia/Ho_Chi_Minh")
     public void scanDaily() {

@@ -17,9 +17,7 @@ import com.vn.aitutor.repository.ParentAlertMessageRepository;
 import com.vn.aitutor.repository.StudentRepository;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.AnalyticsAccess;
-import com.vn.aitutor.service.IAtRiskService;
 import com.vn.aitutor.service.IMailService;
-import com.vn.aitutor.service.IParentMessageService;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -32,15 +30,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class ParentMessageServiceImpl implements IParentMessageService {
+public class ParentMessageService {
 
     private final AnalyticsAccess analyticsAccess;
-    private final IAtRiskService atRiskService;
+    private final AtRiskService atRiskService;
     private final StudentRepository studentRepository;
     private final ParentAlertMessageRepository messageRepository;
     private final IMailService mailService;
 
-    @Override
     @Transactional(readOnly = true)
     public ParentMessageDraftResponse draft(
             UserPrincipal principal,
@@ -53,7 +50,6 @@ public class ParentMessageServiceImpl implements IParentMessageService {
         return atRiskService.draft(principal, studentId, classId, subject, period, from, to);
     }
 
-    @Override
     @Transactional
     public ParentMessageSendResponse send(UserPrincipal principal, UUID studentId, ParentMessageSendRequest request) {
         SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, request.getClassId());

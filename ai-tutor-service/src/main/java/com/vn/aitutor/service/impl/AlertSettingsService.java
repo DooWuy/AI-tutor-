@@ -14,8 +14,6 @@ import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.repository.ClassAlertSettingRepository;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.AnalyticsAccess;
-import com.vn.aitutor.service.IAlertSettingsService;
-import com.vn.aitutor.service.IAtRiskService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -26,13 +24,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class AlertSettingsServiceImpl implements IAlertSettingsService {
+public class AlertSettingsService {
 
     private final AnalyticsAccess analyticsAccess;
     private final ClassAlertSettingRepository settingRepository;
-    private final IAtRiskService atRiskService;
+    private final AtRiskService atRiskService;
 
-    @Override
     @Transactional(readOnly = true)
     public AlertSettingsView get(UserPrincipal principal, UUID classId) {
         SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, classId);
@@ -42,7 +39,6 @@ public class AlertSettingsServiceImpl implements IAlertSettingsService {
                 .orElseGet(() -> defaults(schoolClass.getId()));
     }
 
-    @Override
     @Transactional
     public AlertSettingsUpdateResponse update(UserPrincipal principal, UUID classId, AlertSettingsRequest request) {
         SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, classId);

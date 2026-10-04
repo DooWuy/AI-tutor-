@@ -1,4 +1,4 @@
-package com.vn.aitutor.seeder;
+package com.vn.aitutor.config;
 
 import com.vn.aitutor.analytics.AcademicCalendar;
 import com.vn.aitutor.entity.ChatMessage;

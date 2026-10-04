@@ -18,7 +18,6 @@ import com.vn.aitutor.repository.projection.ChatSnippetRow;
 import com.vn.aitutor.repository.projection.TopicAnswerCountRow;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.AnalyticsAccess;
-import com.vn.aitutor.service.IKnowledgeGapService;
 import com.vn.aitutor.service.ai.GapAdviceRequest;
 import com.vn.aitutor.service.ai.PedagogyAdvisor;
 import java.time.Instant;
@@ -35,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class KnowledgeGapServiceImpl implements IKnowledgeGapService {
+public class KnowledgeGapService {
 
     private static final int MAX_EXCERPTS = 8;
     private static final int EXCERPT_CHARS = 240;
@@ -47,7 +46,6 @@ public class KnowledgeGapServiceImpl implements IKnowledgeGapService {
     private final ChatMessageRepository chatMessageRepository;
     private final PedagogyAdvisor pedagogyAdvisor;
 
-    @Override
     public KnowledgeGapsResponse getGaps(
             UserPrincipal principal,
             UUID classId,
@@ -87,7 +85,6 @@ public class KnowledgeGapServiceImpl implements IKnowledgeGapService {
                 .build();
     }
 
-    @Override
     public int countRankedTopics(UUID classId) {
         ResolvedScope scope = resolve(SubjectCode.ALL, ReportPeriod.LAST_7_DAYS, null, null);
         int classSize = (int) studentRepository.countActiveByClassId(classId);

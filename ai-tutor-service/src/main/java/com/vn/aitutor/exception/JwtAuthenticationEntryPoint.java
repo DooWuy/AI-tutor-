@@ -1,16 +1,17 @@
-package com.vn.aitutor.security.jwt;
+package com.vn.aitutor.exception;
 
 import com.vn.aitutor.dto.response.JwtErrorResponse;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import tools.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
+
 
     public static final String EXPIRED = "ExpiredJwtException";
     public static final String MALFORMED = "MalformedJwtException";
