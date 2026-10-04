@@ -5,6 +5,7 @@ import com.vn.aitutor.repository.projection.DaySecondsRow;
 import com.vn.aitutor.repository.projection.RawScoreRow;
 import com.vn.aitutor.repository.projection.ScoreSumCountRow;
 import com.vn.aitutor.repository.projection.StudentScoreRow;
+import com.vn.aitutor.repository.projection.StudentLearningSummaryRow;
 import com.vn.aitutor.repository.projection.WeeklyScoreRow;
 import java.time.Instant;
 import java.util.List;
@@ -16,6 +17,15 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> {
+
+    @Query(value = """
+            SELECT COUNT(qa.id) AS quizAttemptCount,
+                   AVG(qa.score) AS averageScore,
+                   MAX(qa.submitted_at) AS lastQuizSubmittedAt
+            FROM quiz_attempts qa
+            WHERE qa.student_id = :studentId
+            """, nativeQuery = true)
+    StudentLearningSummaryRow summarizeForStudent(@Param("studentId") UUID studentId);
 
     @Query(
             value = """

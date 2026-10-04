@@ -13,6 +13,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ChatSessionRepository extends JpaRepository<ChatSession, UUID> {
 
+    long countByStudent_Id(UUID studentId);
+
     @Query(
             value = """
                     SELECT COALESCE(SUM(
