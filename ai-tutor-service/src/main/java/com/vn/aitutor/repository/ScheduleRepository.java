@@ -12,6 +12,7 @@ import java.util.UUID;
 
 @Repository
 public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
+    long countByStudent_Id(UUID studentId);
     List<Schedule> findByStudentId(UUID studentId);
     Optional<Schedule> findByStudentIdAndIsActiveTrue(UUID studentId);
 
