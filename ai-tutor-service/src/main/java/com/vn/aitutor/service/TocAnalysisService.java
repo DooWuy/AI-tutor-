@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.OptionalInt;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -34,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TocAnalysisService {
@@ -54,7 +56,7 @@ public class TocAnalysisService {
     @Value("${gemini.api.key:}")
     private String geminiApiKey;
 
-    @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent}")
+    @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent}")
     private String geminiApiUrl;
 
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
@@ -90,6 +92,7 @@ public class TocAnalysisService {
         } catch (ServiceUnavailableException | ResourceBadRequestException ex) {
             throw ex;
         } catch (Exception ex) {
+            log.error("Failed to analyze TOC: {}", ex.getMessage(), ex);
             throw new ServiceUnavailableException("Không phân tích được mục lục", ex);
         }
     }
@@ -113,15 +116,47 @@ public class TocAnalysisService {
                     "generationConfig", Map.of("temperature", 0.1));
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            String url = geminiApiUrl + "?key=" + java.net.URLEncoder.encode(geminiApiKey, java.nio.charset.StandardCharsets.UTF_8);
-            ResponseEntity<String> response = restTemplate.exchange(
-                    url, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
-            return extractText(response.getBody());
+
+            List<String> candidateUrls = new ArrayList<>();
+            if (geminiApiUrl != null && !geminiApiUrl.isBlank()) {
+                candidateUrls.add(geminiApiUrl);
+            }
+            List<String> fallbackModels = List.of(
+                    "gemini-flash-lite-latest",
+                    "gemini-3.5-flash-lite",
+                    "gemini-3.1-flash-lite",
+                    "gemini-3.8-flash",
+                    "gemini-3.5-flash"
+            );
+            for (String model : fallbackModels) {
+                String candidate = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
+                if (!candidateUrls.contains(candidate)) {
+                    candidateUrls.add(candidate);
+                }
+            }
+
+            Exception lastException = null;
+            for (String candidateUrl : candidateUrls) {
+                try {
+                    String url = candidateUrl + "?key=" + java.net.URLEncoder.encode(geminiApiKey, java.nio.charset.StandardCharsets.UTF_8);
+                    log.info("Attempting TOC analysis using Gemini model: {}", candidateUrl);
+                    ResponseEntity<String> response = restTemplate.exchange(
+                            url, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+                    String result = extractText(response.getBody());
+                    log.info("Successfully analyzed TOC with Gemini model: {}", candidateUrl);
+                    return result;
+                } catch (Exception ex) {
+                    log.warn("Gemini model {} failed: {}. Trying fallback...", candidateUrl, ex.getMessage());
+                    lastException = ex;
+                }
+            }
+
+            log.error("All Gemini candidate models failed to analyze TOC", lastException);
+            throw new ServiceUnavailableException("Không phân tích được mục lục", lastException);
         } catch (ServiceUnavailableException ex) {
             throw ex;
-        } catch (RestClientException ex) {
-            throw new ServiceUnavailableException("Không phân tích được mục lục", ex);
         } catch (Exception ex) {
+            log.error("Gemini analysis error: {}", ex.getMessage(), ex);
             throw new ServiceUnavailableException("Không phân tích được mục lục", ex);
         }
     }
@@ -202,6 +237,9 @@ public class TocAnalysisService {
         String name = image.getOriginalFilename() == null ? "" : image.getOriginalFilename().toLowerCase(Locale.ROOT);
         if (name.endsWith(".png")) {
             return "image/png";
+        }
+        if (name.endsWith(".webp")) {
+            return "image/webp";
         }
         return "image/jpeg";
     }

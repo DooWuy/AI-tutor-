@@ -54,7 +54,7 @@ cloudinary:
 gemini:
   api:
     key: ${GEMINI_API_KEY:}
-    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent
+    url: ${GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent}
 
 openai:
   api:
