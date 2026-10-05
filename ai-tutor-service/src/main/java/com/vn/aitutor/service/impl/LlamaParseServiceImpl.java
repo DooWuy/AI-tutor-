@@ -26,7 +26,13 @@ public class LlamaParseServiceImpl implements ILlamaParseService {
     private final RestTemplate restTemplate = new RestTemplate();
     private static final String LLAMA_CLOUD_BASE_URL = "https://api.cloud.llamaindex.ai/api/parsing";
 
+    @Override
     public String parsePdfToMarkdown(File pdfFile) throws Exception {
+        return parseFileToMarkdown(pdfFile, "Giữ nguyên mọi công thức dưới dạng LaTeX ($...$ hoặc $$...$$).");
+    }
+
+    @Override
+    public String parseFileToMarkdown(File pdfFile, String parsingInstruction) throws Exception {
         log.info("Bắt đầu đẩy file {} lên LlamaParse...", pdfFile.getName());
 
         // 1. Upload File
@@ -37,6 +43,9 @@ public class LlamaParseServiceImpl implements ILlamaParseService {
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new FileSystemResource(pdfFile));
+        if (parsingInstruction != null && !parsingInstruction.isBlank()) {
+            body.add("parsing_instruction", parsingInstruction);
+        }
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, uploadHeaders);
 

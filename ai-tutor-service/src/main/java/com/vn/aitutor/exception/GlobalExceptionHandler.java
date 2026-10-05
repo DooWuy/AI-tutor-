@@ -148,12 +148,22 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<ApiResponse<String>> handleUnavailable(ServiceUnavailableException ex) {
+        log.warn("Service unavailable: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.<String>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .build());
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiResponse<String>> handleMaxSizeException(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(ApiResponse.<String>builder()
                         .success(false)
-                        .message("Kích thước file quá lớn. Vui lòng tải lên file nhỏ hơn.")
+                        .message("Dung lượng file vượt quá giới hạn cho phép")
                         .build());
     }
 

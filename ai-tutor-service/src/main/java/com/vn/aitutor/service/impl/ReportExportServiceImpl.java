@@ -15,6 +15,8 @@ import com.vn.aitutor.repository.projection.RawScoreRow;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.AnalyticsAccess;
 import com.vn.aitutor.service.IAnalyticsService;
+import com.vn.aitutor.service.IKnowledgeGapService;
+import com.vn.aitutor.service.IReportExportService;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -26,14 +28,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class ReportExportService {
+public class ReportExportServiceImpl implements IReportExportService {
 
     private final AnalyticsAccess analyticsAccess;
     private final IAnalyticsService analyticsService;
-    private final KnowledgeGapService knowledgeGapService;
+    private final IKnowledgeGapService knowledgeGapService;
     private final QuizAttemptRepository quizAttemptRepository;
     private final AcademicCalendar academicCalendar;
 
+    @Override
     public ClassReportResponse buildReport(
             UserPrincipal principal,
             UUID classId,
@@ -58,10 +61,12 @@ public class ReportExportService {
                 .build();
     }
 
+    @Override
     public byte[] toPdf(ClassReportResponse report) {
         return PdfReportWriter.write(report);
     }
 
+    @Override
     public ExportFile exportExcel(
             UserPrincipal principal,
             UUID classId,
@@ -78,8 +83,7 @@ public class ReportExportService {
         return new ExportFile(ReportFileNames.excel(schoolClass.getName()), ExcelScoreWorkbook.write(rows));
     }
 
-    public record ExportFile(String filename, byte[] body) {}
-
+    @Override
     public String pdfFilename(String className) {
         return ReportFileNames.pdf(className);
     }

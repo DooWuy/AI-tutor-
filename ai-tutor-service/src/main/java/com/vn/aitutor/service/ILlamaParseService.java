@@ -10,4 +10,6 @@ public interface ILlamaParseService {
      * @throws Exception nếu có lỗi trong quá trình giao tiếp với API
      */
     String parsePdfToMarkdown(File pdfFile) throws Exception;
+
+    String parseFileToMarkdown(File file, String parsingInstruction) throws Exception;
 }

@@ -11,8 +11,8 @@ import com.vn.aitutor.exception.ResourceForbiddenException;
 import com.vn.aitutor.repository.QuizAttemptRepository;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.IAnalyticsService;
-import com.vn.aitutor.service.impl.KnowledgeGapService;
-import com.vn.aitutor.service.impl.ReportExportService;
+import com.vn.aitutor.service.IKnowledgeGapService;
+import com.vn.aitutor.service.impl.ReportExportServiceImpl;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,7 +30,7 @@ class ReportExportServiceTest {
     private IAnalyticsService analyticsService;
 
     @Mock
-    private KnowledgeGapService knowledgeGapService;
+    private IKnowledgeGapService knowledgeGapService;
 
     @Mock
     private QuizAttemptRepository quizAttemptRepository;
@@ -39,7 +39,7 @@ class ReportExportServiceTest {
     private AcademicCalendar academicCalendar;
 
     @InjectMocks
-    private ReportExportService reportExportService;
+    private ReportExportServiceImpl reportExportService;
 
     @Test
     void pdfAndExcelRefuseUnassignedTeacher() {
