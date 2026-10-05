@@ -34,4 +34,29 @@ public class ChatController {
                 request.getMessage()
         );
     }
+    @GetMapping
+    public org.springframework.http.ResponseEntity<java.util.List<com.vn.aitutor.dto.response.ChatSessionResponse>> getChatSessions(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        return org.springframework.http.ResponseEntity.ok(
+                chatService.getChatSessions(userPrincipal.getUsers().getId())
+        );
+    }
+
+    @GetMapping("/{sessionId}/messages")
+    public org.springframework.http.ResponseEntity<java.util.List<com.vn.aitutor.dto.response.ChatMessageResponse>> getChatSessionMessages(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable UUID sessionId) {
+        return org.springframework.http.ResponseEntity.ok(
+                chatService.getChatSessionMessages(userPrincipal.getUsers().getId(), sessionId)
+        );
+    }
+
+    @PostMapping
+    public org.springframework.http.ResponseEntity<com.vn.aitutor.dto.response.ChatSessionResponse> createChatSession(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam(defaultValue = "Toán học") String subject) {
+        return org.springframework.http.ResponseEntity.ok(
+                chatService.createChatSession(userPrincipal.getUsers().getId(), subject)
+        );
+    }
 }

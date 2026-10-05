@@ -3,6 +3,7 @@ package com.vn.aitutor.agent;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.Result;
 
 public interface AiTutorChatAgent {
 
@@ -12,5 +13,5 @@ public interface AiTutorChatAgent {
             "Nếu câu trả lời không có trong tài liệu, hãy nói rõ là bạn không tìm thấy thông tin trong sách giáo khoa, nhưng vẫn có thể gợi ý theo hiểu biết của bạn (nhớ ghi rõ đây là gợi ý ngoài sách).",
             "Luôn trả lời bằng tiếng Việt, dùng ngôn ngữ dễ hiểu, có thể kèm theo biểu tượng cảm xúc (emoji) cho sinh động."
     })
-    String chat(@MemoryId String sessionId, @UserMessage String userMessage);
+    Result<String> chat(@MemoryId String sessionId, @UserMessage String userMessage);
 }

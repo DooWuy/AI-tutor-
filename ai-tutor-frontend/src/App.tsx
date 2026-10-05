@@ -7,9 +7,11 @@ import { StudentLayout } from './layouts/StudentLayout/StudentLayout';
 import { DashboardPage } from './pages/Student/Dashboard/DashboardPage';
 import { TimetablePage } from './pages/Student/Timetable/TimetablePage';
 import { ProfilePage } from './pages/Student/Profile/ProfilePage';
+import { AIChatPage } from './pages/Student/AIChat/AIChatPage';
 
 import { TeacherLayout } from './layouts/TeacherLayout/TeacherLayout';
 import AnalyticsPage from './pages/Teacher/Analytics/AnalyticsPage';
+import { TeachingMaterialsPage } from './pages/Teacher/Curriculum/TeachingMaterialsPage';
 import { AdminLayout } from './layouts/AdminLayout/AdminLayout';
 import { AdminDashboardPage } from './pages/Admin/AdminDashboardPage';
 import { AdminStudentDetailShell } from './pages/Admin/Students/AdminStudentDetailShell';
@@ -28,6 +30,7 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="timetable" element={<TimetablePage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="chat" element={<AIChatPage />} />
         </Route>
 
         {/* Teacher Routes */}
@@ -35,6 +38,7 @@ function App() {
           <Route index element={<Navigate to="/teacher/analytics" replace />} />
           <Route path="dashboard" element={<Navigate to="/teacher/analytics" replace />} />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="documents" element={<TeachingMaterialsPage />} />
         </Route>
 
         {/* Admin Routes */}

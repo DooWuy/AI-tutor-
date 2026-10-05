@@ -55,6 +55,10 @@ public class CloudinaryServiceImpl implements ICloudinaryService {
     @Override
     public String uploadDocumentBytes(byte[] content, String originalFilename) throws IOException {
         String safeName = sanitize(originalFilename);
+        
+        // LUÔN LƯU LOCAL ĐỐI VỚI FILE TÀI LIỆU
+        // (Cloudinary Free Tier giới hạn 10MB cho file raw nên sẽ gây lỗi với PDF lớn)
+        /*
         if (cloudEnabled()) {
             String publicId = "ai_tutor_documents/" + UUID.randomUUID() + "_" + stripExtension(safeName);
             Map<String, Object> uploadParams = ObjectUtils.asMap(
@@ -64,6 +68,7 @@ public class CloudinaryServiceImpl implements ICloudinaryService {
             Map<?, ?> uploadResult = cloudinary.uploader().upload(content, uploadParams);
             return uploadResult.get("secure_url").toString();
         }
+        */
         String fileName = UUID.randomUUID() + "_" + safeName;
         File directory = new File("uploads/documents");
         if (!directory.exists() && !directory.mkdirs()) {

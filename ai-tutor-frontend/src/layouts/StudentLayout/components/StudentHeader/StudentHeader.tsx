@@ -132,22 +132,20 @@ export const StudentHeader: React.FC = () => {
             </div>
             <span className={styles.logoText}>AI Tutor</span>
           </a>
-          {/* Desktop Navigation Links */}
           <nav className={styles.navLinks}>
             <Link className={getNavLinkClass('/student/dashboard')} to="/student/dashboard">Trang chủ</Link>
             <Link className={getNavLinkClass('/student/timetable')} to="/student/timetable">Thời khóa biểu</Link>
-            <Link className={styles.navLink} to="#">Hỏi đáp SGK</Link>
+            <Link className={getNavLinkClass('/student/chat')} to="/student/chat">Hỏi đáp SGK</Link>
             <Link className={styles.navLink} to="#">Luyện đề</Link>
             <Link className={styles.navLink} to="#">Bảng vàng</Link>
           </nav>
         </div>
         
-        {/* Mobile Navigation Menu */}
         {isMobileMenuOpen && (
           <div className={styles.mobileMenu}>
             <Link className={location.pathname.includes('/student/dashboard') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Trang chủ</Link>
             <Link className={location.pathname.includes('/student/timetable') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/timetable" onClick={() => setIsMobileMenuOpen(false)}>Thời khóa biểu</Link>
-            <Link className={styles.mobileMenuItem} to="#" onClick={() => setIsMobileMenuOpen(false)}>Hỏi đáp SGK</Link>
+            <Link className={location.pathname.includes('/student/chat') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/chat" onClick={() => setIsMobileMenuOpen(false)}>Hỏi đáp SGK</Link>
             <Link className={styles.mobileMenuItem} to="#" onClick={() => setIsMobileMenuOpen(false)}>Luyện đề</Link>
             <Link className={styles.mobileMenuItem} to="#" onClick={() => setIsMobileMenuOpen(false)}>Bảng vàng</Link>
           </div>

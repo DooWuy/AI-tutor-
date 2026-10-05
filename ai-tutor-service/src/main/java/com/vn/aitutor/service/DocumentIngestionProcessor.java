@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class DocumentIngestionProcessor {
 
-    private static final int EMBED_BATCH = 16;
+    private static final int EMBED_BATCH = 100;
 
     private final DocumentRepository documentRepository;
     private final DocumentChunkRepository documentChunkRepository;

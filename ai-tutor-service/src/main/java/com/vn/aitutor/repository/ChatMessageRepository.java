@@ -13,6 +13,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
 
+    @Query("SELECT cm FROM ChatMessage cm WHERE cm.chatSession.id = :sessionId ORDER BY cm.createdAt ASC")
+    List<ChatMessage> findByChatSessionIdOrderByCreatedAtAsc(@Param("sessionId") UUID sessionId);
+
     @Query(
             value = """
                     SELECT s.id AS studentId,

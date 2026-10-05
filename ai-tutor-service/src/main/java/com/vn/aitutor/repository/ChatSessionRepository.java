@@ -15,6 +15,9 @@ public interface ChatSessionRepository extends JpaRepository<ChatSession, UUID> 
 
     long countByStudent_Id(UUID studentId);
 
+    @Query("SELECT cs FROM ChatSession cs WHERE cs.student.id = :studentId ORDER BY COALESCE(cs.lastMessageAt, cs.createdAt) DESC")
+    List<ChatSession> findChatSessionsByStudentIdDesc(@Param("studentId") UUID studentId);
+
     @Query(
             value = """
                     SELECT COALESCE(SUM(

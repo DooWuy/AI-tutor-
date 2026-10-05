@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 import java.io.File;
 import java.util.Map;
@@ -23,7 +24,14 @@ public class LlamaParseServiceImpl implements ILlamaParseService {
     @Value("${llamaparse.api.key}")
     private String apiKey;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public LlamaParseServiceImpl() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000);
+        factory.setReadTimeout(300000); // 5 minutes
+        this.restTemplate = new RestTemplate(factory);
+    }
     private static final String LLAMA_CLOUD_BASE_URL = "https://api.cloud.llamaindex.ai/api/parsing";
 
     @Override
