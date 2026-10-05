@@ -1,0 +1,9 @@
+/* Custom helper animations for Student Management */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.student-modal-enter {
+  animation: fadeIn 0.15s ease-out forwards;
+}
