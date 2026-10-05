@@ -1,17 +1,17 @@
 # SOFTWARE REQUIREMENTS SPECIFICATION (SRS)
 
-## Hệ thống AI Tutor - Phiên bản MVP Demo
+## Hệ thống AI Tutor - Phiên bản sản phẩm mở rộng
 
 | Thuộc tính | Giá trị |
 |---|---|
 | Tên dự án | AI Tutor |
-| Phiên bản tài liệu | 1.0 |
+| Phiên bản tài liệu | 2.0 |
 | Trạng thái | Baseline đề xuất để team phê duyệt |
 | Mô hình phát triển | Agile Scrum |
-| Thời gian triển khai | 8 tuần, 4 Sprint, mỗi Sprint 2 tuần |
-| Quy mô đội ngũ | 3 người: Backend, Frontend, AI/Prompt & DevOps |
+| Thời gian triển khai | Phát triển theo nhiều Sprint, ưu tiên hoàn thiện sản phẩm theo milestone |
+| Quy mô đội ngũ | 4 người: Backend, Frontend, AI/RAG, QA/DevOps |
 | Actor chính | Học sinh, Giáo viên, Quản trị viên |
-| Phạm vi phát hành | MVP phục vụ demo |
+| Phạm vi phát hành | Sản phẩm AI Tutor mở rộng, không giới hạn ở bản tối thiểu |
 
 ---
 
@@ -19,14 +19,14 @@
 
 ### 1.1. Mục đích tài liệu
 
-Tài liệu này mô tả phạm vi, yêu cầu nghiệp vụ, yêu cầu chức năng, yêu cầu phi chức năng, mô hình dữ liệu và tiêu chí nghiệm thu cho phiên bản MVP của hệ thống AI Tutor.
+Tài liệu này mô tả phạm vi, yêu cầu nghiệp vụ, yêu cầu chức năng, yêu cầu phi chức năng, mô hình dữ liệu và tiêu chí nghiệm thu cho phiên bản sản phẩm mở rộng của hệ thống AI Tutor.
 
 Tài liệu là baseline để:
 
-- Thống nhất phạm vi giữa ba thành viên dự án.
+- Thống nhất phạm vi giữa bốn thành viên dự án.
 - Tạo Product Backlog, User Story, Task và Test Case.
-- Hạn chế phát sinh chức năng ngoài kế hoạch trong thời gian 8 tuần.
-- Làm căn cứ nghiệm thu nội bộ và chuẩn bị kịch bản demo.
+- Quản lý mở rộng chức năng theo milestone mà không cắt bỏ định hướng sản phẩm ban đầu.
+- Làm căn cứ nghiệm thu nội bộ, kiểm thử tích hợp và chuẩn bị phát hành.
 
 ### 1.2. Mục tiêu sản phẩm
 
@@ -54,7 +54,7 @@ AI Tutor là nền tảng hỗ trợ học tập cá nhân hóa cho học sinh, 
 | Chunk | Đoạn văn bản nhỏ được tách từ tài liệu để tìm kiếm ngữ nghĩa |
 | Citation | Thông tin nguồn được AI sử dụng để tạo câu trả lời |
 | XP | Điểm kinh nghiệm nhận được từ hoạt động học tập |
-| MVP | Phiên bản tối thiểu đủ để chạy và trình diễn luồng nghiệp vụ chính |
+| Baseline | Phạm vi yêu cầu đã được thống nhất để phát triển và nghiệm thu |
 | RBAC | Kiểm soát quyền truy cập dựa trên vai trò |
 | Attempt | Một lần học sinh thực hiện bài trắc nghiệm |
 | Sprint | Chu kỳ phát triển kéo dài 2 tuần |
@@ -63,7 +63,7 @@ AI Tutor là nền tảng hỗ trợ học tập cá nhân hóa cho học sinh, 
 
 ## 2. Phạm vi dự án
 
-### 2.1. Phạm vi MVP bắt buộc - Must Have
+### 2.1. Phạm vi lõi bắt buộc - Must Have
 
 - Đăng nhập, đăng xuất và phân quyền `STUDENT`, `TEACHER`, `ADMIN`.
 - Quản lý hồ sơ học sinh ở mức cơ bản.
@@ -76,19 +76,25 @@ AI Tutor là nền tảng hỗ trợ học tập cá nhân hóa cho học sinh, 
 - Hiển thị bảng xếp hạng học sinh theo tổng XP.
 - Học sinh quản lý lịch học cơ bản.
 - Dashboard cơ bản cho học sinh và Admin/Giáo viên.
-- Triển khai một môi trường demo có dữ liệu mẫu.
+- Triển khai môi trường tích hợp/staging có dữ liệu mẫu và có thể dùng để trình bày.
 
-### 2.2. Phạm vi nên có - Should Have
+### 2.2. Phạm vi mở rộng bắt buộc theo milestone - Must Have mở rộng
 
 - Sự kiện lịch cá nhân như kỳ thi, bài tập và lời nhắc.
 - Bộ lọc lịch sử hội thoại theo môn học.
 - Sinh câu hỏi trắc nghiệm bằng AI, có bước giáo viên duyệt trước khi phát hành.
 - Báo cáo tổng hợp đơn giản theo khoảng thời gian.
 - Streak học tập cơ bản.
+- Chức năng quên mật khẩu qua email.
+- Nhắc lịch bằng push notification hoặc email.
+- OCR tài liệu scan và xử lý ảnh/bảng ở mức khả thi.
+- Câu hỏi nhiều đáp án, tự luận hoặc upload bài làm.
+- Badge, đổi quà, shop và gamification nâng cao.
+- Xuất PDF/Excel và phân tích học tập nâng cao.
 
-Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Must Have` đã đạt Definition of Done.
+Các chức năng mở rộng không bị loại khỏi scope. Team triển khai theo milestone, phụ thuộc kỹ thuật và mức độ rủi ro, nhưng Product Backlog phải giữ chúng như yêu cầu hợp lệ của sản phẩm.
 
-### 2.3. Ngoài phạm vi MVP - Won't Have
+### 2.3. Phạm vi định hướng sau baseline hiện tại
 
 - Actor Phụ huynh và Super Admin.
 - Thanh toán, gói thuê bao và hóa đơn.
@@ -103,14 +109,17 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 - Fine-tune mô hình AI riêng.
 - Hỗ trợ đa tenant hoặc nhiều tổ chức độc lập.
 
-### 2.4. Tiêu chí thành công của MVP
+Các hạng mục trên không bị cắt bỏ khỏi định hướng sản phẩm. Chúng được quản lý như epic sau baseline hiện tại, cần thiết kế chi tiết thêm về nghiệp vụ, bảo mật, vận hành và kiểm thử trước khi triển khai.
+
+### 2.4. Tiêu chí thành công của sản phẩm
 
 - Ba actor đăng nhập và chỉ truy cập được chức năng đúng vai trò.
 - Học sinh hoàn thành được luồng: đăng nhập -> hỏi AI -> xem nguồn -> làm quiz -> nhận XP -> xem thứ hạng.
 - Giáo viên hoàn thành được luồng: đăng nhập -> tải tài liệu -> tài liệu được xử lý -> tạo/publish quiz -> xem kết quả cơ bản.
 - Admin quản lý được trạng thái tài khoản và xem số liệu tổng quan.
-- Hệ thống demo hoạt động ổn định trong một phiên trình bày tối thiểu 30 phút.
-- Không có lỗi mức Critical/Blocker trong các luồng demo chính.
+- Các chức năng mở rộng được đưa vào backlog, có tiêu chí nghiệm thu và được triển khai theo milestone.
+- Hệ thống hoạt động ổn định trên môi trường staging/phát hành nội bộ.
+- Không có lỗi mức Critical/Blocker trong các luồng nghiệp vụ chính.
 
 ---
 
@@ -142,7 +151,7 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 - Quản lý toàn bộ tài liệu và quiz.
 - Xem dashboard tổng quan hệ thống.
 - Có thể khóa/mở khóa tài khoản.
-- Không có actor Super Admin trong MVP; mọi Admin có cùng mức quyền.
+- Mọi Admin trong baseline hiện tại có cùng mức quyền; Super Admin là epic mở rộng nếu cần phân cấp quản trị sâu hơn.
 
 ### 3.4. Ma trận quyền
 
@@ -166,12 +175,12 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 
 ### 4.1. Giả định
 
-- MVP phục vụ demo với số lượng người dùng và dữ liệu nhỏ.
+- Hệ thống hướng tới sản phẩm học tập mở rộng, không chỉ phục vụ trình bày ngắn hạn.
 - Dữ liệu học tập chủ yếu là tiếng Việt.
 - Giáo viên/Admin chịu trách nhiệm về tính hợp lệ của tài liệu và câu hỏi.
 - Dịch vụ LLM và embedding được cung cấp qua API bên thứ ba.
-- Tài liệu đầu vào ưu tiên PDF có text; OCR tài liệu scan không bắt buộc.
-- Mỗi tài khoản chỉ có một vai trò trong MVP.
+- Tài liệu đầu vào ưu tiên PDF có text; OCR và xử lý tài liệu scan được triển khai theo milestone mở rộng.
+- Mỗi tài khoản có một vai trò chính trong baseline hiện tại; mở rộng đa vai trò cần thiết kế RBAC chi tiết hơn.
 - `subject` và `gradeLevel` được lưu dạng chuỗi để giảm số bảng và nghiệp vụ quản trị danh mục.
 
 ### 4.2. Ràng buộc kỹ thuật
@@ -179,16 +188,16 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 - Backend sử dụng Java, Spring Boot và Spring Data JPA.
 - Database quan hệ ưu tiên PostgreSQL.
 - Thay đổi schema phải được quản lý bằng Flyway hoặc Liquibase.
-- Không dùng `spring.jpa.hibernate.ddl-auto=update` cho môi trường dùng chung hoặc production demo.
+- Không dùng `spring.jpa.hibernate.ddl-auto=update` cho môi trường dùng chung, staging hoặc production.
 - Frontend sử dụng framework hiện có của team và giao tiếp qua REST API.
-- Hệ thống được đóng gói bằng Docker; môi trường demo có cấu hình qua biến môi trường.
+- Hệ thống được đóng gói bằng Docker; môi trường triển khai có cấu hình qua biến môi trường.
 - Vector search có thể sử dụng `pgvector` hoặc một vector database do team lựa chọn.
 
-### 4.3. Nguyên tắc kiểm soát phạm vi
+### 4.3. Nguyên tắc quản lý phạm vi mở rộng
 
 - Mọi yêu cầu mới phải được đưa vào Product Backlog và đánh giá lại độ ưu tiên.
-- Không thêm chức năng `Should Have` khi còn User Story `Must Have` chưa hoàn tất.
-- Thay đổi ảnh hưởng database, API hoặc luồng demo phải được cả ba thành viên xác nhận.
+- Không loại bỏ feature khỏi SRS chỉ vì khó hoặc vượt phạm vi milestone đầu; nếu chưa triển khai ngay, feature được quản lý bằng milestone/epic.
+- Thay đổi ảnh hưởng database, API hoặc luồng nghiệp vụ chính phải được cả bốn thành viên hoặc người phụ trách sản phẩm xác nhận.
 
 ---
 
@@ -204,7 +213,7 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 | FR-AUTH-04 | Hệ thống phân quyền API và giao diện theo `STUDENT`, `TEACHER`, `ADMIN` | Must |
 | FR-AUTH-05 | Admin có thể xem danh sách, tìm kiếm và khóa/mở khóa tài khoản | Must |
 | FR-AUTH-06 | Mật khẩu phải được băm; không lưu hoặc ghi log mật khẩu thô | Must |
-| FR-AUTH-07 | Chức năng quên mật khẩu qua email | Won't Have |
+| FR-AUTH-07 | Chức năng quên mật khẩu qua email | Should |
 
 ### 5.2. Hồ sơ học sinh
 
@@ -223,7 +232,7 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 | FR-SCH-02 | Học sinh xem, sửa và xóa lịch của chính mình | Must |
 | FR-SCH-03 | Hệ thống kiểm tra giá trị ngày trong tuần từ 1 đến 7 | Must |
 | FR-SCH-04 | Học sinh tạo sự kiện có thời gian bắt đầu/kết thúc và loại sự kiện | Should |
-| FR-SCH-05 | Nhắc lịch bằng push notification/email | Won't Have |
+| FR-SCH-05 | Nhắc lịch bằng push notification/email | Should |
 
 ### 5.4. AI Tutor và hội thoại
 
@@ -238,7 +247,7 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 | FR-CHAT-07 | AI phải nêu rõ không đủ dữ liệu khi retrieval không đạt ngưỡng tin cậy | Must |
 | FR-CHAT-08 | Hệ thống không cho phép người dùng xem phiên chat của người khác | Must |
 | FR-CHAT-09 | Học sinh đóng hoặc đổi tiêu đề phiên chat | Should |
-| FR-CHAT-10 | Nhập/xuất giọng nói | Won't Have |
+| FR-CHAT-10 | Nhập/xuất giọng nói | Should |
 
 ### 5.5. Tài liệu và RAG
 
@@ -251,7 +260,7 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 | FR-DOC-05 | Chỉ tài liệu có trạng thái `SUCCESS` được sử dụng cho retrieval | Must |
 | FR-DOC-06 | Giáo viên quản lý tài liệu của mình; Admin quản lý mọi tài liệu | Must |
 | FR-DOC-07 | Hệ thống lưu thông báo lỗi xử lý đủ để chẩn đoán nội bộ | Should |
-| FR-DOC-08 | OCR tài liệu scan và xử lý ảnh/bảng phức tạp | Won't Have |
+| FR-DOC-08 | OCR tài liệu scan và xử lý ảnh/bảng phức tạp | Should |
 
 ### 5.6. Quiz và luyện tập
 
@@ -266,7 +275,7 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 | FR-QUIZ-07 | Học sinh xem điểm, số câu đúng và đáp án/giải thích sau khi nộp | Must |
 | FR-QUIZ-08 | Hệ thống không chấp nhận nộp lại cùng một attempt đã hoàn tất | Must |
 | FR-QUIZ-09 | AI có thể đề xuất quiz, nhưng giáo viên phải duyệt trước khi kích hoạt | Should |
-| FR-QUIZ-10 | Câu hỏi nhiều đáp án, tự luận hoặc upload bài làm | Won't Have |
+| FR-QUIZ-10 | Câu hỏi nhiều đáp án, tự luận hoặc upload bài làm | Should |
 
 ### 5.7. XP và bảng xếp hạng
 
@@ -278,7 +287,7 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 | FR-XP-04 | Hệ thống cập nhật `totalXP` của học sinh sau giao dịch thành công | Must |
 | FR-XP-05 | Leaderboard sắp xếp theo tổng XP giảm dần | Must |
 | FR-XP-06 | Khi bằng XP, ưu tiên người đạt mức XP đó sớm hơn | Should |
-| FR-XP-07 | Badge, đổi quà và shop | Won't Have |
+| FR-XP-07 | Badge, đổi quà và shop | Should |
 
 ### 5.8. Dashboard và báo cáo
 
@@ -288,7 +297,7 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 | FR-REP-02 | Dashboard giáo viên hiển thị số tài liệu, quiz và lượt làm quiz liên quan | Must |
 | FR-REP-03 | Dashboard Admin hiển thị tổng user, tài liệu, quiz và lượt chat/attempt | Must |
 | FR-REP-04 | Giáo viên/Admin xem bảng kết quả theo quiz | Must |
-| FR-REP-05 | Xuất PDF/Excel và phân tích nâng cao | Won't Have |
+| FR-REP-05 | Xuất PDF/Excel và phân tích nâng cao | Should |
 
 ---
 
@@ -314,7 +323,7 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 - Admin xem được danh sách có phân trang và tìm theo email/tên.
 - Admin thay đổi được `isActive`.
 - Người không phải Admin không truy cập được chức năng này.
-- Admin không thể vô tình khóa chính tài khoản đang sử dụng nếu đây là Admin hoạt động cuối cùng của demo.
+- Admin không thể vô tình khóa chính tài khoản đang sử dụng nếu đây là Admin hoạt động cuối cùng của hệ thống.
 
 ### US-03 - Quản lý lịch học
 
@@ -390,7 +399,7 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 
 **Acceptance Criteria:**
 
-- Nộp quiz hợp lệ tạo đúng một `XPTransaction`.
+- Nộp quiz hợp lệ ghi nhận `xpEarned` trên `QuizAttempt` và cập nhật `Student.totalXP`.
 - Cùng một attempt không thể cộng XP hai lần.
 - `totalXP` và giao dịch XP được cập nhật trong cùng transaction database.
 - XP hiển thị trên dashboard sau khi cập nhật.
@@ -423,7 +432,7 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 
 - Admin thấy số lượng user, tài liệu, quiz và attempt.
 - Giáo viên chỉ thấy số liệu liên quan đến nội dung của mình khi áp dụng.
-- Dashboard tải được với dữ liệu mẫu trong giới hạn hiệu năng của MVP.
+- Dashboard tải được với dữ liệu mẫu trong mục tiêu hiệu năng của baseline hiện tại.
 
 ### US-13 - Cập nhật hồ sơ học sinh
 
@@ -454,18 +463,18 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 | ID | Quy tắc |
 |---|---|
 | BR-01 | Email đăng nhập là duy nhất, không phân biệt chữ hoa/chữ thường |
-| BR-02 | Mỗi `StudentProfile` thuộc đúng một `User` có role `STUDENT` |
-| BR-03 | Mỗi user chỉ có một role trong MVP |
+| BR-02 | Mỗi `Student` thuộc đúng một `User` có role `STUDENT` |
+| BR-03 | Mỗi user có một role chính trong baseline hiện tại |
 | BR-04 | Chỉ user đang hoạt động mới được xác thực |
 | BR-05 | Teacher/Admin mới được tạo tài liệu và quiz |
 | BR-06 | Chỉ tài liệu `SUCCESS` được sử dụng trong RAG |
 | BR-07 | Quiz chỉ được kích hoạt khi có ít nhất một câu hỏi hợp lệ |
-| BR-08 | Mỗi câu hỏi MVP có đúng một đáp án đúng |
+| BR-08 | Câu hỏi trắc nghiệm một đáp án đúng là loại câu hỏi mặc định; các loại câu hỏi mở rộng phải có rule chấm điểm riêng |
 | BR-09 | Điểm quiz được tính ở backend |
-| BR-10 | Một `QuizAttempt` hoàn tất chỉ được ghi nhận XP một lần |
+| BR-10 | Một `QuizAttempt` hoàn tất chỉ được ghi nhận XP một lần thông qua `xpEarned` |
 | BR-11 | Tổng XP không được âm |
 | BR-12 | User chỉ truy cập dữ liệu thuộc quyền sở hữu hoặc phạm vi vai trò của mình |
-| BR-13 | Xóa dữ liệu có liên kết ưu tiên soft delete/vô hiệu hóa thay vì xóa vật lý trong MVP |
+| BR-13 | Xóa dữ liệu có liên kết ưu tiên soft delete/vô hiệu hóa thay vì xóa vật lý |
 
 ### 7.1. Công thức điểm và XP mặc định
 
@@ -477,54 +486,122 @@ Các chức năng `Should Have` chỉ được thực hiện khi toàn bộ `Mus
 
 ---
 
-## 8. Mô hình dữ liệu MVP
+## 8. Mô hình dữ liệu
 
-### 8.1. Nguyên tắc cập nhật database hiện có
+### 8.1. Nguyên tắc đồng bộ database hiện có
 
-Database đã triển khai theo ERD ban đầu được giữ lại. Không yêu cầu viết lại toàn bộ schema. Team bổ sung các entity còn thiếu bằng migration:
+ERD dưới đây phản ánh schema hiện tại trong `V1__init_schema.sql` của codebase. Tài liệu lấy database đang triển khai làm baseline để tránh lệch giữa SRS, entity JPA và migration.
 
-- Bắt buộc: `Question`, `QuestionOption`, `AttemptAnswer`, `DocumentChunk`.
-- Khuyến nghị mạnh: `XPTransaction` để chống cộng điểm trùng và truy vết.
-- Sửa enum/quy tắc role của `User` để hỗ trợ `TEACHER`.
-- Quan hệ upload tài liệu thuộc về `User.createdById`, không giới hạn ở `Student`.
-- `Lesson` chưa cần dùng trong MVP; có thể giữ bảng nếu đã tạo nhưng không phát triển nghiệp vụ phụ thuộc.
-- `Student.email` là dữ liệu trùng; không sử dụng làm nguồn email đăng nhập và nên loại bỏ ở migration sau.
+- Ba role chính được lưu ở `users.role`: `STUDENT`, `TEACHER`, `ADMIN`.
+- Hồ sơ học sinh và giáo viên tách thành `students` và `teachers`, mỗi bảng liên kết một-một với `users`.
+- Quản lý lớp học đã có trong schema qua `school_classes` và `teacher_class_assignments`.
+- Quiz hiện lưu lựa chọn đáp án trong `quiz_questions.options` dạng JSONB; đáp án học sinh lưu ở `quiz_attempt_answers`.
+- XP hiện được lưu ở `students.total_xp` và `quiz_attempts.xp_earned`; nếu cần ledger truy vết XP đa nguồn, team sẽ bổ sung `xp_transactions` ở migration sau.
+- `students.email` là dữ liệu trùng với `users.email`; không dùng làm nguồn email đăng nhập và nên loại bỏ hoặc bỏ qua ở migration dọn nợ kỹ thuật sau.
 
-### 8.2. ERD chốt cho MVP
+### 8.2. ERD chốt
 
 ```mermaid
 erDiagram
     User {
         uuid id PK
+        string username UK
         string email UK
         string passwordHash
         string fullName
+        date dateOfBirth
+        string phoneNumber
+        string avatarUrl
+        string gender
         string role
         boolean isActive
+        boolean isDeleted
         timestamptz createdAt
         timestamptz updatedAt
     }
 
-    StudentProfile {
+    Student {
         uuid id PK
         uuid userId FK
         string studentCode UK
         string gradeLevel
+        string className
+        string schoolName
+        string email
+        text address
+        uuid classId FK
         int totalXP
         int currentLevel
         int currentStreak
+        int longestStreak
         timestamptz lastActivityDate
         jsonb studyPreferences
+        string parentName
+        string parentEmail
+        string parentPhone
+    }
+
+    Teacher {
+        uuid id PK
+        uuid userId FK
+        string teacherCode UK
+        string department
+        string subjectTaught
+        string schoolName
+    }
+
+    SchoolClass {
+        uuid id PK
+        string name
+        string gradeLevel
+        string schoolName
+        string academicYear
+        uuid homeroomTeacherId FK
+        timestamptz createdAt
+    }
+
+    TeacherClassAssignment {
+        uuid id PK
+        uuid teacherId FK
+        uuid classId FK
+        string subject
+        boolean isHomeroom
+        timestamptz createdAt
+    }
+
+    CalendarEvent {
+        uuid id PK
+        uuid studentId FK
+        string title
+        text description
+        timestamptz startDateTime
+        timestamptz endDateTime
+        string type
+        string location
+        boolean hasReminder
+        int reminderMinutesBefore
+        timestamptz createdAt
     }
 
     Schedule {
         uuid id PK
         uuid studentId FK
-        string subjectCode
+        string name
+        boolean isActive
+        timestamptz createdAt
+    }
+
+    ScheduleSlot {
+        uuid id PK
+        uuid scheduleId FK
+        string subjectName
         int dayOfWeek
-        int orderIndex
-        string session
-        string notes
+        time startTime
+        time endTime
+        string teacherName
+        string room
+        string scheduleType
+        timestamptz createdAt
     }
 
     ChatSession {
@@ -542,6 +619,7 @@ erDiagram
         uuid chatSessionId FK
         string senderType
         text content
+        string audioUrl
         string intent
         jsonb citationLinks
         timestamptz createdAt
@@ -551,7 +629,9 @@ erDiagram
         uuid id PK
         uuid createdById FK
         string title
+        string fileName
         string filePath
+        long fileSize
         string fileType
         string subject
         string gradeLevel
@@ -567,6 +647,7 @@ erDiagram
         text content
         vector embedding
         jsonb metadata
+        timestamptz createdAt
     }
 
     Quiz {
@@ -585,18 +666,14 @@ erDiagram
     Question {
         uuid id PK
         uuid quizId FK
-        text content
+        text questionText
+        jsonb options
+        string correctOptionKey
         text explanation
         int orderIndex
-        float points
-    }
-
-    QuestionOption {
-        uuid id PK
-        uuid questionId FK
-        text content
-        boolean isCorrect
-        int orderIndex
+        int points
+        string topic
+        timestamptz createdAt
     }
 
     QuizAttempt {
@@ -606,8 +683,6 @@ erDiagram
         float score
         int xpEarned
         int durationSeconds
-        string status
-        timestamptz startedAt
         timestamptz submittedAt
     }
 
@@ -615,60 +690,109 @@ erDiagram
         uuid id PK
         uuid attemptId FK
         uuid questionId FK
-        uuid selectedOptionId FK
+        string selectedOptionKey
         boolean isCorrect
-        float awardedPoints
     }
 
-    XPTransaction {
+    Notification {
         uuid id PK
-        uuid studentId FK
-        int amount
-        string sourceType
-        uuid sourceId
-        string description
+        uuid userId FK
+        string title
+        text message
+        string type
+        string link
+        boolean isRead
         timestamptz createdAt
     }
 
-    User ||--o| StudentProfile : has
-    StudentProfile ||--o{ Schedule : owns
-    StudentProfile ||--o{ ChatSession : starts
+    PasswordResetToken {
+        uuid id PK
+        string token UK
+        uuid userId FK
+        timestamp expiryDate
+        boolean isUsed
+        timestamp createdAt
+    }
+
+    ParentAlertMessage {
+        uuid id PK
+        uuid studentId FK
+        uuid classId FK
+        uuid senderUserId FK
+        string body
+        string channel
+        string status
+        string errorMessage
+        timestamptz createdAt
+    }
+
+    ClassAlertSetting {
+        uuid classId PK FK
+        decimal scoreThreshold
+        int inactivityDays
+        int maxGapTopics
+        string messageTemplate
+        timestamptz updatedAt
+        uuid updatedBy FK
+    }
+
+    User ||--o| Student : has_student_profile
+    User ||--o| Teacher : has_teacher_profile
+    Teacher ||--o{ SchoolClass : homeroom_for
+    SchoolClass ||--o{ Student : contains
+    Teacher ||--o{ TeacherClassAssignment : assigned
+    SchoolClass ||--o{ TeacherClassAssignment : has_assignment
+    Student ||--o{ CalendarEvent : owns
+    Student ||--o{ Schedule : owns
+    Schedule ||--o{ ScheduleSlot : contains
+    Student ||--o{ ChatSession : starts
     ChatSession ||--o{ ChatMessage : contains
     User ||--o{ Document : uploads
     Document ||--o{ DocumentChunk : splits_into
     User ||--o{ Quiz : creates
     Quiz ||--o{ Question : contains
-    Question ||--o{ QuestionOption : offers
-    StudentProfile ||--o{ QuizAttempt : performs
+    Student ||--o{ QuizAttempt : performs
     Quiz ||--o{ QuizAttempt : receives
     QuizAttempt ||--o{ AttemptAnswer : contains
     Question ||--o{ AttemptAnswer : answers
-    QuestionOption ||--o{ AttemptAnswer : selected_as
-    StudentProfile ||--o{ XPTransaction : earns
+    User ||--o{ Notification : receives
+    User ||--o{ PasswordResetToken : resets_password
+    Student ||--o{ ParentAlertMessage : has_alerts
+    SchoolClass ||--o{ ParentAlertMessage : class_alerts
+    User ||--o{ ParentAlertMessage : sends
+    SchoolClass ||--o| ClassAlertSetting : configures
+    User ||--o{ ClassAlertSetting : updates
 ```
 
 ### 8.3. Ràng buộc database quan trọng
 
 - Unique index trên `lower(User.email)`.
-- Unique trên `StudentProfile.userId` và `studentCode`.
+- Unique trên `User.username`, `User.email`, `Student.userId`, `Student.studentCode`, `Teacher.userId` và `Teacher.teacherCode`.
+- Unique trên `PasswordResetToken.token`.
+- Unique trên tổ hợp lớp học `(schoolName, academicYear, name)`.
+- Unique trên tổ hợp phân công giáo viên/lớp/môn `(teacherId, classId, subject)`.
 - Unique trên `(DocumentChunk.documentId, chunkIndex)`.
-- Unique trên `(QuestionOption.questionId, orderIndex)`.
 - Unique trên `(AttemptAnswer.attemptId, questionId)`.
-- Unique trên `(XPTransaction.studentId, sourceType, sourceId)` để chống cộng XP trùng.
-- Check constraint `Schedule.dayOfWeek BETWEEN 1 AND 7`.
-- Check constraint `XPTransaction.amount <> 0` và `StudentProfile.totalXP >= 0`.
-- Index trên các khóa ngoại, `ChatSession.lastMessageAt`, `Quiz.isActive`, `Document.status`.
-- Vector index được tạo theo extension/vector store được chọn.
+- Check constraint `User.role IN ('STUDENT', 'ADMIN', 'TEACHER')`.
+- Check constraint `User.gender IN ('MALE', 'FEMALE', 'OTHER')`.
+- Check constraint `ScheduleSlot.dayOfWeek BETWEEN 2 AND 8` theo convention hiện tại của codebase.
+- Check constraint `CalendarEvent.type IN ('EVENT', 'EXAM', 'QUIZ', 'ASSIGNMENT')`.
+- Check constraint `ChatSession.status IN ('OPEN', 'CLOSED')`, `ChatMessage.senderType IN ('STUDENT', 'AI')`.
+- Check constraint `Document.status IN ('PROCESSING', 'SUCCESS', 'FAILED')`.
+- Check constraint `Quiz.difficulty IN ('EASY', 'MEDIUM', 'HARD')`.
+- Check constraint ngưỡng cảnh báo lớp: điểm trong `(0, 10]`, số ngày không hoạt động `0..365`, số chủ đề hổng kiến thức `1..50`.
+- Index trên các khóa ngoại, `QuizAttempt.submittedAt`, `ChatSession(studentId, lastMessageAt)`, `DocumentChunk.documentId`.
+- Vector index HNSW trên `DocumentChunk.embedding` dùng `vector_cosine_ops`.
+- Trigger chặn update/delete lịch sử trên `quiz_attempts`, `chat_messages` và `parent_alert_messages` trừ khi bật cấu hình bảo trì dữ liệu.
 
 ### 8.4. Migration đề xuất
 
 | Migration | Nội dung |
 |---|---|
-| `V1__baseline.sql` | Schema hiện tại đã thống nhất |
-| `V2__add_teacher_role.sql` | Bổ sung role `TEACHER` nếu database dùng enum/check constraint |
-| `V3__add_quiz_question_tables.sql` | Thêm Question, QuestionOption, AttemptAnswer và trường trạng thái attempt |
-| `V4__add_document_chunks.sql` | Thêm DocumentChunk và vector index |
-| `V5__add_xp_transactions.sql` | Thêm XPTransaction và unique chống cộng trùng |
+| `V1__init_schema.sql` | Schema hiện tại trong codebase: users, students, teachers, schedule, chat, quiz, document/RAG, class, notification, password reset và parent alert |
+| Migration tương lai: `add_xp_transactions` | Tùy chọn nếu team cần ledger XP đa nguồn và truy vết ngoài `quiz_attempts.xp_earned` |
+| Migration tương lai: `normalize_quiz_options` | Tùy chọn nếu team muốn tách `quiz_questions.options` JSONB thành bảng option riêng |
+| Migration tương lai: `cleanup_student_email` | Tùy chọn để loại bỏ dữ liệu email trùng ở `students.email` |
 
 ---
 
@@ -741,9 +865,9 @@ Frontend không phụ thuộc vào thông báo exception thô từ backend.
 - Không sử dụng lịch sử chat vượt ngoài phiên hiện tại.
 - Khi câu hỏi ngoài dữ liệu hoặc ngoài phạm vi học tập, trả lời ngắn gọn và nêu giới hạn.
 
-### 10.4. Chỉ số AI cho demo
+### 10.4. Chỉ số AI
 
-- Tập kiểm thử tối thiểu 20 câu hỏi thuộc tài liệu demo.
+- Tập kiểm thử tối thiểu 20 câu hỏi thuộc tài liệu chuẩn bị sẵn và mở rộng dần theo môn/khối.
 - Ít nhất 80% câu hỏi có retrieval đúng tài liệu/chunk theo đánh giá thủ công.
 - Không có citation giả trong tập kiểm thử đã chuẩn bị.
 - Theo dõi latency, lỗi API, số token hoặc chi phí ước tính ở log nội bộ.
@@ -756,10 +880,10 @@ Frontend không phụ thuộc vào thông báo exception thô từ backend.
 
 | ID | Yêu cầu |
 |---|---|
-| NFR-PERF-01 | API CRUD thông thường có thời gian phản hồi mục tiêu dưới 2 giây ở tải demo |
+| NFR-PERF-01 | API CRUD thông thường có thời gian phản hồi mục tiêu dưới 2 giây ở tải vận hành nội bộ |
 | NFR-PERF-02 | Phản hồi AI mục tiêu dưới 15 giây; UI phải hiển thị trạng thái đang xử lý |
 | NFR-PERF-03 | Danh sách phải hỗ trợ phân trang, mặc định không quá 20-50 bản ghi/trang |
-| NFR-PERF-04 | Hệ thống hỗ trợ tối thiểu 20 người dùng đồng thời trong môi trường demo |
+| NFR-PERF-04 | Hệ thống hỗ trợ tối thiểu 20 người dùng đồng thời trong baseline và có khả năng mở rộng theo tải thực tế |
 
 ### 11.2. Bảo mật
 
@@ -770,32 +894,31 @@ Frontend không phụ thuộc vào thông báo exception thô từ backend.
 | NFR-SEC-03 | API key và secret chỉ lưu trong biến môi trường/secret store |
 | NFR-SEC-04 | Validate loại file, kích thước file và tên file upload |
 | NFR-SEC-05 | Không ghi log mật khẩu, token, API key hoặc toàn bộ dữ liệu cá nhân nhạy cảm |
-| NFR-SEC-06 | CORS chỉ cho phép origin của frontend demo |
-| NFR-SEC-07 | Production/demo public phải sử dụng HTTPS |
+| NFR-SEC-06 | CORS chỉ cho phép origin frontend được cấu hình theo môi trường |
+| NFR-SEC-07 | Staging/production public phải sử dụng HTTPS |
 | NFR-SEC-08 | Truy vấn dữ liệu phải kiểm tra ownership để tránh IDOR |
 
 ### 11.3. Tin cậy và toàn vẹn dữ liệu
 
 - Giao dịch nộp quiz, tính điểm và cộng XP phải bảo đảm idempotency.
 - Upload hoặc xử lý AI thất bại không được làm mất dữ liệu tài liệu gốc đã hợp lệ.
-- Database demo được backup trước buổi trình bày.
+- Database staging/production được backup định kỳ và trước các mốc phát hành quan trọng.
 - Migration phải chạy tự động và theo đúng thứ tự khi deploy.
 - Lỗi tích hợp LLM không làm crash toàn bộ backend.
 
 ### 11.4. Khả dụng và giao diện
 
-- Giao diện responsive cho desktop và mobile web ở mức cơ bản.
+- Giao diện responsive cho desktop và mobile web.
 - Có trạng thái loading, empty, error và retry cho các luồng bất đồng bộ.
 - Form hiển thị lỗi validation gần trường nhập.
 - Các thao tác xóa/khóa phải có xác nhận.
 - Ngôn ngữ giao diện chính là tiếng Việt.
 
-E 
 ### 11.5. Khả năng bảo trì
 
 - Backend phân tách controller, service, repository, DTO và entity.
 - Không trả trực tiếp JPA entity từ API.
-- Có OpenAPI/Swagger cho endpoint MVP.
+- Có OpenAPI/Swagger cho endpoint backend.
 - Có migration database được version hóa trong repository.
 - Cấu hình môi trường không hard-code trong source code.
 
@@ -804,7 +927,7 @@ E
 - Mỗi request có `traceId` hoặc correlation ID.
 - Log các sự kiện: đăng nhập thất bại, upload tài liệu, xử lý RAG, nộp quiz và cộng XP.
 - Health endpoint kiểm tra trạng thái ứng dụng và database.
-- Không bắt buộc hệ thống observability đầy đủ; log container và health check là đủ cho MVP.
+- Có logging, health check và nền tảng giám sát đủ để chẩn đoán lỗi vận hành; observability nâng cao được mở rộng theo milestone.
 
 ---
 
@@ -820,7 +943,7 @@ flowchart TD
     AI --> LLM[LLM and Embedding API]
 ```
 
-Để phù hợp team nhỏ, Backend có thể là modular monolith. AI/RAG có thể nằm trong cùng repository/service nếu công nghệ phù hợp, hoặc là service nhỏ riêng; không cần thiết kế microservice phức tạp cho MVP.
+Kiến trúc logic ở trên được giữ làm baseline. Backend có thể triển khai theo modular monolith để bảo toàn tốc độ phát triển ban đầu, trong khi AI/RAG có thể nằm trong cùng repository/service hoặc tách service riêng khi nhu cầu mở rộng, triển khai độc lập hoặc tối ưu tài nguyên trở nên rõ ràng.
 
 ### 12.1. Module backend đề xuất
 
@@ -846,7 +969,7 @@ flowchart TD
 - Technical task như migration, CI/CD hoặc cấu hình Docker không bắt buộc viết theo mẫu “Là một...”.
 - Chỉ kéo story vào Sprint khi đã có Acceptance Criteria và phụ thuộc chính đã rõ.
 
-### 13.2. Sprint 1 - Nền tảng và xác thực
+### 13.2. Milestone 1 - Nền tảng và xác thực
 
 **Mục tiêu:** Có hệ thống chạy end-to-end, đăng nhập và phân quyền được.
 
@@ -856,11 +979,11 @@ flowchart TD
 - Hồ sơ học sinh cơ bản.
 - Layout frontend theo vai trò.
 - CRUD lịch học cơ bản.
-- Seed dữ liệu demo.
+- Seed dữ liệu mẫu cho phát triển, kiểm thử và trình bày.
 
-**Demo Sprint:** Ba role đăng nhập và thấy đúng màn hình; học sinh quản lý được lịch.
+**Kết quả kiểm chứng:** Ba role đăng nhập và thấy đúng màn hình; học sinh quản lý được lịch.
 
-### 13.3. Sprint 2 - AI Chat và RAG
+### 13.3. Milestone 2 - AI Chat và RAG
 
 **Mục tiêu:** Học sinh hỏi AI và nhận câu trả lời có nguồn từ tài liệu.
 
@@ -871,44 +994,57 @@ flowchart TD
 - Citation và xử lý trường hợp không đủ dữ liệu.
 - Bộ test 20 câu hỏi RAG.
 
-**Demo Sprint:** Giáo viên upload tài liệu; học sinh hỏi và nhận câu trả lời có citation.
+**Kết quả kiểm chứng:** Giáo viên upload tài liệu; học sinh hỏi và nhận câu trả lời có citation.
 
-### 13.4. Sprint 3 - Quiz và gamification
+### 13.4. Milestone 3 - Quiz và gamification
 
 **Mục tiêu:** Hoàn thành vòng lặp luyện tập, chấm điểm và nhận XP.
 
-- Migration/entity Question, QuestionOption, AttemptAnswer và XPTransaction.
+- Entity/migration quiz hiện có: `QuizQuestion`, `QuizAttempt`, `QuizAttemptAnswer`; XP lưu qua `QuizAttempt.xpEarned` và `Student.totalXP`.
 - CRUD quiz cho Teacher/Admin.
 - Màn hình làm bài cho Student.
 - Chấm điểm phía backend.
 - XP idempotent, level cơ bản và leaderboard.
 - Test các trường hợp nộp trùng, quyền truy cập và tính điểm.
 
-**Demo Sprint:** Giáo viên tạo quiz; học sinh làm bài, xem kết quả, nhận XP và lên leaderboard.
+**Kết quả kiểm chứng:** Giáo viên tạo quiz; học sinh làm bài, xem kết quả, nhận XP và lên leaderboard.
 
-### 13.5. Sprint 4 - Dashboard, ổn định và triển khai
+### 13.5. Milestone 4 - Dashboard, ổn định và triển khai
 
-**Mục tiêu:** Hoàn thiện sản phẩm demo và loại bỏ lỗi trong luồng chính.
+**Mục tiêu:** Hoàn thiện các luồng sản phẩm chính, dashboard và nền tảng triển khai.
 
 - Dashboard Student, Teacher và Admin.
 - Hoàn thiện loading/error/empty state.
 - Security review và kiểm tra ownership.
 - Tối ưu truy vấn chính và bổ sung index.
-- Deploy staging/demo, health check và backup.
-- Test end-to-end, sửa lỗi và diễn tập kịch bản demo.
-- Freeze chức năng trước ngày demo tối thiểu 3 ngày.
+- Deploy staging, health check và backup.
+- Test end-to-end, sửa lỗi và diễn tập kịch bản trình bày/sử dụng nội bộ.
+- Freeze chức năng trước mốc phát hành tối thiểu 3 ngày.
 
-**Demo Sprint:** Chạy toàn bộ kịch bản MVP trên môi trường triển khai.
+**Kết quả kiểm chứng:** Chạy toàn bộ kịch bản nghiệp vụ chính trên môi trường triển khai.
 
-### 13.6. Cách phối hợp nhân sự
+### 13.6. Milestone 5 - Mở rộng sản phẩm
+
+**Mục tiêu:** Đưa các chức năng đã từng bị xem là ngoài phạm vi tối thiểu trở lại roadmap sản phẩm.
+
+- Quên mật khẩu qua email và luồng bảo mật tài khoản nâng cao.
+- Nhắc lịch qua email/push notification.
+- OCR tài liệu scan và cải thiện xử lý bảng/hình ảnh.
+- Loại câu hỏi nâng cao: nhiều đáp án, tự luận và upload bài làm.
+- Gamification nâng cao: badge, shop, đổi quà và rule XP cấu hình được.
+- Xuất PDF/Excel, báo cáo nâng cao và phân tích xu hướng học tập.
+- Đánh giá khả năng mở rộng sang Phụ huynh, Super Admin, thanh toán, mobile native, SSO/MFA và đa tenant.
+
+### 13.7. Cách phối hợp nhân sự
 
 | Vai trò | Trách nhiệm chính |
 |---|---|
 | Backend | Database migration, API, RBAC, business rules, integration và test service |
 | Frontend | UI theo role, form, state, tích hợp API và test luồng người dùng |
-| AI/DevOps | Prompt, RAG pipeline, bộ đánh giá AI, Docker/CI/CD, deploy và monitoring |
+| AI/RAG | Prompt, retrieval, embedding, đánh giá chất lượng AI và tối ưu pipeline |
+| QA/DevOps | Test plan, E2E, Docker/CI/CD, deploy, monitoring và quản lý môi trường |
 
-Team làm theo vertical slice. Backend thống nhất contract/OpenAPI sớm hơn FE khoảng 1-2 ngày; FE dùng mock theo contract; AI/DevOps tích hợp liên tục từ Sprint 1-2. Không chờ hoàn thành toàn bộ Backend mới bắt đầu Frontend hoặc deploy.
+Team làm theo vertical slice. Backend thống nhất contract/OpenAPI sớm hơn FE khoảng 1-2 ngày; FE dùng mock theo contract; AI/RAG tích hợp liên tục từ các milestone đầu; QA/DevOps tham gia từ đầu để tránh dồn kiểm thử và triển khai về cuối. Không chờ hoàn thành toàn bộ Backend mới bắt đầu Frontend hoặc deploy.
 
 ---
 
@@ -949,7 +1085,7 @@ Một User Story chỉ được coi là hoàn tất khi:
 - Repository/integration test cho các constraint quan trọng.
 - API test cho auth, RBAC và ownership.
 - Integration test cho upload -> chunk -> retrieval.
-- E2E smoke test cho ba luồng demo chính.
+- E2E smoke test cho các luồng nghiệp vụ chính.
 - Kiểm thử thủ công chất lượng câu trả lời AI bằng bộ câu hỏi chuẩn.
 
 ### 15.2. Các ca kiểm thử ưu tiên cao
@@ -965,10 +1101,10 @@ Một User Story chỉ được coi là hoàn tất khi:
 
 ### 15.3. Điều kiện nghiệm thu phát hành
 
-- 100% User Story `Must Have` đã Done hoặc có quyết định loại khỏi baseline được ghi nhận.
-- Toàn bộ kịch bản demo chính pass.
+- 100% User Story `Must Have` của milestone phát hành đã Done hoặc có quyết định điều chỉnh baseline được ghi nhận.
+- Toàn bộ kịch bản nghiệp vụ chính pass.
 - Không còn lỗi Critical hoặc High chưa có phương án xử lý.
-- Tài khoản demo, dữ liệu mẫu và tài liệu RAG đã được chuẩn bị.
+- Tài khoản kiểm thử, dữ liệu mẫu và tài liệu RAG đã được chuẩn bị.
 - Có bản backup database và hướng dẫn khởi động lại hệ thống.
 
 ---
@@ -981,9 +1117,9 @@ Một User Story chỉ được coi là hoàn tất khi:
 |---|---|
 | Local | Phát triển cá nhân bằng Docker Compose hoặc cấu hình local |
 | Integration/Staging | Tích hợp FE, BE, AI và chạy test |
-| Demo | Phiên bản ổn định dùng để trình bày |
+| Production/Internal Release | Phiên bản ổn định dùng cho phát hành nội bộ hoặc công khai tùy quyết định |
 
-Với nguồn lực hiện tại, Staging và Demo có thể dùng chung nếu team quản lý version/tag rõ ràng và freeze trước demo.
+Staging và môi trường phát hành phải được quản lý bằng version/tag rõ ràng. Nếu dùng chung tài nguyên hạ tầng, cần có quy trình backup, rollback và freeze trước các mốc nghiệm thu.
 
 ### 16.2. Biến môi trường tối thiểu
 
@@ -1000,9 +1136,9 @@ Với nguồn lực hiện tại, Staging và Demo có thể dùng chung nếu t
 - Build backend và frontend khi tạo pull request.
 - Chạy test tự động chính.
 - Build Docker image hoặc artifact triển khai.
-- Deploy có kiểm soát lên môi trường demo.
+- Deploy có kiểm soát lên môi trường staging/phát hành.
 - Chạy migration trước khi ứng dụng mới nhận traffic.
-- Có khả năng quay lại image phiên bản trước; migration phải ưu tiên backward-compatible trong thời gian demo.
+- Có khả năng quay lại image phiên bản trước; migration phải ưu tiên backward-compatible trong các mốc phát hành.
 
 ---
 
@@ -1010,15 +1146,15 @@ Với nguồn lực hiện tại, Staging và Demo có thể dùng chung nếu t
 
 | Rủi ro | Mức độ | Phương án |
 |---|---|---|
-| Scope vượt quá năng lực team 3 người | Cao | Khóa Must/Should/Won't; không thêm module ngoài baseline |
-| RAG trả lời sai hoặc không đúng nguồn | Cao | Dataset demo nhỏ, metadata filter, threshold, citation và bộ test thủ công |
+| Roadmap mở rộng khiến ưu tiên bị phân tán | Cao | Chia milestone rõ ràng, giữ backlog đầy đủ, ưu tiên theo giá trị người dùng và rủi ro kỹ thuật |
+| RAG trả lời sai hoặc không đúng nguồn | Cao | Dataset kiểm thử chuẩn, metadata filter, threshold, citation và bộ test thủ công |
 | Quiz schema cũ thiếu entity | Cao | Thêm 3 bảng bằng migration trong Sprint 3, không viết lại database |
-| Cộng XP trùng do retry | Cao | XPTransaction unique theo source và transaction database |
+| Cộng XP trùng do retry | Cao | Chặn submit lại cùng attempt, cập nhật XP trong transaction database; cân nhắc thêm `xp_transactions` nếu mở rộng XP đa nguồn |
 | FE chờ BE | Trung bình | Chốt OpenAPI sớm, mock response và làm vertical slice |
 | Deploy muộn | Cao | Có môi trường tích hợp từ Sprint 1, deploy tăng dần mỗi Sprint |
 | API LLM chậm/hết quota | Trung bình | Timeout, retry có giới hạn, quota cảnh báo và câu trả lời lỗi thân thiện |
-| Upload tài liệu khó xử lý | Trung bình | Giới hạn PDF text, chuẩn bị trước tài liệu demo, không cam kết OCR |
-| Thiếu thời gian test | Cao | Tự động hóa các rule quan trọng và dành Sprint 4 cho ổn định |
+| Upload tài liệu khó xử lý | Trung bình | Ưu tiên PDF text ở baseline, mở rộng OCR theo milestone và có thông báo lỗi rõ ràng |
+| Thiếu thời gian test | Cao | Tự động hóa các rule quan trọng và để QA/DevOps tham gia từ đầu mỗi milestone |
 
 ---
 
@@ -1051,14 +1187,14 @@ Mọi thay đổi sau khi SRS được chốt cần ghi nhận tối thiểu:
 2. User Story/FR bị ảnh hưởng.
 3. Tác động tới database, API, UI, AI và deployment.
 4. Ước lượng công sức.
-5. Hạng mục nào bị loại hoặc lùi nếu thay đổi được thêm vào Sprint.
-6. Xác nhận của cả ba thành viên hoặc người chịu trách nhiệm sản phẩm.
+5. Milestone, phụ thuộc và thứ tự ưu tiên bị ảnh hưởng.
+6. Xác nhận của cả bốn thành viên hoặc người chịu trách nhiệm sản phẩm.
 
-Các chi tiết kỹ thuật nhỏ có thể thay đổi trong quá trình phát triển mà không sửa SRS, miễn không làm thay đổi hành vi người dùng, Acceptance Criteria hoặc phạm vi MVP.
+Các chi tiết kỹ thuật nhỏ có thể thay đổi trong quá trình phát triển mà không sửa SRS, miễn không làm thay đổi hành vi người dùng, Acceptance Criteria hoặc phạm vi baseline đã được phê duyệt.
 
 ---
 
-## 20. Kịch bản demo cuối kỳ
+## 20. Kịch bản nghiệm thu và trình bày
 
 1. Admin đăng nhập, xem dashboard và danh sách tài khoản.
 2. Giáo viên đăng nhập, tải một tài liệu môn học và quan sát trạng thái xử lý thành công.
@@ -1069,7 +1205,7 @@ Các chi tiết kỹ thuật nhỏ có thể thay đổi trong quá trình phát
 7. Hệ thống cộng XP; dashboard và leaderboard được cập nhật.
 8. Admin xem số liệu hoạt động mới trên dashboard.
 
-Kịch bản này là luồng ưu tiên cao nhất. Mọi quyết định kỹ thuật và phạm vi phải bảo đảm kịch bản chạy ổn định trước khi mở rộng tính năng.
+Kịch bản này là luồng ưu tiên cao của baseline hiện tại. Các chức năng mở rộng vẫn nằm trong roadmap sản phẩm và được nghiệm thu bằng kịch bản riêng khi đến milestone tương ứng.
 
 ---
 
@@ -1080,6 +1216,7 @@ Kịch bản này là luồng ưu tiên cao nhất. Mọi quyết định kỹ t
 | Đại diện sản phẩm/Team Lead |  |  | Chờ duyệt |
 | Backend Developer |  |  | Chờ duyệt |
 | Frontend Developer |  |  | Chờ duyệt |
-| AI/Prompt & DevOps |  |  | Chờ duyệt |
+| AI/RAG Engineer |  |  | Chờ duyệt |
+| QA/DevOps |  |  | Chờ duyệt |
 
-Sau khi phê duyệt, tài liệu này trở thành baseline cho MVP 8 tuần. Product Backlog và các issue phải tham chiếu các ID trong tài liệu; phần ngoài phạm vi chỉ được xem xét sau khi luồng demo chính đã hoàn tất.
+Sau khi phê duyệt, tài liệu này trở thành baseline cho sản phẩm AI Tutor mở rộng. Product Backlog và các issue phải tham chiếu các ID trong tài liệu; chức năng chưa triển khai ngay được quản lý bằng epic/milestone thay vì bị loại khỏi phạm vi.
