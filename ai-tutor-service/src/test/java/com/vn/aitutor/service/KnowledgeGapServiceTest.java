@@ -23,7 +23,7 @@ import com.vn.aitutor.repository.projection.TopicAnswerCountRow;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.ai.GapAdviceRequest;
 import com.vn.aitutor.service.ai.PedagogyAdvisor;
-import com.vn.aitutor.service.impl.KnowledgeGapService;
+import com.vn.aitutor.service.impl.KnowledgeGapServiceImpl;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -60,7 +60,7 @@ class KnowledgeGapServiceTest {
     private PedagogyAdvisor pedagogyAdvisor;
 
     @InjectMocks
-    private KnowledgeGapService knowledgeGapService;
+    private KnowledgeGapServiceImpl knowledgeGapService;
 
     @Test
     void ac02FixtureRanksConeFirstAndIgnoresInventedTopics() {

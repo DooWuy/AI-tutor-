@@ -1,5 +1,6 @@
 package com.vn.aitutor.service;
 
+import com.vn.aitutor.entity.enums.DocumentType;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.UUID;
 
@@ -17,4 +18,7 @@ public interface IDocumentIngestionService {
      * @param userId the ID of the user (admin/teacher) uploading the document
      */
     void ingestPdfDocument(MultipartFile file, String subject, String gradeLevel, UUID userId) throws Exception;
+
+    UUID uploadLessonDocument(UUID lessonId, MultipartFile file, String title, DocumentType documentType, UUID userId)
+            throws Exception;
 }

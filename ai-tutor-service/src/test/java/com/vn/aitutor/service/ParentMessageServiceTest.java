@@ -21,8 +21,8 @@ import com.vn.aitutor.exception.ResourceForbiddenException;
 import com.vn.aitutor.repository.ParentAlertMessageRepository;
 import com.vn.aitutor.repository.StudentRepository;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.impl.AtRiskService;
-import com.vn.aitutor.service.impl.ParentMessageService;
+import com.vn.aitutor.service.IAtRiskService;
+import com.vn.aitutor.service.impl.ParentMessageServiceImpl;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,7 +40,7 @@ class ParentMessageServiceTest {
     private AnalyticsAccess analyticsAccess;
 
     @Mock
-    private AtRiskService atRiskService;
+    private IAtRiskService atRiskService;
 
     @Mock
     private StudentRepository studentRepository;
@@ -52,7 +52,7 @@ class ParentMessageServiceTest {
     private IMailService mailService;
 
     @InjectMocks
-    private ParentMessageService parentMessageService;
+    private ParentMessageServiceImpl parentMessageService;
 
     @Test
     void unassignedTeacherCannotSend() {

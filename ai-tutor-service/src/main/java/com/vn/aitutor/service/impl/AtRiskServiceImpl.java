@@ -25,6 +25,7 @@ import com.vn.aitutor.repository.projection.StudentScoreRow;
 import com.vn.aitutor.repository.projection.TopicAnswerCountRow;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.AnalyticsAccess;
+import com.vn.aitutor.service.IAtRiskService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -44,7 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AtRiskService {
+public class AtRiskServiceImpl implements IAtRiskService {
 
     private final AnalyticsAccess analyticsAccess;
     private final AcademicCalendar academicCalendar;
@@ -53,6 +54,7 @@ public class AtRiskService {
     private final QuizAttemptAnswerRepository answerRepository;
     private final ClassAlertSettingRepository alertSettingRepository;
 
+    @Override
     public AtRiskListResponse list(
             UserPrincipal principal,
             UUID classId,
@@ -64,11 +66,13 @@ public class AtRiskService {
         return listClass(schoolClass, subject, period, from, to);
     }
 
+    @Override
     public int[] countLevels(SchoolClass schoolClass) {
         AtRiskListResponse response = listClass(schoolClass, SubjectCode.ALL, ReportPeriod.LAST_7_DAYS, null, null);
         return counts(response.getStudents());
     }
 
+    @Override
     public ParentMessageDraftResponse draft(
             UserPrincipal principal,
             UUID studentId,
@@ -102,6 +106,7 @@ public class AtRiskService {
                 .build();
     }
 
+    @Override
     public AtRiskStudentDto requireStudent(
             SchoolClass schoolClass,
             UUID studentId,

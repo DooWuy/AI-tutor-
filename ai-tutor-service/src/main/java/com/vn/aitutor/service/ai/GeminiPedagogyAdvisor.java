@@ -37,7 +37,7 @@ public class GeminiPedagogyAdvisor implements PedagogyAdvisor {
     public GeminiPedagogyAdvisor(
             TemplatePedagogyAdvisor template,
             @Value("${gemini.api.key:}") String geminiApiKey,
-            @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent}")
+            @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent}")
                     String geminiApiUrl) {
         this.template = template;
         this.geminiApiKey = geminiApiKey;

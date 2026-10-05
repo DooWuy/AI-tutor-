@@ -49,7 +49,7 @@ public class ScheduleServiceImpl implements IScheduleService {
     @Value("${gemini.api.key:default_key_placeholder}")
     private String geminiApiKey;
 
-    @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent}")
+    @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent}")
     private String geminiApiUrl;
 
     // Giới hạn file 5MB chống OOM DoS

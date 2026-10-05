@@ -10,6 +10,8 @@ import { ProfilePage } from './pages/Student/Profile/ProfilePage';
 
 import { TeacherLayout } from './layouts/TeacherLayout/TeacherLayout';
 import AnalyticsPage from './pages/Teacher/Analytics/AnalyticsPage';
+import TeachingMaterialsPage from './pages/Teacher/TeachingMaterials/TeachingMaterialsPage';
+
 import { AdminLayout } from './layouts/AdminLayout/AdminLayout';
 import { AdminDashboardPage } from './pages/Admin/AdminDashboardPage';
 import { AdminStudentDetailShell } from './pages/Admin/Students/AdminStudentDetailShell';
@@ -35,6 +37,9 @@ function App() {
           <Route index element={<Navigate to="/teacher/analytics" replace />} />
           <Route path="dashboard" element={<Navigate to="/teacher/analytics" replace />} />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="documents" element={<TeachingMaterialsPage />} />
+          <Route path="materials" element={<Navigate to="/teacher/documents" replace />} />
+          <Route path="curriculum" element={<Navigate to="/teacher/documents" replace />} />
         </Route>
 
         {/* Admin Routes */}

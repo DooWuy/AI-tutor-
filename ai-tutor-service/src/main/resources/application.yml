@@ -10,8 +10,8 @@ spring:
     open-in-view: false
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 55MB
+      max-file-size: 100MB
+      max-request-size: 130MB
 
 app:
   frontend:
@@ -53,8 +53,14 @@ cloudinary:
 
 gemini:
   api:
-    key: ${GEMINI_API_KEY}
-    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent
+    key: ${GEMINI_API_KEY:}
+    url: ${GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent}
+
+openai:
+  api:
+    key: ${OPENAI_API_KEY:}
+    embedding-model: text-embedding-3-small
+    url: https://api.openai.com/v1/embeddings
 
 llamaparse:
   api:

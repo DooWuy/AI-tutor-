@@ -22,8 +22,8 @@ import com.vn.aitutor.entity.enums.SubjectCode;
 import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.repository.ClassAlertSettingRepository;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.impl.AlertSettingsService;
-import com.vn.aitutor.service.impl.AtRiskService;
+import com.vn.aitutor.service.IAtRiskService;
+import com.vn.aitutor.service.impl.AlertSettingsServiceImpl;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -45,10 +45,10 @@ class AlertSettingsServiceTest {
     private ClassAlertSettingRepository settingRepository;
 
     @Mock
-    private AtRiskService atRiskService;
+    private IAtRiskService atRiskService;
 
     @InjectMocks
-    private AlertSettingsService alertSettingsService;
+    private AlertSettingsServiceImpl alertSettingsService;
 
     @Test
     void missingRowReturnsDefaults() {

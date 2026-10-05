@@ -36,8 +36,14 @@ public enum SubjectCode {
         if (isAll(raw)) {
             throw new ResourceBadRequestException("Môn học không hợp lệ");
         }
+        String trimmed = raw.trim();
+        for (SubjectCode code : values()) {
+            if (code.name().equalsIgnoreCase(trimmed) || code.displayName.equalsIgnoreCase(trimmed)) {
+                return code;
+            }
+        }
         try {
-            return SubjectCode.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+            return SubjectCode.valueOf(trimmed.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new ResourceBadRequestException("Môn học không hợp lệ: " + raw);
         }

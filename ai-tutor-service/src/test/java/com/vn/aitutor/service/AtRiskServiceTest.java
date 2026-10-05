@@ -13,7 +13,7 @@ import com.vn.aitutor.repository.QuizAttemptAnswerRepository;
 import com.vn.aitutor.repository.QuizAttemptRepository;
 import com.vn.aitutor.repository.StudentRepository;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.impl.AtRiskService;
+import com.vn.aitutor.service.impl.AtRiskServiceImpl;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,7 +43,7 @@ class AtRiskServiceTest {
     private ClassAlertSettingRepository alertSettingRepository;
 
     @InjectMocks
-    private AtRiskService atRiskService;
+    private AtRiskServiceImpl atRiskService;
 
     @Test
     void studentAndUnassignedTeacherAreRejected() {

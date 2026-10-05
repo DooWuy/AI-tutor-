@@ -1,6 +1,7 @@
 package com.vn.aitutor.entity;
 
 import com.vn.aitutor.entity.enums.DocumentStatus;
+import com.vn.aitutor.entity.enums.DocumentType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -51,6 +52,17 @@ public class Document {
 
     @Column(name = "grade_level", length = 32)
     private String gradeLevel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "document_type", length = 32)
+    private DocumentType documentType;
+
+    @Column(name = "error_message")
+    private String errorMessage;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 32)
