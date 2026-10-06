@@ -20,7 +20,7 @@ public class ChatbotConfig {
     public ChatLanguageModel geminiChatModel() {
         return GoogleAiGeminiChatModel.builder()
                 .apiKey(geminiApiKey)
-                .modelName("gemini-1.5-flash")
+                .modelName("gemini-3.5-flash-lite")
                 .temperature(0.3)
                 .build();
     }

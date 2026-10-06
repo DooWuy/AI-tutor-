@@ -100,6 +100,15 @@ export const SUBJECT_OPTIONS = [
 ] as const;
 
 export const GRADE_OPTIONS = [
+  'Lớp 1',
+  'Lớp 2',
+  'Lớp 3',
+  'Lớp 4',
+  'Lớp 5',
+  'Lớp 6',
+  'Lớp 7',
+  'Lớp 8',
+  'Lớp 9',
   'Lớp 10',
   'Lớp 11',
   'Lớp 12',
@@ -138,7 +147,7 @@ export function normalizeSubjectForBackend(raw: string): string {
 
 export function normalizeGradeForBackend(raw: string): string {
   const trimmed = (raw || '').trim();
-  const match = trimmed.match(/(?:10|11|12)/);
-  if (match) return `Lớp ${match[0]}`;
+  const match = trimmed.match(/(?:lớp|khối|grade)?\s*(1[0-2]|[1-9])\b/i);
+  if (match && match[1]) return `Lớp ${match[1]}`;
   return 'Lớp 10';
 }

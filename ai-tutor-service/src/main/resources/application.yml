@@ -60,8 +60,14 @@ openai:
   api:
     key: ${OPENAI_API_KEY:}
     embedding-model: text-embedding-3-small
-    url: https://api.openai.com/v1/embeddings
+    url: ${OPENAI_API_URL:https://api.openai.com/v1/embeddings}
 
 llamaparse:
   api:
     key: 
+
+langchain4j:
+  ollama:
+    embedding-model:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      model-name: bge-m3

@@ -33,9 +33,9 @@ export function BookImportDropzone({ onFilesAdded, onError }: BookImportDropzone
     else if (cleanName.toLowerCase().includes('tin')) guessedSubject = 'Tin học';
     else if (cleanName.toLowerCase().includes('công dân') || cleanName.toLowerCase().includes('gdcd')) guessedSubject = 'GDCD';
 
-    // Guess grade (THPT: Lớp 10, 11, 12)
+    // Guess grade (Lớp 1-12)
     let guessedGrade = 'Lớp 12';
-    const gradeMatch = cleanName.match(/(?:lớp|khối|grade)?\s*(10|11|12)\b/i);
+    const gradeMatch = cleanName.match(/(?:lớp|khối|grade)?\s*(1[0-2]|[1-9])\b/i);
     if (gradeMatch && gradeMatch[1]) {
       guessedGrade = `Lớp ${gradeMatch[1]}`;
     }

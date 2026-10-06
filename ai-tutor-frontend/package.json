@@ -11,15 +11,21 @@
   },
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",
+    "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
     "autoprefixer": "^10.6.1",
     "chart.js": "^4.5.1",
+    "katex": "^0.19.0",
     "lucide-react": "^1.52.0",
     "postcss": "^8.5.28",
     "react": "^19.2.8",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.8",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.4",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {

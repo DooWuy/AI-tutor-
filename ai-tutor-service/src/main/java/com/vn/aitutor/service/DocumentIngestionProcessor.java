@@ -64,7 +64,8 @@ public class DocumentIngestionProcessor {
                     DocumentChunk chunk = new DocumentChunk();
                     chunk.setDocument(doc);
                     chunk.setChunkIndex(index);
-                    chunk.setContent(batch.get(i));
+                    String sanitizedContent = batch.get(i).replace("\u0000", "");
+                    chunk.setContent(sanitizedContent);
                     chunk.setEmbedding(vectors[i]);
                     chunk.setMetadata(metadata(doc));
                     chunks.add(chunk);

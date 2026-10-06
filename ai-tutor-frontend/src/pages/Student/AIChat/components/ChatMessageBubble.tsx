@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import type { ChatMessage } from '../../../../services/chatApi';
 import { CitationModal } from './CitationModal';
 
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+
 interface ChatMessageBubbleProps {
   message: ChatMessage;
   studentAvatar: string;
@@ -39,9 +45,14 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({ message, s
             ? 'bg-primary text-on-primary rounded-2xl rounded-tr-xs' 
             : 'bg-surface-container-lowest border border-outline-variant/80 rounded-2xl rounded-tl-xs text-on-surface'}
         `}>
-          {message.content.split('\n').map((line, i) => (
-            <p key={i}>{line}</p>
-          ))}
+          <div className={`prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-surface-container-high prose-pre:text-on-surface prose-code:text-primary ${isStudent ? 'text-on-primary prose-headings:text-on-primary prose-strong:text-on-primary prose-a:text-on-primary prose-code:text-on-primary' : 'text-on-surface prose-headings:text-on-surface prose-strong:text-on-surface prose-a:text-primary'}`}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeKatex]}
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
           
           {/* Citations section if present */}
           {!isStudent && message.citationLinks && message.citationLinks.length > 0 && (

@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 public final class CurriculumCodes {
 
-    private static final Pattern CODE = Pattern.compile("^[A-Z0-9]{2,20}$");
+    private static final Pattern CODE = Pattern.compile("^[A-Z0-9_]{2,20}$");
 
     private CurriculumCodes() {
     }
@@ -18,7 +18,7 @@ public final class CurriculumCodes {
         String upper = raw.trim().toUpperCase(Locale.ROOT);
         if (!CODE.matcher(upper).matches()) {
             throw new ResourceBadRequestException(
-                    label + " chỉ gồm chữ không dấu và số, dài từ 2 đến 20 ký tự");
+                    label + " chỉ gồm chữ, số và dấu gạch dưới, dài từ 2 đến 20 ký tự");
         }
         return upper;
     }

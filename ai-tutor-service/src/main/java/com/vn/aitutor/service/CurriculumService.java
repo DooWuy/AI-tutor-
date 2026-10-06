@@ -54,7 +54,22 @@ public class CurriculumService {
         } else {
             books = bookRepository.findAllByOrderByTitleAsc();
         }
-        return books.stream().map(book -> toBook(book, false)).toList();
+        return books.stream().map(book -> {
+            List<ChapterResponse> chapters = chapterRepository.findByBookIdOrderByDisplayOrderAsc(book.getId()).stream()
+                    .map(chapter -> toChapter(chapter, true))
+                    .toList();
+            BookResponse response = toBook(book, false);
+            return BookResponse.builder()
+                    .id(response.getId())
+                    .title(response.getTitle())
+                    .subject(response.getSubject())
+                    .gradeLevel(response.getGradeLevel())
+                    .curriculumName(response.getCurriculumName())
+                    .createdAt(response.getCreatedAt())
+                    .updatedAt(response.getUpdatedAt())
+                    .chapters(chapters)
+                    .build();
+        }).toList();
     }
 
     @Transactional(readOnly = true)

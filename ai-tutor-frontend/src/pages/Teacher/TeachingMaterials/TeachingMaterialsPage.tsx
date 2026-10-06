@@ -167,9 +167,16 @@ export default function TeachingMaterialsPage() {
   };
 
   // Open Book structure drawer
-  const handleOpenStructure = (book: BookItem) => {
-    setStructureBook(book);
-    setIsStructureDrawerOpen(true);
+  const handleOpenStructure = async (book: BookItem) => {
+    try {
+      const fullBook = await curriculumApi.getBook(book.id!);
+      setStructureBook(fullBook);
+      setIsStructureDrawerOpen(true);
+    } catch (err) {
+      console.error('Failed to load book structure:', err);
+      setStructureBook(book); // Fallback to shallow book
+      setIsStructureDrawerOpen(true);
+    }
   };
 
   // Delete an existing book

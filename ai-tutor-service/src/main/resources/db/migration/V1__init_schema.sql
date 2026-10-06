@@ -168,7 +168,7 @@ CREATE TABLE document_chunks (
     document_id UUID NOT NULL,
     chunk_index INTEGER NOT NULL,
     content TEXT NOT NULL,
-    embedding vector(1536),
+    embedding vector(1024),
     metadata JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uk_document_chunks_doc_idx UNIQUE (document_id, chunk_index),
@@ -469,3 +469,5 @@ CREATE TABLE audit_logs (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE books DROP CONSTRAINT ck_books_grade_level;
+ALTER TABLE books ADD CONSTRAINT ck_books_grade_level CHECK (grade_level IN ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'));
