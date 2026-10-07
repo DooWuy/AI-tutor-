@@ -7,11 +7,16 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
+
+    @Modifying
+    @Query("DELETE FROM ChatMessage cm WHERE cm.chatSession.id = :sessionId")
+    int deleteByChatSessionId(@Param("sessionId") UUID sessionId);
 
     @Query("SELECT cm FROM ChatMessage cm WHERE cm.chatSession.id = :sessionId ORDER BY cm.createdAt ASC")
     List<ChatMessage> findByChatSessionIdOrderByCreatedAtAsc(@Param("sessionId") UUID sessionId);

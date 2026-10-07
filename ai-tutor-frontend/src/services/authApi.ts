@@ -2,13 +2,15 @@ import type { ApiResponse, AuthSession, LoginCredentials } from '../types/auth'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8088/api/v1').replace(/\/$/, '')
 
+const ACCESS_TOKEN_KEY = 'ai-tutor.access-token'
 const USER_KEY = 'ai-tutor.user'
 
 export function getStoredSession(): AuthSession | null {
   for (const storage of [localStorage, sessionStorage]) {
     const rawUser = storage.getItem(USER_KEY)
     if (!rawUser) continue
-    try { return { accessToken: '', user: JSON.parse(rawUser) as import('../types/auth').User } }
+    const rawToken = storage.getItem(ACCESS_TOKEN_KEY) || ''
+    try { return { accessToken: rawToken, user: JSON.parse(rawUser) as import('../types/auth').User } }
     catch { storage.removeItem(USER_KEY) }
   }
   return null
@@ -17,6 +19,7 @@ export function getStoredSession(): AuthSession | null {
 export function clearSession() {
   for (const storage of [localStorage, sessionStorage]) {
     storage.removeItem(USER_KEY)
+    storage.removeItem(ACCESS_TOKEN_KEY)
   }
 }
 
@@ -24,6 +27,9 @@ export function persistSession(session: AuthSession, remember: boolean) {
   clearSession()
   const storage = remember ? localStorage : sessionStorage
   storage.setItem(USER_KEY, JSON.stringify(session.user))
+  if (session.accessToken) {
+    storage.setItem(ACCESS_TOKEN_KEY, session.accessToken)
+  }
 }
 
 function resolveErrorMessage(payload: Partial<ApiResponse<unknown>> | null, status: number) {

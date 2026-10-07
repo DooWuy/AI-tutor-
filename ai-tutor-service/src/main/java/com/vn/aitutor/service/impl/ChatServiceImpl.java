@@ -1,45 +1,41 @@
 package com.vn.aitutor.service.impl;
 
-import com.vn.aitutor.entity.ChatMessage;
 import com.vn.aitutor.entity.ChatSession;
 import com.vn.aitutor.entity.Student;
-import com.vn.aitutor.entity.enums.SenderType;
 import com.vn.aitutor.entity.enums.ChatSessionStatus;
 import com.vn.aitutor.repository.ChatMessageRepository;
 import com.vn.aitutor.repository.ChatSessionRepository;
-import com.vn.aitutor.agent.AiTutorChatAgent;
 import com.vn.aitutor.service.IChatService;
-import com.vn.aitutor.context.RagContextHolder;
+import com.vn.aitutor.service.ChatStreamProcessor;
+import com.vn.aitutor.dto.response.ChatStreamEvent;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import jakarta.persistence.EntityManager;
 import com.vn.aitutor.dto.response.ChatSessionResponse;
 import com.vn.aitutor.dto.response.ChatMessageResponse;
-import dev.langchain4j.rag.content.Content;
-import dev.langchain4j.service.Result;
 
-import java.time.Instant;
 import java.util.*;
+import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.vn.aitutor.service.ContentSafetyService;
-import com.vn.aitutor.entity.AuditLog;
-import com.vn.aitutor.repository.AuditLogRepository;
+import com.vn.aitutor.exception.ResourceBadRequestException;
+import com.vn.aitutor.exception.ResourceForbiddenException;
+import com.vn.aitutor.exception.ResourceNotFoundException;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ChatServiceImpl implements IChatService {
 
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
-    private final AiTutorChatAgent aiTutorChatAgent;
     private final com.vn.aitutor.repository.StudentRepository studentRepository;
-    private final ContentSafetyService contentSafetyService;
-    private final AuditLogRepository auditLogRepository;
+    private final EntityManager entityManager;
+    private final ChatStreamProcessor chatStreamProcessor;
+    private final SimpMessagingTemplate simpMessagingTemplate;
     
     // Use a shared cached thread pool for all SSE connections
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
@@ -47,114 +43,18 @@ public class ChatServiceImpl implements IChatService {
     @Override
     @Transactional
     public SseEmitter streamChatWithAI(UUID studentId, UUID sessionId, String userMessage) {
-        ChatSession session = chatSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Chat session not found"));
+        requireOwnedSession(studentId, sessionId);
+        String normalizedMessage = requireMessage(userMessage);
 
-        // 1. Save user message
-        ChatMessage studentMsg = new ChatMessage();
-        studentMsg.setChatSession(session);
-        studentMsg.setSenderType(SenderType.STUDENT);
-        studentMsg.setContent(userMessage);
-        chatMessageRepository.save(studentMsg);
-        
-        session.setLastMessageAt(Instant.now());
-        chatSessionRepository.save(session);
-
-        // 2. Setup SSE Emitter (Timeout 2 minutes)
         SseEmitter emitter = new SseEmitter(120000L);
-
-        // 3. Start Streaming AI Response via LangChain4j Agent
-        String subject = session.getSubject();
-        String gradeLevel = session.getStudent() != null ? session.getStudent().getGradeLevel() : null;
 
         sseExecutor.submit(() -> {
             try {
-                // Content Safety Check (AC-04)
-                if (!contentSafetyService.isSafe(userMessage)) {
-                    // Log Audit
-                    AuditLog auditLog = AuditLog.builder()
-                            .userId(studentId)
-                            .action("CONTENT_SAFETY_VIOLATION")
-                            .details("Blocked unsafe message: " + userMessage)
-                            .build();
-                    auditLogRepository.save(auditLog);
-
-                    String rejectionMessage = contentSafetyService.getRejectionMessage();
-
-                    // Simulate streaming rejection message
-                    String[] words = rejectionMessage.split("(?<=\\s)");
-                    for (String word : words) {
-                        emitter.send(SseEmitter.event().name("message").data(word));
-                        Thread.sleep(50);
-                    }
-                    emitter.send(SseEmitter.event().name("done").data("[DONE]"));
-
-                    // Save Rejection Message to DB
-                    ChatMessage aiMsg = new ChatMessage();
-                    aiMsg.setChatSession(session);
-                    aiMsg.setSenderType(SenderType.AI);
-                    aiMsg.setContent(rejectionMessage);
-                    chatMessageRepository.save(aiMsg);
-
-                    session.setLastMessageAt(Instant.now());
-                    chatSessionRepository.save(session);
-
-                    emitter.complete();
-                    return; // Short-circuit, do not call LLM
-                }
-
-                // Set thread-local context before RAG retrieval
-                RagContextHolder.setContext(subject, gradeLevel);
-                
-                Result<String> aiResult = aiTutorChatAgent.chat(sessionId.toString(), userMessage);
-                String fullResponse = aiResult.content();
-                
-                // Simulate streaming by sending chunks of words
-                String[] words = fullResponse.split("(?<=\\s)");
-                for (String word : words) {
-                    emitter.send(SseEmitter.event().name("message").data(word));
-                    Thread.sleep(50); // Simulate typing delay
-                }
-
-                // Prepare citations
-                List<Map<String, Object>> citations = new ArrayList<>();
-                if (aiResult.sources() != null) {
-                    for (Content content : aiResult.sources()) {
-                        Map<String, Object> citation = new HashMap<>();
-                        citation.put("text", content.textSegment().text());
-                        citation.put("metadata", content.textSegment().metadata().toMap());
-                        citations.add(citation);
-                    }
-                }
-
-                // Also send citations as SSE event to the client
-                emitter.send(SseEmitter.event().name("citations").data(citations));
-                emitter.send(SseEmitter.event().name("done").data("[DONE]"));
-
-                // Save AI Message to DB
-                ChatMessage aiMsg = new ChatMessage();
-                aiMsg.setChatSession(session);
-                aiMsg.setSenderType(SenderType.AI);
-                aiMsg.setContent(fullResponse);
-                if (!citations.isEmpty()) {
-                    aiMsg.setCitationLinks(citations);
-                }
-                chatMessageRepository.save(aiMsg);
-
-                session.setLastMessageAt(Instant.now());
-                chatSessionRepository.save(session);
-
+                chatStreamProcessor.process(studentId, sessionId, normalizedMessage,
+                        event -> sendSseEvent(emitter, event));
                 emitter.complete();
-            } catch (Exception e) {
-                log.error("AI Generation error", e);
-                try {
-                    emitter.send(SseEmitter.event().name("error").data("Lỗi kết nối AI"));
-                    emitter.completeWithError(e);
-                } catch (Exception ex) {
-                    emitter.completeWithError(ex);
-                }
-            } finally {
-                RagContextHolder.clearContext();
+            } catch (Exception ex) {
+                emitter.completeWithError(ex);
             }
         });
 
@@ -165,10 +65,50 @@ public class ChatServiceImpl implements IChatService {
     }
 
     @Override
+    public void streamChatOverWebSocket(
+            UUID userId,
+            UUID sessionId,
+            String username,
+            String userMessage) {
+        requireOwnedSession(userId, sessionId);
+        String normalizedMessage = requireMessage(userMessage);
+
+        sseExecutor.submit(() -> chatStreamProcessor.process(
+                userId,
+                sessionId,
+                normalizedMessage,
+                event -> simpMessagingTemplate.convertAndSendToUser(
+                        username,
+                        "/queue/chat-sessions/" + sessionId + "/stream",
+                        event)));
+    }
+
+    private void sendSseEvent(SseEmitter emitter, ChatStreamEvent event) {
+        try {
+            switch (event.getType()) {
+                case "token" -> emitter.send(SseEmitter.event()
+                        .name("message")
+                        .data(event.getContent()));
+                case "citations" -> emitter.send(SseEmitter.event()
+                        .name("citations")
+                        .data(event.getCitations()));
+                case "done" -> emitter.send(SseEmitter.event()
+                        .name("done")
+                        .data("[DONE]"));
+                case "error" -> emitter.send(SseEmitter.event()
+                        .name("error")
+                        .data(event.getMessage()));
+                default -> throw new IllegalArgumentException("Unknown chat stream event: " + event.getType());
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to send chat stream event", ex);
+        }
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<ChatSessionResponse> getChatSessions(UUID userId) {
-        Student student = studentRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Student not found for user: " + userId));
+        Student student = requireStudent(userId);
 
         return chatSessionRepository.findChatSessionsByStudentIdDesc(student.getId()).stream()
                 .map(session -> ChatSessionResponse.builder()
@@ -185,15 +125,7 @@ public class ChatServiceImpl implements IChatService {
     @Override
     @Transactional(readOnly = true)
     public List<ChatMessageResponse> getChatSessionMessages(UUID userId, UUID sessionId) {
-        Student student = studentRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Student not found for user: " + userId));
-
-        // Optionally verify if session belongs to student
-        ChatSession session = chatSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Chat session not found"));
-        if (!session.getStudent().getId().equals(student.getId())) {
-            throw new RuntimeException("Access denied");
-        }
+        requireOwnedSession(userId, sessionId);
 
         return chatMessageRepository.findByChatSessionIdOrderByCreatedAtAsc(sessionId).stream()
                 .map(msg -> ChatMessageResponse.builder()
@@ -211,18 +143,102 @@ public class ChatServiceImpl implements IChatService {
     @Override
     @Transactional
     public ChatSessionResponse createChatSession(UUID userId, String subject) {
-        Student student = studentRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Student not found for user: " + userId));
+        Student student = requireStudent(userId);
+        String normalizedSubject = requireSubject(subject);
         
         ChatSession session = new ChatSession();
         session.setStudent(student);
-        session.setSubject(subject);
-        session.setTitle("Trò chuyện: " + subject);
+        session.setSubject(normalizedSubject);
+        session.setTitle("Trò chuyện: " + normalizedSubject);
         session.setStatus(ChatSessionStatus.OPEN);
         session.setCreatedAt(Instant.now());
         
         session = chatSessionRepository.save(session);
         
+        return ChatSessionResponse.builder()
+                .id(session.getId())
+                .subject(session.getSubject())
+                .title(session.getTitle())
+                .status(session.getStatus() != null ? session.getStatus().name() : null)
+                .createdAt(session.getCreatedAt())
+                .lastMessageAt(session.getLastMessageAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ChatSessionResponse renameChatSession(UUID userId, UUID sessionId, String title) {
+        ChatSession session = requireOwnedSession(userId, sessionId);
+        String normalizedTitle = requireTitle(title);
+        session.setTitle(normalizedTitle);
+        ChatSession saved = chatSessionRepository.save(session);
+        return toSessionResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteChatSession(UUID userId, UUID sessionId) {
+        ChatSession session = requireOwnedSession(userId, sessionId);
+
+        // The immutable-history trigger permits this only for the current transaction.
+        entityManager.createNativeQuery(
+                "SELECT set_config('app.allow_history_maintenance', 'true', true)")
+                .getSingleResult();
+
+        chatMessageRepository.deleteByChatSessionId(session.getId());
+        entityManager.flush();
+        chatSessionRepository.delete(session);
+    }
+
+    private Student requireStudent(UUID userId) {
+        return studentRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ học sinh"));
+    }
+
+    private ChatSession requireOwnedSession(UUID userId, UUID sessionId) {
+        Student student = requireStudent(userId);
+        ChatSession session = chatSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên chat"));
+        if (session.getStudent() == null || !student.getId().equals(session.getStudent().getId())) {
+            throw new ResourceForbiddenException("Bạn không có quyền truy cập phiên chat này");
+        }
+        return session;
+    }
+
+    private String requireSubject(String subject) {
+        String normalized = subject == null ? "" : subject.trim();
+        if (normalized.isEmpty()) {
+            throw new ResourceBadRequestException("Môn học không được để trống");
+        }
+        if (normalized.length() > 64) {
+            throw new ResourceBadRequestException("Môn học không được vượt quá 64 ký tự");
+        }
+        return normalized;
+    }
+
+    private String requireTitle(String title) {
+        String normalized = title == null ? "" : title.trim();
+        if (normalized.isEmpty()) {
+            throw new ResourceBadRequestException("Tên phiên chat không được để trống");
+        }
+        if (normalized.length() > 255) {
+            throw new ResourceBadRequestException("Tên phiên chat không được vượt quá 255 ký tự");
+        }
+        return normalized;
+    }
+
+    private String requireMessage(String message) {
+        String normalized = message == null ? "" : message.trim();
+        if (normalized.isEmpty()) {
+            throw new ResourceBadRequestException("Tin nhắn không được để trống");
+        }
+        if (normalized.length() > 1000) {
+            throw new ResourceBadRequestException("Tin nhắn không được vượt quá 1000 ký tự");
+        }
+        return normalized;
+    }
+
+    private ChatSessionResponse toSessionResponse(ChatSession session) {
         return ChatSessionResponse.builder()
                 .id(session.getId())
                 .subject(session.getSubject())
