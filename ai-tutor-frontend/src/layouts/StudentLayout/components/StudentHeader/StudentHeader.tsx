@@ -45,7 +45,7 @@ export const StudentHeader: React.FC = () => {
       getMyNotifications().then(setNotifications).catch(console.error);
       getMyStudentProfile().then(setStudentProfile).catch(console.error);
     }
-  }, [user]);
+  }, [user?.userId]);
 
   // WebSocket hook
   const { lastMessage } = useWebSocket(token);
