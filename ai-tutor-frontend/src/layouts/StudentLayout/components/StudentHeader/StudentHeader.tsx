@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { Bot } from 'lucide-react';
 import { styles } from './StudentHeader.styles';
 import { logout, getStoredSession } from '../../../../services/authApi';
 import { useWebSocket } from '../../../../hooks/useWebSocket';
@@ -126,12 +127,23 @@ export const StudentHeader: React.FC = () => {
             <span className="material-symbols-outlined text-[24px]">menu</span>
           </button>
           
-          <a className={styles.logoLink} href="#">
-            <div className={styles.logoIconWrapper}>
-              <span className={styles.logoIcon} style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+          <Link className={styles.logoLink} to="/student/dashboard">
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#004bb5] to-[#2575fc] text-white shadow-md shadow-[#005cb8]/20 ring-1 ring-white/20" aria-hidden="true">
+              <Bot size={22} className="text-white" />
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
             </div>
-            <span className={styles.logoText}>AI Tutor</span>
-          </a>
+            <div className="min-w-0 flex flex-col justify-center hidden sm:flex">
+              <span className="block truncate text-base font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
+                AI Tutor <span className="text-[#005cb8]">Học sinh</span>
+              </span>
+              <span className="block text-[10px] font-extrabold uppercase tracking-widest leading-none text-[#005cb8] mt-0.5">
+                Không gian học tập
+              </span>
+            </div>
+          </Link>
           <nav className={styles.navLinks}>
             <Link className={getNavLinkClass('/student/dashboard')} to="/student/dashboard">Trang chủ</Link>
             <Link className={getNavLinkClass('/student/timetable')} to="/student/timetable">Thời khóa biểu</Link>
