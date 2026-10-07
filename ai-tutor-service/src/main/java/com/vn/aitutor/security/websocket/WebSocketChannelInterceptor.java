@@ -10,7 +10,7 @@ import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
-import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -27,7 +27,7 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
         
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             String authorizationHeader = accessor.getFirstNativeHeader("Authorization");
@@ -44,10 +44,12 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                     if (username != null && "access".equals(type)) {
                         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
+                        userDetails, null, userDetails.getAuthorities());
                         
                         accessor.setUser(authentication);
+                        accessor.setLeaveMutable(true);
                         log.debug("WebSocket connected successfully for user: {}", username);
+                        return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
                     } else {
                         log.error("Invalid JWT type or missing username in token for WebSocket connect");
                         throw new IllegalArgumentException("Token JWT không hợp lệ");

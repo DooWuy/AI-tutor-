@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { ChatSidebar } from './components/ChatSidebar';
 import { ChatArea } from './components/ChatArea';
 import { CreateSessionModal } from './components/CreateSessionModal';
+import { RenameSessionModal } from './components/RenameSessionModal';
+import { DeleteSessionModal } from './components/DeleteSessionModal';
 import { getChatSessions, getChatSessionMessages, createChatSession } from '../../../services/chatApi';
 import type { ChatSession, ChatMessage } from '../../../services/chatApi';
 import { getStoredSession } from '../../../services/authApi';
@@ -12,12 +14,24 @@ export const AIChatPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [sessionToRename, setSessionToRename] = useState<ChatSession | null>(null);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<ChatSession | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
   const session = getStoredSession();
   const studentAvatar = session?.user?.avatarUrl || `https://ui-avatars.com/api/?name=Student&background=0A5EB0&color=fff`;
 
-  useEffect(() => {
-    loadSessions();
-  }, []);
+  const handleSelectSession = async (id: string) => {
+    setActiveSessionId(id);
+    try {
+      const data = await getChatSessionMessages(id);
+      setMessages(data);
+    } catch (error) {
+      console.error('Failed to load messages', error);
+    }
+  };
 
   const loadSessions = async () => {
     try {
@@ -31,17 +45,9 @@ export const AIChatPage: React.FC = () => {
     }
   };
 
-  const handleSelectSession = async (id: string) => {
-    setActiveSessionId(id);
-    try {
-      const data = await getChatSessionMessages(id);
-      setMessages(data);
-    } catch (error) {
-      console.error('Failed to load messages', error);
-    }
-  };
-
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  useEffect(() => {
+    loadSessions();
+  }, []);
 
   const handleCreateSession = async (subject: string) => {
     try {
@@ -52,6 +58,37 @@ export const AIChatPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to create session', error);
     }
+  };
+
+  const handleOpenRename = (sessionItem: ChatSession) => {
+    setSessionToRename(sessionItem);
+    setIsRenameModalOpen(true);
+  };
+
+  const handleRenameSuccess = (updatedSession: ChatSession) => {
+    setSessions((prev) =>
+      prev.map((s) => (s.id === updatedSession.id ? updatedSession : s))
+    );
+  };
+
+  const handleOpenDelete = (sessionItem: ChatSession) => {
+    setSessionToDelete(sessionItem);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteSuccess = (deletedSessionId: string) => {
+    setSessions((prev) => {
+      const remaining = prev.filter((s) => s.id !== deletedSessionId);
+      if (activeSessionId === deletedSessionId) {
+        if (remaining.length > 0) {
+          handleSelectSession(remaining[0].id);
+        } else {
+          setActiveSessionId(null);
+          setMessages([]);
+        }
+      }
+      return remaining;
+    });
   };
 
   const handleSendMessage = async (content: string) => {
@@ -126,7 +163,7 @@ export const AIChatPage: React.FC = () => {
                     citations = parsed;
                     setMessages(prev => prev.map(m => m.id === tempAiMsgId ? { ...m, citationLinks: citations } : m));
                   }
-                } catch(e){}
+                } catch {}
               } else if (eventType === 'done') {
                 done = true;
                 break;
@@ -152,6 +189,8 @@ export const AIChatPage: React.FC = () => {
         activeSessionId={activeSessionId} 
         onSelectSession={handleSelectSession}
         onCreateSession={() => setIsCreateModalOpen(true)}
+        onRenameSession={handleOpenRename}
+        onDeleteSession={handleOpenDelete}
       />
       <ChatArea 
         session={activeSession}
@@ -164,6 +203,24 @@ export const AIChatPage: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateSession}
+      />
+      <RenameSessionModal
+        isOpen={isRenameModalOpen}
+        session={sessionToRename}
+        onClose={() => {
+          setIsRenameModalOpen(false);
+          setSessionToRename(null);
+        }}
+        onSuccess={handleRenameSuccess}
+      />
+      <DeleteSessionModal
+        isOpen={isDeleteModalOpen}
+        session={sessionToDelete}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSessionToDelete(null);
+        }}
+        onSuccess={handleDeleteSuccess}
       />
     </div>
   );

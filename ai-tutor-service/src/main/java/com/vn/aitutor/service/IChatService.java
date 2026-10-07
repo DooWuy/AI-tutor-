@@ -16,6 +16,8 @@ public interface IChatService {
      */
     SseEmitter streamChatWithAI(UUID studentId, UUID sessionId, String userMessage);
 
+    void streamChatOverWebSocket(UUID userId, UUID sessionId, String username, String userMessage);
+
     /**
      * Lấy danh sách các phiên trò chuyện của học sinh, sắp xếp phiên mới nhất lên đầu.
      */
@@ -30,4 +32,8 @@ public interface IChatService {
      * Tạo một phiên trò chuyện mới.
      */
     ChatSessionResponse createChatSession(UUID studentId, String subject);
+
+    ChatSessionResponse renameChatSession(UUID studentId, UUID sessionId, String title);
+
+    void deleteChatSession(UUID studentId, UUID sessionId);
 }
