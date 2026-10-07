@@ -1,5 +1,6 @@
 import { useState, useMemo, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Bot } from 'lucide-react';
 import { register } from '../../services/authApi';
 import type { RegisterData } from '../../types/auth';
 import { styles } from './RegisterPage.styles';
@@ -101,7 +102,13 @@ export default function RegisterPage() {
       <header className={styles.header.wrapper}>
         <div className={styles.header.inner}>
           <Link className={styles.header.logoLink} to="/">
-            <img alt="AI Tutor Logo" className={styles.header.logoImg} src="https://lh3.googleusercontent.com/aida/AEtjO1UkI5g-Uaqq8t2YJYNnyTlK2zqgw03-kkPdwv0OvUyqdVq7fWLfwNIzKUFf7n2hRe6E-pufaaXyYZBqZNh0hziW3Dk1IAa_MrHhLT038MCUNWwrAi8S059jHaTtOQYgnCoG32UzRCFKXNcrbXPQ61iQeXffVraTfLNc6kygG4Nard6nM2jvdCkc6EZtjYAiv5djqccxHtxr1Senx0iFeEB40Hj8QtnPcaLu-141g2IQ9BaqHomSN8PSTF0" />
+            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#004bb5] to-[#2575fc] text-white shadow-md shadow-[#005cb8]/20 ring-1 ring-white/20" aria-hidden="true">
+              <Bot size={20} className="text-white" />
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+            </div>
             <span className={styles.header.logoText}>
               AI Tutor<span className={styles.header.logoDot}></span>
             </span>
