@@ -5,6 +5,7 @@ import { CitationModal } from './CitationModal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import remarkBreaks from 'remark-breaks';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
@@ -47,7 +48,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({ message, s
         `}>
           <div className={`prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-surface-container-high prose-pre:text-on-surface prose-code:text-primary ${isStudent ? 'text-on-primary prose-headings:text-on-primary prose-strong:text-on-primary prose-a:text-on-primary prose-code:text-on-primary' : 'text-on-surface prose-headings:text-on-surface prose-strong:text-on-surface prose-a:text-primary'}`}>
             <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath]}
+              remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
               rehypePlugins={[rehypeKatex]}
             >
               {message.content}
