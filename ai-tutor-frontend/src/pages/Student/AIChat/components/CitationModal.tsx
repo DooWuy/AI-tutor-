@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface CitationModalProps {
   isOpen: boolean;
@@ -7,6 +7,19 @@ interface CitationModalProps {
 }
 
 export const CitationModal: React.FC<CitationModalProps> = ({ isOpen, onClose, citation }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !citation) return null;
 
   const fileName = citation.metadata?.file_name || citation.metadata?.source || 'Tài liệu không tên';
@@ -20,7 +33,14 @@ export const CitationModal: React.FC<CitationModalProps> = ({ isOpen, onClose, c
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      role="dialog"
+      aria-modal="true"
+    >
       <div className="bg-surface-container-lowest w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         <div className="px-5 py-4 border-b border-outline-variant/50 flex items-center justify-between sticky top-0 bg-surface-container-lowest">

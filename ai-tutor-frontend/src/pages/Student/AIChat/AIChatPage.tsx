@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChatSidebar } from './components/ChatSidebar';
 import { ChatArea } from './components/ChatArea';
+import { ChatMobileStatusBar } from './components/ChatMobileStatusBar';
 import { CreateSessionModal } from './components/CreateSessionModal';
 import { RenameSessionModal } from './components/RenameSessionModal';
 import { DeleteSessionModal } from './components/DeleteSessionModal';
@@ -14,6 +15,12 @@ export const AIChatPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Responsive UI states
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [sessionToRename, setSessionToRename] = useState<ChatSession | null>(null);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
@@ -23,8 +30,18 @@ export const AIChatPage: React.FC = () => {
   const session = getStoredSession();
   const studentAvatar = session?.user?.avatarUrl || `https://ui-avatars.com/api/?name=Student&background=0A5EB0&color=fff`;
 
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
   const handleSelectSession = async (id: string) => {
     setActiveSessionId(id);
+    setIsMobileSidebarOpen(false);
     try {
       const data = await getChatSessionMessages(id);
       setMessages(data);
@@ -52,9 +69,11 @@ export const AIChatPage: React.FC = () => {
   const handleCreateSession = async (subject: string) => {
     try {
       const newSession = await createChatSession(subject);
-      setSessions([newSession, ...sessions]);
+      setSessions((prev) => [newSession, ...prev]);
       setActiveSessionId(newSession.id);
       setMessages([]);
+      setIsMobileSidebarOpen(false);
+      setToastMessage(`Đã tạo phiên hỏi đáp môn ${subject}`);
     } catch (error) {
       console.error('Failed to create session', error);
     }
@@ -69,6 +88,7 @@ export const AIChatPage: React.FC = () => {
     setSessions((prev) =>
       prev.map((s) => (s.id === updatedSession.id ? updatedSession : s))
     );
+    setToastMessage('Đã cập nhật tên cuộc trò chuyện');
   };
 
   const handleOpenDelete = (sessionItem: ChatSession) => {
@@ -77,18 +97,19 @@ export const AIChatPage: React.FC = () => {
   };
 
   const handleDeleteSuccess = (deletedSessionId: string) => {
-    setSessions((prev) => {
-      const remaining = prev.filter((s) => s.id !== deletedSessionId);
-      if (activeSessionId === deletedSessionId) {
-        if (remaining.length > 0) {
-          handleSelectSession(remaining[0].id);
-        } else {
-          setActiveSessionId(null);
-          setMessages([]);
-        }
+    const remaining = sessions.filter((s) => s.id !== deletedSessionId);
+    setSessions(remaining);
+
+    // If the active session was deleted, select next session or clear to empty state
+    if (activeSessionId === deletedSessionId) {
+      if (remaining.length > 0) {
+        handleSelectSession(remaining[0].id);
+      } else {
+        setActiveSessionId(null);
+        setMessages([]);
       }
-      return remaining;
-    });
+    }
+    setToastMessage('Đã xóa vĩnh viễn cuộc trò chuyện');
   };
 
   const handleSendMessage = async (content: string) => {
@@ -183,7 +204,19 @@ export const AIChatPage: React.FC = () => {
   const activeSession = sessions.find(s => s.id === activeSessionId) || null;
 
   return (
-    <div className="flex flex-1 overflow-hidden h-[calc(100vh-64px)] w-full -mx-space-md md:-mx-space-lg -my-6 bg-surface">
+    <div className="flex flex-1 overflow-hidden h-[calc(100dvh-5.5rem)] sm:h-[calc(100vh-6rem)] w-full rounded-2xl border border-outline-variant/70 shadow-xs bg-surface relative">
+      {/* Mobile Left Status Bar (Always accessible on mobile for 1-touch toggle & quick status) */}
+      <ChatMobileStatusBar
+        isOpen={isMobileSidebarOpen}
+        onToggle={() => setIsMobileSidebarOpen((prev) => !prev)}
+        onCreateSession={() => setIsCreateModalOpen(true)}
+        sessionCount={sessions.length}
+        currentSubject={activeSession?.subject}
+        hasActiveSession={!!activeSession}
+        studentAvatar={studentAvatar}
+      />
+
+      {/* Sidebar with mobile drawer & desktop collapse */}
       <ChatSidebar 
         sessions={sessions} 
         activeSessionId={activeSessionId} 
@@ -191,19 +224,40 @@ export const AIChatPage: React.FC = () => {
         onCreateSession={() => setIsCreateModalOpen(true)}
         onRenameSession={handleOpenRename}
         onDeleteSession={handleOpenDelete}
+        isOpenMobile={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
+
+      {/* Main Chat Area */}
       <ChatArea 
         session={activeSession}
         messages={messages}
         studentAvatar={studentAvatar}
         onSendMessage={handleSendMessage}
         isLoading={isLoading}
+        onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebarCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+        onCreateSession={() => setIsCreateModalOpen(true)}
       />
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 bg-inverse-surface text-inverse-on-surface px-4 py-2.5 rounded-xl text-xs font-semibold shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <span className="material-symbols-outlined text-sm text-emerald-400">check_circle</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Modals */}
       <CreateSessionModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateSession}
       />
+
       <RenameSessionModal
         isOpen={isRenameModalOpen}
         session={sessionToRename}
@@ -213,6 +267,7 @@ export const AIChatPage: React.FC = () => {
         }}
         onSuccess={handleRenameSuccess}
       />
+
       <DeleteSessionModal
         isOpen={isDeleteModalOpen}
         session={sessionToDelete}
