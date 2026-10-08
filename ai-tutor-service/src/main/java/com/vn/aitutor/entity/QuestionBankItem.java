@@ -1,6 +1,8 @@
 package com.vn.aitutor.entity;
 
 import com.vn.aitutor.entity.enums.QuestionType;
+import com.vn.aitutor.entity.enums.ReviewStatus;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,25 +13,27 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "quiz_questions")
-public class QuizQuestion {
+@Table(name = "question_bank")
+public class QuestionBankItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -37,37 +41,21 @@ public class QuizQuestion {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "quiz_id", nullable = false)
-    private Quiz quiz;
+    @JoinColumn(name = "lesson_id", nullable = false)
+    private Lesson lesson;
 
-    @Column(name = "question_text", nullable = false)
-    private String questionText;
+    @Column(name = "stem", nullable = false)
+    private String stem;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "options", nullable = false, columnDefinition = "jsonb")
-    private List<Map<String, Object>> options = new ArrayList<>();
-
-    @Column(name = "correct_option_key", length = 64)
-    private String correctOptionKey;
-
-    @Column(name = "explanation")
+    @Column(name = "explanation", nullable = false)
     private String explanation;
 
-    @Column(name = "order_index", nullable = false)
-    private int orderIndex;
-
-    @Column(name = "points", nullable = false)
-    private int points = 1;
-
-    @Column(name = "topic", length = 255)
-    private String topic;
+    @Column(name = "difficulty", nullable = false)
+    private int difficulty = 3;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "question_type", nullable = false, length = 32)
     private QuestionType questionType = QuestionType.MULTIPLE_CHOICE;
-
-    @Column(name = "difficulty", nullable = false)
-    private int difficulty = 3;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "tags", nullable = false, columnDefinition = "jsonb")
@@ -76,11 +64,26 @@ public class QuizQuestion {
     @Column(name = "correct_text")
     private String correctText;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "source_question_id")
-    private QuestionBankItem sourceQuestion;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_status", nullable = false, length = 16)
+    private ReviewStatus reviewStatus = ReviewStatus.ACTIVE;
+
+    @Column(name = "batch_id")
+    private UUID batchId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "created_by_id", nullable = false)
+    private User createdBy;
+
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    private List<QuestionChoice> choices = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 }

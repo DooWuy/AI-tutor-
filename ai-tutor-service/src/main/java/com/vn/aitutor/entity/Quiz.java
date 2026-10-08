@@ -1,6 +1,7 @@
 package com.vn.aitutor.entity;
 
 import com.vn.aitutor.entity.enums.QuizDifficulty;
+import com.vn.aitutor.entity.enums.QuizStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
@@ -47,8 +49,22 @@ public class Quiz {
     @Column(name = "difficulty", nullable = false, length = 16)
     private QuizDifficulty difficulty;
 
-    @Column(name = "time_limit")
-    private Integer timeLimit;
+    @Column(name = "time_limit", nullable = false)
+    private Integer timeLimit = 30;
+
+    @Column(name = "max_attempts", nullable = false)
+    private int maxAttempts = 3;
+
+    @Column(name = "passing_score", nullable = false, precision = 5, scale = 1)
+    private BigDecimal passingScore = new BigDecimal("70.0");
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 16)
+    private QuizStatus status = QuizStatus.DRAFT;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
 
     @Column(name = "is_ai_generated", nullable = false)
     private boolean aiGenerated;
@@ -58,7 +74,7 @@ public class Quiz {
     private User createdBy;
 
     @Column(name = "is_active", nullable = false)
-    private boolean active = true;
+    private boolean active;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

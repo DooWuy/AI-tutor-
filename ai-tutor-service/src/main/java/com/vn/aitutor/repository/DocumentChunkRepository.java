@@ -1,6 +1,7 @@
 package com.vn.aitutor.repository;
 
 import com.vn.aitutor.entity.DocumentChunk;
+import com.vn.aitutor.entity.enums.DocumentType;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,6 +28,16 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UU
     @Modifying
     @Query("delete from DocumentChunk chunk where chunk.document.id = :documentId")
     int deleteByDocumentId(@Param("documentId") UUID documentId);
+
+    @Query("""
+            select chunk.content from DocumentChunk chunk
+            where chunk.document.lesson.id = :lessonId
+              and chunk.document.status = com.vn.aitutor.entity.enums.DocumentStatus.SUCCESS
+              and chunk.document.documentType = :documentType
+            order by chunk.document.createdAt asc, chunk.chunkIndex asc
+            """)
+    List<String> findContentByLessonAndType(
+            @Param("lessonId") UUID lessonId, @Param("documentType") DocumentType documentType);
 
     @Modifying(clearAutomatically = true)
     @Query(value = """

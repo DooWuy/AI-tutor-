@@ -8,6 +8,7 @@ import com.vn.aitutor.repository.projection.StudentScoreRow;
 import com.vn.aitutor.repository.projection.StudentLearningSummaryRow;
 import com.vn.aitutor.repository.projection.WeeklyScoreRow;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -160,6 +161,23 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
             WHERE s.classEntity.id = :classId AND qa.quiz.id = :quizId
             """)
     List<QuizAttempt> findByClassAndQuiz(@Param("classId") UUID classId, @Param("quizId") UUID quizId);
+
+    long countByQuizId(UUID quizId);
+
+    @Query("select a.quiz.id, count(a) from QuizAttempt a where a.quiz.id in :quizIds group by a.quiz.id")
+    List<Object[]> countGrouped(@Param("quizIds") Collection<UUID> quizIds);
+
+    @Query("""
+            select a from QuizAttempt a
+            join fetch a.student student
+            join fetch student.user
+            left join fetch student.classEntity
+            where a.quiz.id = :quizId
+              and a.submittedAt is not null
+              and a.score is not null
+            order by a.submittedAt asc
+            """)
+    List<QuizAttempt> findSubmittedWithScore(@Param("quizId") UUID quizId);
 
     @Query(
             value = """

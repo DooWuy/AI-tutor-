@@ -14,6 +14,7 @@ import com.vn.aitutor.repository.BookRepository;
 import com.vn.aitutor.repository.ChapterRepository;
 import com.vn.aitutor.repository.DocumentRepository;
 import com.vn.aitutor.repository.LessonRepository;
+import com.vn.aitutor.repository.QuestionBankRepository;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,8 @@ class CurriculumDeleteGuardTest {
     private LessonRepository lessonRepository;
     @Mock
     private DocumentRepository documentRepository;
+    @Mock
+    private QuestionBankRepository questionBankRepository;
     @InjectMocks
     private CurriculumService curriculumService;
 

@@ -1,6 +1,7 @@
 package com.vn.aitutor.repository;
 
 import com.vn.aitutor.entity.QuizAttemptAnswer;
+import com.vn.aitutor.repository.projection.QuestionWrongRateRow;
 import com.vn.aitutor.repository.projection.TopicAnswerCountRow;
 import java.time.Instant;
 import java.util.List;
@@ -42,4 +43,22 @@ public interface QuizAttemptAnswerRepository extends JpaRepository<QuizAttemptAn
             @Param("fromTs") Instant fromTs,
             @Param("toTs") Instant toTs,
             @Param("subject") String subject);
+
+    @Query(
+            value = """
+                    SELECT q.id AS questionId,
+                           q.question_text AS stem,
+                           SUM(CASE WHEN ans.is_correct THEN 0 ELSE 1 END) AS wrongCount,
+                           COUNT(ans.id) AS answerCount
+                    FROM quiz_attempt_answers ans
+                    JOIN quiz_attempts qa ON qa.id = ans.attempt_id
+                    JOIN quiz_questions q ON q.id = ans.question_id
+                    WHERE q.quiz_id = :quizId
+                      AND qa.submitted_at IS NOT NULL
+                    GROUP BY q.id, q.question_text
+                    ORDER BY (SUM(CASE WHEN ans.is_correct THEN 0 ELSE 1 END)::float / COUNT(ans.id)) DESC,
+                             SUM(CASE WHEN ans.is_correct THEN 0 ELSE 1 END) DESC
+                    """,
+            nativeQuery = true)
+    List<QuestionWrongRateRow> aggregateWrongRates(@Param("quizId") UUID quizId);
 }
