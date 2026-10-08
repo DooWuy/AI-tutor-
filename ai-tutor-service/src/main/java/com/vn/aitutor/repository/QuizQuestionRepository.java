@@ -9,4 +9,6 @@ import org.springframework.stereotype.Repository;
 public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, UUID> {
 
     boolean existsByTopic(String topic);
+
+    int countByQuizId(UUID quizId);
 }

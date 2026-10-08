@@ -1,6 +1,6 @@
 package com.vn.aitutor.dto.response;
 
-import com.vn.aitutor.dto.ScheduleSlotDto;
+import com.vn.aitutor.dto.response.ScheduleSlotDto;
 import lombok.Builder;
 import lombok.Data;
 
@@ -15,3 +15,4 @@ public class ScheduleResponse {
     private boolean isActive;
     private List<ScheduleSlotDto> slots;
 }
+

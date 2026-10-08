@@ -46,4 +46,7 @@ public class QuizAttempt {
 
     @Column(name = "submitted_at")
     private Instant submittedAt;
+
+    @Column(name = "is_visible", nullable = false)
+    private Boolean isVisible = true;
 }

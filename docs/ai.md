@@ -1,163 +1,190 @@
-Là Học sinh (Student), tôi muốn trò chuyện trực tiếp với AI Tutor (gửi câu hỏi text/voice) để nhận được sự hướng dẫn, giải thích bài học chi tiết từng bước 24/7 bám sát chương trình học và an toàn tuyệt đối cho lứa tuổi của tôi.
+Là Học sinh (Student), tôi muốn làm các bài kiểm tra trắc nghiệm (do giáo viên giao hoặc AI tự động tạo cá nhân hóa) có giới hạn thời gian để tự đánh giá năng lực, nhận kết quả chấm điểm tức thì kèm giải thích chi tiết và nhận điểm thưởng XP.
 
-# **User Story: Trò chuyện với AI Tutor (AI Tutor Chat)**
+
+# **User Story: Luyện tập và Làm Trắc nghiệm (Practice & Quizzes)**
 
 ## **1. Tổng quan & Bối cảnh (Overview & Context)**
 
 ### **Vấn đề (Problem):**
 
-Học sinh Việt Nam khi tự học tại nhà thường xuyên gặp khó khăn trong việc hiểu sâu các kiến thức lý thuyết phức tạp hoặc giải quyết các bài tập khó (Toán, Lý, Hóa, Tiếng Anh...). Khi không có giáo viên hoặc phụ huynh bên cạnh hỗ trợ kịp thời, học sinh dễ rơi vào tình trạng chán nản, từ bỏ hoặc chọn cách chép lời giải có sẵn trên mạng một cách đối phó mà không thực sự hiểu bản chất bài học.
+Để củng cố kiến thức đã học trên lớp, học sinh cần làm các bài tập rèn luyện (quizzes) thường xuyên. Tuy nhiên, việc tự tìm đề luyện tập trong sách tham khảo rất tốn thời gian, và các bài tập tĩnh không thể tự động thay đổi độ khó phù hợp với sự tiến bộ của học sinh. Học sinh cũng thường phải đợi giáo viên chấm điểm thủ công, dẫn đến việc không biết mình sai ở đâu để khắc phục ngay lập tức.
 
 ### **Pain Points hiện tại:**
 
-- **Thiếu sự hỗ trợ tức thì:** Học sinh phải đợi đến ngày hôm sau đi học để hỏi giáo viên, hoặc phụ huynh phải tốn chi phí thuê gia sư truyền thống rất đắt đỏ nhưng cũng chỉ hỗ trợ được vài tiếng mỗi tuần.
-- **Lời giải trên mạng thiếu giải thích bản chất:** Các trang web giải bài tập hiện nay chỉ cung cấp đáp án cuối cùng hoặc các bước giải vắn tắt, không giải thích chi tiết tại sao lại áp dụng công thức đó.
-- **Không cá nhân hóa:** Tài liệu học tập dùng chung cho mọi đối tượng học sinh, không phân biệt học sinh mất gốc hay học sinh khá giỏi cần cách tiếp cận khác nhau.
-- **Nội dung thiếu an toàn cho trẻ em:** Việc tự tìm kiếm giải bài tập trên mạng dễ khiến học sinh tiếp xúc với quảng cáo độc hại, thông tin sai lệch hoặc không phù hợp với lứa tuổi.
+- **Bài tập quá dễ hoặc quá khó:** Đề thi chung cho cả lớp khiến học sinh yếu cảm thấy nản chí vì không làm được bài, trong khi học sinh giỏi cảm thấy nhàm chán vì bài tập quá đơn giản.
+- **Thiếu lời giải thích tức thời và chi tiết:** Học sinh làm sai trắc nghiệm chỉ biết đáp án đúng (Ví dụ: chọn A thay vì B) mà hoàn toàn không hiểu tại sao đáp án B mới là đáp án chính xác.
+- **Tình trạng gian lận và thiếu tập trung:** Làm bài tập về nhà trực tuyến không có giới hạn thời gian thực khiến học sinh dễ bị phân tâm, lướt web tìm câu trả lời hoặc kéo dài thời gian làm bài vô tội vạ.
+- **Định dạng câu hỏi nghèo nàn:** Các hệ thống trắc nghiệm cũ chỉ hỗ trợ câu hỏi chọn 1 đáp án đúng (Multiple choice), không hỗ trợ các dạng câu hỏi phong phú khác như Đúng/Sai, Điền khuyết hay Tự luận ngắn.
 
 ### **Giá trị Nghiệp vụ (Business Value):**
 
-- **Hỗ trợ học tập cá nhân hóa 24/7:** Học sinh có một Gia sư AI thông minh đồng hành mọi lúc mọi nơi, giải thích kiến thức với văn phong dễ hiểu phù hợp với trình độ hiện tại của từng em.
-- **Hướng dẫn học tập thay vì giải hộ:** AI được cấu hình để định hướng, đưa ra gợi ý từng bước (hints) và giải thích bản chất tư duy giải bài, giúp học sinh tự suy nghĩ và tiến bộ vượt bậc.
-- **Môi trường học tập an toàn tuyệt đối:** Đảm bảo toàn bộ nội dung tương tác của học sinh được kiểm duyệt chặt chẽ, lành mạnh, bám sát chương trình giáo dục phổ thông của Bộ GD&ĐT.
-- **Kết nối kiến thức số hóa:** Gắn câu trả lời của AI với các tài liệu học tập chính thống hiện có trong hệ thống (RAG citations) để học sinh dễ dàng tra cứu lại bài giảng gốc.
+- **Cá nhân hóa lộ trình rèn luyện:** AI tự động tạo bài tập có độ khó thích ứng (Adaptive Difficulty) dựa trên kết quả học tập và lỗ hổng kiến thức hiện tại của từng học sinh.
+- **Chấm điểm tự động và phản hồi tức thì:** Giúp học sinh học hỏi trực tiếp từ những lỗi sai của mình thông qua phần giải thích chi tiết từng bước của AI Tutor ngay sau khi nộp bài.
+- **Nâng cao tính kỷ luật:** Tích hợp bộ đếm ngược thời gian thực giúp học sinh rèn luyện kỹ năng quản lý thời gian làm bài thi như trong phòng thi thật.
+- **Kích thích động lực học tập:** Tích hợp hệ thống điểm thưởng XP giúp biến việc làm bài tập thành một trải nghiệm thú vị như đang chơi trò chơi.
 
 ### **Đối tượng (Actor):**
 
 - **Primary Actor:** Học sinh (Student).
 - **Secondary Actors:**
-  - **Hệ thống AI Tutor Service (LangChain):** Chịu trách nhiệm xử lý ngôn ngữ, tìm kiếm ngữ cảnh trong Vector Database (pgvector) và tạo câu trả lời cá nhân hóa an toàn.
+  - **Quản trị viên / Giáo viên (Admin/Teacher):** Tạo và quản lý các ngân hàng đề thi chuẩn hóa.
+  - **Hệ thống AI Generator (LangChain):** Chịu trách nhiệm tự động tạo câu hỏi trắc nghiệm thông minh dựa trên môn học và độ khó yêu cầu.
 
 ### **User Story Statement**
 
-Là Học sinh (Student), tôi muốn trò chuyện trực tiếp với AI Tutor (gửi câu hỏi text/voice) để nhận được sự hướng dẫn, giải thích bài học chi tiết từng bước 24/7 bám sát chương trình học và an toàn tuyệt đối cho lứa tuổi của tôi.
+Là Học sinh (Student), tôi muốn làm các bài kiểm tra trắc nghiệm (do giáo viên giao hoặc AI tự động tạo cá nhân hóa) có giới hạn thời gian để tự đánh giá năng lực, nhận kết quả chấm điểm tức thì kèm giải thích chi tiết và nhận điểm thưởng XP.
 
 ---
 
 ## **2. Luồng Người dùng (User Flow)**
 
-### **2.1. Luồng chính: Trò chuyện và hỏi bài với AI Tutor**
+### **2.1. Luồng chính: Học sinh làm bài kiểm tra trắc nghiệm**
 
-1. Học sinh đăng nhập thành công vào Mobile App và chọn tab "AI Tutor" (màn hình chính).
-2. Hệ thống hiển thị giao diện trò chuyện:
-   - Phần trên: Danh sách các session trò chuyện cũ (Lịch sử chat) được gom nhóm theo Môn học (Toán, Vật lý, Hóa học, Tiếng Anh...).
-   - Phần giữa: Khung chat hiển thị lịch sử tin nhắn của cuộc trò chuyện hiện tại.
-   - Phần dưới: Thanh công cụ gồm ô nhập nội dung, nút gửi tin nhắn, và icon Micro để ghi âm giọng nói.
-3. Học sinh chọn một môn học cụ thể (Ví dụ: **Toán học**) và bắt đầu nhập câu hỏi vào thanh chat (Ví dụ: "Giải thích giúp em công thức tính thể tích khối chóp").
-4. Học sinh bấm nút "Gửi".
-5. Hệ thống:
-   - Hiển thị tin nhắn của học sinh lên bong bóng chat bên phải (Màu xanh).
-   - Hiển thị hiệu ứng bong bóng AI đang gõ chữ ("AI Tutor đang suy nghĩ...") ở bên trái.
-   - Backend gọi dịch vụ LangChain, truy vấn Vector Database để tìm kiếm các bài giảng, tài liệu liên quan đến "thể tích khối chóp" làm ngữ cảnh (RAG).
-   - Truyền ngữ cảnh sạch và câu hỏi tới LLM để tạo câu trả lời.
-6. Hệ thống thực hiện truyền tải câu trả lời dạng dòng chảy (Streaming) thời gian thực lên màn hình chat của học sinh (từng chữ hiện ra mượt mà).
-7. Câu trả lời của AI hiển thị rõ ràng các bước tư duy, kèm theo các **Nguồn tham khảo (Citations)** ở phía dưới bong bóng chat (Ví dụ: `[Nguồn: Bài 2 - Thể tích khối đa diện - Sách giáo khoa hình học lớp 12]`).
-8. Học sinh có thể click vào nguồn tham khảo này để hệ thống mở ra modal/màn hình xem chi tiết tài liệu bài học gốc liên quan.
-9. Buổi trò chuyện được tự động lưu trữ và đồng bộ hóa lên đám mây dưới nền.
+1. Học sinh mở Mobile App và chọn tab **"Practice"** (Luyện tập).
+2. Hệ thống hiển thị danh sách các bài kiểm tra khả dụng, bao gồm:
+   - Các bài kiểm tra do Giáo viên giao (có gắn tag hạn chót - Deadline).
+   - Các bài kiểm tra tự luyện do AI gợi ý dựa trên lịch sử học tập.
+3. Học sinh chọn một bài kiểm tra (Ví dụ: **Bài tập Chương 1: Hàm số lũy thừa**).
+4. Hệ thống hiển thị màn hình thông tin tổng quan của bài kiểm tra:
+   - Tên bài kiểm tra, Môn học, Khối lớp.
+   - Số lượng câu hỏi (ví dụ: 10 câu).
+   - Thời gian làm bài (ví dụ: 15 phút).
+   - Nút **"Bắt đầu làm bài"**.
+5. Học sinh click nút "Bắt đầu làm bài".
+6. Hệ thống chuyển hướng sang giao diện phòng thi:
+   - Phía trên hiển thị thanh tiến trình làm bài (ví dụ: "Câu 1/10") và đồng hồ đếm ngược thời gian thực (ví dụ: `14:59`).
+   - Phía giữa hiển thị nội dung câu hỏi hiện tại và các lựa chọn đáp án.
+   - Phía dưới hiển thị thanh điều hướng câu hỏi (nút "Quay lại", "Tiếp theo" và danh sách lưới các câu hỏi để nhảy nhanh).
+7. Học sinh lần lượt đọc và chọn đáp án cho từng câu hỏi (Hệ thống tự động lưu tạm đáp án mỗi khi học sinh tích chọn).
+8. Khi trả lời đến câu cuối cùng, nút "Tiếp theo" chuyển thành nút **"Nộp bài"**.
+9. Học sinh click nút "Nộp bài". Hệ thống hiển thị modal xác nhận: "Bạn có chắc chắn muốn nộp bài không? Vẫn còn 5 phút làm bài."
+10. Học sinh click "Xác nhận nộp".
+11. Hệ thống dừng đồng hồ đếm ngược, gửi dữ liệu câu trả lời lên Backend để chấm điểm tự động.
+12. Hệ thống chuyển hướng học sinh đến màn hình **Kết quả bài thi** (Chi tiết ở luồng 2.3).
 
-### **2.2. Luồng: Gửi câu hỏi bằng giọng nói (Voice Input)**
+### **2.2. Luồng: AI tạo bài tập luyện tập cá nhân hóa (AI-generated Quiz)**
 
-1. Tại màn hình chat, học sinh nhấn và giữ vào icon **Micro**.
-2. Hệ thống hiển thị hiệu ứng sóng âm đang thu âm và yêu cầu học sinh nói câu hỏi của mình.
-3. Học sinh nói câu hỏi (Ví dụ: "Lực hấp dẫn là gì?") và thả tay ra khỏi nút micro.
-4. Hệ thống gọi API Speech-to-Text để chuyển đổi giọng nói của học sinh thành văn bản tiếng Việt có dấu chính xác.
-5. Hệ thống hiển thị đoạn văn bản vừa chuyển đổi vào ô nhập liệu để học sinh kiểm tra lại.
-6. Học sinh nhấn nút "Gửi" và luồng xử lý tiếp theo diễn ra tương tự luồng chính.
+1. Tại tab "Practice", học sinh không chọn đề thi có sẵn mà click vào nút "AI tự tạo đề luyện tập".
+2. Hệ thống hiển thị modal form yêu cầu cấu hình đề thi:
+   - **Chọn Môn học:** Dropdown (Toán, Vật lý, Hóa học...).
+   - **Chọn Chủ đề cụ thể:** Dropdown tương ứng (Ví dụ: chọn Lý -&gt; "Chương 1: Dao động cơ").
+   - **Chọn mức độ khó:** Radio button (Dễ / Trung bình / Khó).
+   - **Số lượng câu hỏi:** Dropdown chọn (5 câu, 10 câu, 15 câu).
+3. Học sinh chọn các tùy chọn và click "Tạo đề thi".
+4. Hệ thống hiển thị màn hình chờ: "AI đang biên soạn đề thi riêng cho bạn..."
+5. Backend gọi LangChain kết hợp LLM:
+   - Đọc các tài liệu học tập của chủ đề được chọn trong Vector Database.
+   - Tạo ra danh sách các câu hỏi trắc nghiệm mới lạ, không trùng lặp, bám sát độ khó yêu cầu gồm câu hỏi, danh sách đáp án, đáp án đúng và phần giải thích chi tiết.
+6. Hệ thống đóng màn hình chờ và hiển thị trang thông tin tổng quan của bài thi tự tạo.
+7. Học sinh tiến hành làm bài như luồng chính.
 
-### **2.3. Luồng: Xử lý bộ lọc an toàn trẻ em (Content Moderation Exception)**
+### **2.3. Luồng: Xem kết quả chấm điểm và giải thích chi tiết**
 
-1. Học sinh cố tình nhập một câu hỏi chứa từ ngữ bạo lực, nhạy cảm hoặc vi phạm tiêu chuẩn cộng đồng lứa tuổi học sinh (Ví dụ: các nội dung bạo lực, ngôn ngữ tục tĩu).
-2. Học viên bấm nút Gửi.
-3. Backend kích hoạt bộ lọc kiểm duyệt nội dung (Content Safety Filter) ngay khi tiếp nhận tin nhắn.
-4. Hệ thống phát hiện tin nhắn vi phạm chính sách an toàn.
-5. Hệ thống:
-   - Không chuyển câu hỏi này tới mô hình AI phân tích.
-   - Bong bóng AI lập tức phản hồi tin nhắn cảnh báo mặc định: "Chào bạn, câu hỏi của bạn chứa nội dung chưa phù hợp với chính sách an toàn học tập của hệ thống. Chúng mình cùng trao đổi về các chủ đề học tập bổ ích khác nhé! 😊".
-   - Ghi nhận nhật ký (Audit Log) vi phạm kèm ID học sinh để phục vụ báo cáo giám sát của phụ huynh/admin.
+1. Sau khi học sinh nộp bài hoặc hết giờ làm bài tự động, hệ thống hiển thị màn hình **Kết quả**.
+2. Màn hình Kết quả hiển thị các thông tin tổng hợp:
+   - Điểm số đạt được (Ví dụ: `8.0 / 10`).
+   - Thời gian hoàn thành (Ví dụ: `09 phút 25 giây`).
+   - **Số điểm XP nhận được** (Ví dụ: `+80 XP` được cộng trực tiếp vào tài khoản).
+   - Tỷ lệ câu trả lời (Ví dụ: "Đúng 8, Sai 2").
+3. Học sinh cuộn xuống dưới để xem chi tiết từng câu hỏi:
+   - Với câu trả lời đúng: Hiển thị icon dấu tích xanh, đáp án đã chọn có màu xanh lá.
+   - Với câu trả lời sai: Hiển thị icon dấu x đỏ, đáp án đã chọn màu đỏ, đồng thời bôi xanh đáp án đúng của hệ thống.
+   - **Mục "Lời giải chi tiết của AI Tutor":** Hiển thị một khung văn bản giải thích rõ ràng các bước giải, công thức áp dụng và tại sao đáp án đó lại đúng để học sinh tự học lại.
+4. Học sinh nhấn nút "Hoàn thành" để quay lại trang danh sách Practice.
 
-### **2.4. Luồng chính: Đổi tên phiên trò chuyện (Rename Chat Session - Update Flow)**
+### **2.4. Luồng: Chỉnh sửa đáp án nháp trong khi làm bài (Update Draft Flow)**
 
-1. Tại tab "AI Tutor" của Mobile App, học sinh nhấn giữ hoặc click vào dấu ba chấm ở cạnh phiên trò chuyện cần đổi tên trong danh sách lịch sử.
-2. Hệ thống hiển thị menu lựa chọn: "Đổi tên" hoặc "Xóa cuộc trò chuyện". Học sinh chọn **"Đổi tên"**.
-3. Giao diện hiển thị một hộp thoại nhập tên mới với giá trị mặc định là tên phiên hiện tại.
-4. Học sinh chỉnh sửa tên theo mong muốn (Ví dụ: sửa "Toán học" thành "Ôn thi Đại số Chương 1") và bấm "Lưu".
-5. Hệ thống cập nhật tên mới của phiên trong cơ sở dữ liệu và tải lại giao diện danh sách lịch sử với tên mới ngay lập tức.
+1. Trong khi đang ở giao diện phòng thi (chưa click nút "Nộp bài"), học sinh có thể click chọn lại đáp án khác cho câu trắc nghiệm đã làm, hoặc chỉnh sửa lại câu chữ trong các câu hỏi điền khuyết/tự luận ngắn.
+2. Hệ thống:
+   - Cập nhật tức thời đáp án đã sửa trên giao diện.
+   - Tự động thực hiện lưu tạm (Auto-save draft) trạng thái câu trả lời mới nhất của học sinh lên Server sau mỗi thay đổi dưới nền (Background API call) để tránh mất dữ liệu nếu xảy ra sự cố sập nguồn hoặc mất kết nối mạng.
 
-### **2.5. Luồng chính: Xóa phiên trò chuyện khỏi lịch sử (Delete Chat Session - Delete Flow)**
+### **2.5. Quy tắc bất biến đối với kết quả bài làm đã nộp (Immutability Constraint)**
 
-1. Từ menu ba chấm của phiên trò chuyện, học sinh chọn **"Xóa cuộc trò chuyện"**.
-2. Giao diện hiển thị hộp thoại xác nhận: "Bạn có chắc chắn muốn xóa cuộc trò chuyện này? Toàn bộ lịch sử tin nhắn sẽ bị xóa vĩnh viễn khỏi thiết bị và máy chủ của bạn."
-3. Học sinh bấm "Xác nhận".
-4. Hệ thống thực hiện:
-   - Gửi yêu cầu xóa lên server. Backend tiến hành xóa vĩnh viễn (hard delete) bản ghi phiên trò chuyện (`ChatSession`) và toàn bộ các tin nhắn liên quan (`ChatMessage`) trong cơ sở dữ liệu.
-   - Cập nhật lại giao diện danh sách, ẩn cuộc trò chuyện vừa xóa và đưa học sinh về màn hình chào mừng trống.
+1. Ngay khi học sinh bấm "Nộp bài" hoặc hệ thống tự động thu bài khi hết giờ, bản ghi kết quả bài làm (`QuizAttempt`) được khởi tạo chính thức với các trường điểm số (`score`), số câu trả lời đúng, thời gian làm bài (`durationSeconds`), và số XP thưởng (`xpEarned`).
+2. **Quy tắc bảo mật:** Hệ thống khóa vĩnh viễn dữ liệu kết quả bài làm này. Tuyệt đối không cung cấp bất kỳ API hay nút thao tác nào cho phép học sinh chỉnh sửa, thay đổi đáp án hoặc can thiệp vào điểm số đã lưu nhằm bảo vệ tính trung thực trong thi cử và tính chính xác của bảng xếp hạng.
+
+### **2.6. Luồng: Xóa lịch sử bài kiểm tra tự luyện (Delete Practice History Flow)**
+
+1. Tại tab "Practice", học sinh truy cập vào mục "Lịch sử tự luyện".
+2. Hệ thống hiển thị danh sách các bài thi mà học sinh đã làm. Với các bài tập **tự luyện tự do** hoặc bài do **AI tự động tạo**, hệ thống hiển thị biểu tượng icon Thùng rác (Xóa khỏi lịch sử). Với các bài kiểm tra do giáo viên giao chính thức, biểu tượng này sẽ bị ẩn/vô hiệu hóa.
+3. Học sinh click chọn biểu tượng Xóa bên cạnh một bài tự luyện.
+4. Hệ thống hiển thị hộp thoại xác nhận: "Bạn có chắc chắn muốn ẩn lịch sử làm bài này? Thao tác này sẽ xóa bài thi khỏi giao diện lịch sử luyện tập cá nhân của bạn, nhưng điểm số tích lũy XP trước đó của bạn vẫn được giữ nguyên."
+5. Học sinh click "Xác nhận".
+6. Hệ thống thực hiện gửi yêu cầu xóa lên server. Backend thực hiện đánh dấu ẩn bản ghi (`isVisible = false` hoặc soft delete) để không hiển thị trên app của học sinh nữa, nhưng vẫn lưu trữ dữ liệu thô trong cơ sở dữ liệu để phục vụ báo cáo chất lượng của giáo viên.
+7. Giao diện được cập nhật, ẩn dòng lịch sử bài thi vừa chọn và hiển thị thông báo: "Đã xóa bài thi khỏi lịch sử luyện tập cá nhân."
 
 ---
 
 ## **3. Tiêu chí Chấp nhận (Acceptance Criteria)**
 
-### **AC-01: Giao diện chat trực quan và đồng bộ lịch sử**
+### **AC-01: Tự động thu bài khi hết giờ làm bài**
 
-- **Given:** Học sinh truy cập vào tab AI Tutor.
-- **When:** Giao diện được tải.
+- **Given:** Học sinh đang làm bài kiểm tra có thời gian đếm ngược.
+- **When:** Đồng hồ đếm ngược về `00:00`.
 - **Then:**
-  - Phải hiển thị danh sách các cuộc trò chuyện cũ theo môn học rõ ràng.
-  - Cuộc trò chuyện gần nhất phải được tự động tải lên đầu danh sách và hiển thị đầy đủ lịch sử tin nhắn cũ giữa học sinh và AI.
+  - Hệ thống phải chặn ngay lập tức toàn bộ thao tác chọn đáp án của học sinh.
+  - Tự động thực hiện gửi bài thi lên Backend để chấm điểm (nộp bài bắt buộc).
+  - Hiển thị thông báo: "Đã hết giờ làm bài. Hệ thống tự động nộp bài của bạn."
 
-### **AC-02: Phản hồi AI Streaming mượt mà tốc độ cao**
+### **AC-02: Tính toán và cộng điểm thưởng XP chính xác**
 
-- **Given:** Học sinh đã nhấn gửi câu hỏi thành công.
-- **When:** AI bắt đầu trả về dữ liệu.
+- **Given:** Học sinh hoàn thành một bài thi 10 câu. Mỗi câu đúng nhận được 10 XP. Học sinh trả lời đúng 7 câu.
+- **When:** Hệ thống trả về kết quả chấm điểm.
 - **Then:**
-  - Thời gian trễ (latency) từ lúc nhấn gửi đến lúc chữ đầu tiên của AI xuất hiện trên màn hình phải dưới 2 giây.
-  - Văn bản phản hồi phải chảy ra mượt mà dạng streaming (chữ chạy liên tục) chứ không hiển thị cục bộ một khối lớn sau thời gian đợi dài.
+  - Hệ thống phải hiển thị số XP nhận được là `+70 XP` trên màn hình.
+  - Số XP này phải được cập nhật ngay lập tức vào tổng số điểm tích lũy của học sinh trong Database để cập nhật Level và Bảng xếp hạng.
 
-### **AC-03: Trích dẫn nguồn (RAG Citations) chính xác và nhấn vào được**
+### **AC-03: AI tạo đề thi bám sát cấu hình yêu cầu**
 
-- **Given:** AI Tutor trả lời câu hỏi dựa trên tài liệu bài học có sẵn trong hệ thống.
-- **When:** Hiển thị bong bóng chat của AI.
+- **Given:** Học sinh chọn tạo đề thi môn "Hóa học", chủ đề "Kim loại kiềm", mức độ "Khó".
+- **When:** Đề thi được AI tạo xong.
 - **Then:**
-  - Phải hiển thị danh sách nguồn tham khảo (Citations) rõ ràng ở cuối tin nhắn.
-  - Khi học sinh click vào link nguồn tham khảo, hệ thống phải mở ra đúng trang tài liệu bài học thô đó trong app để học sinh đọc sâu hơn.
+  - Toàn bộ các câu hỏi trong đề thi phải thuộc kiến thức về Kim loại kiềm.
+  - Các câu hỏi phải có độ khó cao (yêu cầu suy luận hoặc tính toán phức tạp), không được chứa các câu hỏi nhận biết đơn giản.
 
-### **AC-04: Kiểm duyệt an toàn trẻ em hoạt động tuyệt đối chính xác**
+### **AC-04: Hiển thị giải thích chi tiết cho từng câu hỏi**
 
-- **Given:** Học sinh gửi câu hỏi chứa từ ngữ tục tĩu hoặc các chủ đề nhạy cảm không thuộc phạm vi giáo dục.
-- **When:** Hệ thống chạy bộ lọc Content Safety.
+- **Given:** Học sinh xem lại kết quả bài thi.
+- **When:** Cuộn qua các câu hỏi đã làm.
+- **Then:** Mỗi câu hỏi (bất kể học sinh làm đúng hay sai) đều phải hiển thị phần giải thích đáp án (AI explanation) rõ ràng, khoa học, không được để trống hoặc chỉ ghi mỗi đáp án đúng.
+
+### **AC-05: Hỗ trợ nhiều định dạng câu hỏi phong phú**
+
+- **Given:** Học sinh đang trong giao diện phòng thi.
+- **When:** Làm bài.
+- **Then:** Hệ thống phải hiển thị và nhận diện đúng các thao tác tương tác của học sinh đối với 4 loại câu hỏi:
+  - Chọn 1 đáp án đúng (Multiple choice).
+  - Chọn Đúng hoặc Sai (True/False).
+  - Điền từ vào chỗ trống (Fill in the blank).
+  - Viết câu trả lời tự luận ngắn dạng văn bản.
+
+### **AC-06: Chặn chỉnh sửa kết quả bài kiểm tra đã nộp (Immutability Enforcement)**
+
+- **Given:** Học sinh đã nộp bài thi thành công và nhận điểm `8.0`.
+- **When:** Học sinh gửi các request API giả lập hoặc cố tình chỉnh sửa tham số điểm số gửi lên Backend.
+- **Then:** Hệ thống phải lập tức từ chối và trả về lỗi quyền truy cập, không cho phép ghi đè điểm số hoặc thay đổi đáp án của bài làm đã kết thúc.
+
+### **AC-07: Xóa lịch sử bài kiểm tra tự luyện thành công**
+
+- **Given:** Học sinh đang xem danh sách Lịch sử tự luyện trên ứng dụng.
+- **When:** Học sinh chọn xóa một bài luyện tập tự do và xác nhận.
 - **Then:**
-  - Phải chặn đứng câu hỏi và hiển thị tin nhắn từ chối khéo léo theo mẫu quy định.
-  - Không được để lọt bất kỳ câu trả lời nhạy cảm hoặc nguy hại nào từ LLM đến học sinh.
-
-### **AC-05: Chuyển đổi giọng nói tiếng Việt chuẩn xác (Speech-to-Text)**
-
-- **Given:** Học sinh sử dụng chức năng Micro nói bằng tiếng Việt (giọng Bắc, Trung hoặc Nam).
-- **When:** Thả tay hoàn thành thu âm.
-- **Then:** Hệ thống phải chuyển đổi thành văn bản tiếng Việt chính xác trên 90%, hiển thị rõ ràng có dấu trong ô nhập liệu.
-
-### **AC-06: Đổi tên phiên trò chuyện thành công**
-
-- **Given:** Tôi đang mở danh sách lịch sử cuộc trò chuyện.
-- **When:** Tôi đổi tên một cuộc trò chuyện từ "Toán học" thành "Học về đạo hàm" và lưu lại.
-- **Then:**
-  - Tên cuộc trò chuyện đó trên danh sách lịch sử phải đổi thành "Học về đạo hàm".
-  - Hệ thống lưu chính xác tên mới vào cơ sở dữ liệu.
-
-### **AC-07: Xóa cuộc trò chuyện thành công**
-
-- **Given:** Tôi có cuộc trò chuyện "Toán học" không còn cần thiết.
-- **When:** Tôi chọn xóa cuộc trò chuyện này và xác nhận đồng ý.
-- **Then:**
-  - Cuộc trò chuyện này phải biến mất hoàn toàn khỏi danh sách lịch sử của tôi.
-  - Toàn bộ các tin nhắn của cuộc trò chuyện đó phải bị xóa sạch khỏi cơ sở dữ liệu, không thể phục hồi hoặc tìm kiếm lại.
+  - Bài thi đó phải lập tức biến mất khỏi danh sách hiển thị lịch sử của học sinh.
+  - Dữ liệu thô vẫn được bảo toàn dưới cơ sở dữ liệu cho Analytics nhưng không hiển thị trên Mobile App.
+  - Điểm số XP của học sinh trước đó đã nhận từ bài thi này tuyệt đối không bị sụt giảm.
 
 ---
 
 ## **4. Đặc tả dữ liệu**
 
-| Tên trường                           | Bắt buộc?     | Ràng buộc dữ liệu (Validation Rules)                                                                                                                  | Ghi chú / Trạng thái mặc định                                                               |
-| --------------------------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Môn học lựa chọn**          | Có             | \- Phải chọn một trong các môn học có sẵn trong hệ thống (Toán học, Vật lý, Hóa học, Tiếng Anh, Sinh học...)                            | Mặc định: Toán học.                                                                          |
-| **Câu hỏi văn bản**           | Không          | \- Định dạng văn bản Unicode- Độ dài tối đa 1000 ký tự                                                                                        | Học sinh nhập trực tiếp vào ô chat. Mặc định: Trống.                                    |
-| **Tệp ghi âm giọng nói**      | Không          | \- Định dạng âm thanh tương thích: `.wav`, `.webm`, `.m4a`- Thời lượng ghi âm tối đa: 120 giây (2 phút)- Dung lượng tối đa: 5 MB | Hệ thống thu âm trực tiếp qua Micro trên thiết bị di động. Mặc định: Trống.         |
-| **Phản hồi của AI**            | Chỉ hiển thị | \- Định dạng văn bản Unicode chuẩn RAG (hỗ trợ Markdown)                                                                                          | Dữ liệu dạng dòng chảy (streaming) hiển thị trên giao diện trò chuyện.                 |
-| **Nguồn tài liệu trích dẫn** | Chỉ hiển thị | \- Danh sách các liên kết/tên tài liệu bóc tách được từ Vector Database                                                                      | Hiển thị dưới bong bóng chat của AI để học sinh click vào xem chi tiết bài học gốc. |
+| Tên trường                                                       | Bắt buộc?     | Ràng buộc dữ liệu (Validation Rules)                                                                                               | Ghi chú / Trạng thái mặc định                                                                         |
+| ------------------------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Chọn Môn học**                                           | Có             | \- Phải chọn một trong các môn học có sẵn trong hệ thống (Toán, Vật lý, Hóa học...)                                     | Chỉ dùng khi cấu hình tự tạo đề thi bằng AI. Mặc định: Toán.                                   |
+| **Chọn Chủ đề cụ thể**                                  | Có             | \- Danh sách chủ đề tải động tương ứng với môn học đã chọn                                                             | Chỉ dùng khi cấu hình tự tạo đề thi bằng AI. Mặc định: Trống.                                  |
+| **Chọn mức độ khó**                                      | Có             | \- Phải chọn một trong ba mức độ: Dễ, Trung bình, Khó                                                                         | Chỉ dùng khi cấu hình tự tạo đề thi bằng AI. Mặc định: Trung bình.                             |
+| **Số lượng câu hỏi**                                     | Có             | \- Phải chọn một trong các mốc câu hỏi: 5 câu, 10 câu, 15 câu                                                                | Chỉ dùng khi cấu hình tự tạo đề thi bằng AI. Mặc định: 10 câu.                                 |
+| **Lựa chọn đáp án trắc nghiệm**                        | Có             | \- Tích chọn một đáp án (đối với câu hỏi chọn một) hoặc tích chọn nhiều đáp án (đối với câu hỏi chọn nhiều) | Học sinh chọn khi đang làm bài thi. Mặc định: Trống.                                               |
+| **Nội dung câu trả lời điền khuyết / tự luận ngắn** | Không          | \- Định dạng văn bản Unicode- Độ dài tối đa 200 ký tự                                                                      | Học sinh nhập trực tiếp khi làm dạng câu hỏi điền từ hoặc tự luận ngắn. Mặc định: Trống. |
+| **Điểm số kết quả**                                      | Chỉ hiển thị | \- Số thực từ 0.0 đến 10.0 (lấy 1 chữ số thập phân)                                                                          | Điểm số tổng kết sau khi nộp bài thi.                                                                |
+| **Số điểm XP nhận được**                               | Chỉ hiển thị | \- Số nguyên lớn hơn hoặc bằng 0                                                                                                 | Điểm thưởng kinh nghiệm tích lũy nhận được sau mỗi bài thi.                                    |

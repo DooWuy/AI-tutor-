@@ -42,4 +42,6 @@ public interface QuizAttemptAnswerRepository extends JpaRepository<QuizAttemptAn
             @Param("fromTs") Instant fromTs,
             @Param("toTs") Instant toTs,
             @Param("subject") String subject);
+
+    List<QuizAttemptAnswer> findByAttemptId(UUID attemptId);
 }

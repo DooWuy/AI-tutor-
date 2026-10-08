@@ -124,7 +124,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.<String>builder()
                         .success(false)
-                        .message("Lỗi hệ thống nội bộ")
+                        .message(ex.getMessage() + (ex.getCause() != null ? " - " + ex.getCause().getMessage() : ""))
                         .build());
     }
 
@@ -193,7 +193,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.<String>builder()
                         .success(false)
-                        .message("Lỗi hệ thống nội bộ")
+                        .message(ex.toString() + " - " + ex.getMessage() + (ex.getCause() != null ? " Caused by: " + ex.getCause().getMessage() : ""))
                         .build());
     }
 }

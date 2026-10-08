@@ -8,6 +8,8 @@ import { DashboardPage } from './pages/Student/Dashboard/DashboardPage';
 import { TimetablePage } from './pages/Student/Timetable/TimetablePage';
 import { ProfilePage } from './pages/Student/Profile/ProfilePage';
 import { AIChatPage } from './pages/Student/AIChat/AIChatPage';
+import { PracticePage } from './pages/Student/Practice/PracticePage';
+import { PracticeTopicPage } from './pages/Student/Practice/PracticeTopicPage';
 
 import { TeacherLayout } from './layouts/TeacherLayout/TeacherLayout';
 import AnalyticsPage from './pages/Teacher/Analytics/AnalyticsPage';
@@ -32,6 +34,8 @@ function App() {
           <Route path="timetable" element={<TimetablePage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="chat" element={<AIChatPage />} />
+          <Route path="practice" element={<PracticePage />} />
+          <Route path="practice/:subjectId" element={<PracticeTopicPage />} />
         </Route>
 
         {/* Teacher Routes */}
