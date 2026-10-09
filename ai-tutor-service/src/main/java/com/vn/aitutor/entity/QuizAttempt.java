@@ -41,6 +41,12 @@ public class QuizAttempt {
     @Column(name = "xp_earned", nullable = false)
     private int xpEarned;
 
+    @Column(name = "source_draft_id", unique = true)
+    private UUID sourceDraftId;
+
+    @Column(name = "correct_count")
+    private Integer correctCount;
+
     @Column(name = "duration_seconds")
     private Integer durationSeconds;
 

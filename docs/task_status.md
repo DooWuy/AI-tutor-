@@ -4,6 +4,8 @@ Dựa trên yêu cầu gốc trong file `docs/ai.md` (User Story: Luyện tập 
 
 > **Cập nhật lần cuối:** 08/10/2026
 
+> **Nghiệm thu T-01..T-03:** Full-stack đã triển khai và kiểm chứng trên Docker với database riêng `quiz_validation_20261008`; unit/integration suite chạy trên `quiz_test_20261008`. Database cũ `ai_tutor_dev` vẫn có lỗi checksum V1 và chưa được nâng cấp/reset. Chi tiết bằng chứng và cách chạy lại: [quiz-implementation-verification.md](quiz-implementation-verification.md).
+
 ---
 
 ## ✅ CÁC TASK ĐÃ HOÀN THÀNH (DONE)
@@ -25,7 +27,7 @@ Dựa trên yêu cầu gốc trong file `docs/ai.md` (User Story: Luyện tập 
 - Trả về danh sách chi tiết từng câu trả lời đúng/sai và phần giải thích rõ ràng từng bước (`explanation`) của AI.
 
 ### 4. Xóa/ẩn lịch sử luyện tập cá nhân (AC-07)
-- Cung cấp API `DELETE /api/v1/student/quiz-attempts/history/{id}` giúp học sinh ẩn bài tự luyện.
+- API thực tế là `PATCH /api/v1/student/quiz-attempts/{id}/hide` giúp học sinh ẩn bài AI tự luyện.
 - Thay vì xóa cứng, hệ thống đánh dấu `isVisible = false` (Soft Delete) giúp bảo toàn dữ liệu báo cáo Analytics cho giáo viên, và không làm giảm điểm XP của học sinh.
 
 ### 5. Chốt chặn bảo vệ tính toàn vẹn của kết quả bài thi (AC-06 - Immutability)
@@ -108,21 +110,38 @@ Và backend log: `User Offline: Disconnected from WebSocket session -> student12
 
 ---
 
-## ⏳ CÁC TASK CHƯA LÀM / ĐANG CHỜ TRIỂN KHAI (TO-DO)
+## ✅ T-01..T-03 ĐÃ TRIỂN KHAI VÀ KIỂM CHỨNG FULL-STACK
 
-Để đóng kín hoàn toàn luồng làm bài của học sinh, chúng ta cần hoàn thành 3 task sau (Nên làm theo thứ tự ưu tiên từ trên xuống):
+Contract đã chốt theo `ai.md`: thang điểm 10, làm tròn một chữ số; 10 XP/câu đúng; level = floor(totalXp / 100) + 1. Làm lại đề được phép nhưng chỉ lần hoàn tất đầu tiên nhận XP, kể cả khi lần đầu đạt 0 điểm. Đây là quyết định của feature này, khác công thức mặc định trong SRS hiện tại.
 
-### T-01. Xây dựng API Nộp bài (Submit Quiz - AC-01) — ⚡ Ưu tiên Cao nhất
-- **Tình trạng:** Học sinh hiện có thể sinh đề, xem chi tiết một đề đã làm sẵn, nhưng chưa có API để GỬI kết quả lên server sau khi vừa làm xong.
-- **Chi tiết task:** Xây dựng API `POST /api/v1/student/quiz-attempts/submit`. Chấm điểm đáp án (`score`), kiểm tra thời gian làm bài có vượt quá quy định hay không (`durationSeconds`), và khởi tạo bản ghi `QuizAttempt` mới.
+### T-01. Nộp bài và tự thu khi hết giờ (AC-01)
+- [x] `POST /api/v1/student/quiz-attempts/submit` chấm phía server, lưu đủ câu đúng/sai/bỏ trống; payload gồm `draftId` và `answers`.
+- [x] Deadline và duration lấy từ server; hết hạn chỉ chấm đáp án đã autosave, bỏ qua snapshot gửi muộn.
+- [x] Khóa draft/student và unique `source_draft_id` chống nộp trùng; retry trả lại kết quả đã tạo.
+- [x] Scheduler thu draft hết hạn theo batch; đã kiểm chứng cạnh tranh với client và trường hợp không có browser submit.
+- [x] Phòng thi bốn dạng câu hỏi, timer, điều hướng, xác nhận nộp; trang kết quả có điểm, số câu đúng, thời gian và explanation.
+- [x] Browser tự nộp bài một phút: 1/1 đúng, điểm 10.0, +10 XP, duration 60 giây.
 
 ### T-02. Tính toán và cộng điểm thưởng XP (AC-02)
-- **Tình trạng:** Bảng `Student` đã có cột `total_xp` nhưng chưa có hàm nào trigger việc cộng dồn XP.
-- **Chi tiết task:** Trong API Nộp bài ở trên, kết hợp thêm logic tính toán điểm thưởng (VD: mỗi câu đúng +10 XP). Cập nhật số `totalXp` của `Student` ngay sau khi nộp bài.
+- [x] Cộng XP và tính level cùng transaction với attempt; refresh Student dưới khóa để không mất XP khi hai quiz hoàn tất đồng thời.
+- [x] Lần hoàn tất đầu tiên thưởng 10 XP/câu đúng; làm lại không thưởng thêm. Hide lịch sử không giảm XP.
+- [x] Browser lượt đầu: 3/4 đúng → 7.5/10, +30 XP, tổng 90 → 120, level 2. Làm lại: 4/4 đúng → 10.0, +0 XP, tổng vẫn 120.
+- [x] Header lấy lại profile sau khi có kết quả; không tự tính XP ở frontend.
 
 ### T-03. API Lưu nháp bài làm thời gian thực (Auto-save draft - Luồng 2.4)
-- **Tình trạng:** Nếu học sinh làm bài được 20/30 câu mà bị rớt mạng thì toàn bộ dữ liệu ở Client sẽ bay mất.
-- **Chi tiết task:** Xây dựng một Background API `POST /api/v1/student/quiz-attempts/draft` nhận ping liên tục từ phía Mobile App/Web để lưu tạm (`upsert`) đáp án học sinh vừa chọn vào một bảng nháp.
+- [x] `POST /api/v1/student/quiz-attempts/draft` tạo/resume và upsert đáp án; autosave gửi thêm `draftId` để request cũ không tạo lượt làm lại.
+- [x] `GET /api/v1/student/quiz-attempts/draft/{id}` khôi phục snapshot/deadline và trả `attemptId` nếu backend đã thu bài.
+- [x] Mỗi student/quiz chỉ có một draft đang mở; draft hoàn tất giữ lại để chống retry trùng, draft mới dùng cho lượt làm lại.
+- [x] Debounce 500 ms, request lưu tuần tự, retry khi online và định kỳ 5 giây, cache tạm theo draft trong sessionStorage.
+- [x] Browser: refresh giữ đáp án/deadline; offline hiển thị chưa lưu; khôi phục mạng giữ câu trả lời và ghi lại lên server.
+- [x] Chặn câu hỏi khác quiz, đáp án quá 200 ký tự, option key không tồn tại và autosave sau deadline.
+
+### Thay đổi tương thích cần ghi nhận
+- Migration mới V4; V1–V3 giữ nguyên. `completed_at` và partial unique index chỉ khóa draft đang mở để hỗ trợ làm lại.
+- Index thưởng XP áp dụng cho attempt mới có `source_draft_id`, bảo toàn fixture/lịch sử cũ có thể đã thưởng nhiều lần; service vẫn xét mọi attempt cũ khi quyết định có thưởng XP hay không.
+- Sửa nhầm User.id/Student.id ở history/detail/hide. Trigger cho phép riêng `is_visible: true → false`, vẫn cấm sửa kết quả/đáp án.
+- Quiz generation có `PROCESSING/READY/FAILED`; persist bộ câu hỏi và READY trong một transaction, kiểm tra số lượng/đáp án/lời giải trước khi cho làm bài. Danh sách polling không phụ thuộc WebSocket.
+- Đợt này không nghiệm thu lại chất lượng Gemini/RAG. WebSocket cũ còn xuất hiện `AccessDenied` trong runtime; task quiz dùng REST/polling nên vẫn hoạt động.
 
 ---
 
@@ -130,5 +149,8 @@ Và backend log: `User Offline: Disconnected from WebSocket session -> student12
 
 | Trạng thái | Số lượng | Danh sách |
 |------------|----------|-----------|
-| ✅ Hoàn thành | 9 | AC-03, AC-05, AC-04, AC-07, AC-06, Async RabbitMQ, Fix STOMP, Fix CSRF, Improve Error Handler |
-| ⏳ Chưa làm | 3 | T-01 (Submit Quiz), T-02 (XP), T-03 (Auto-save Draft) |
+| Đã ghi nhận từ trước | 9 | AC-03, AC-05, AC-04, AC-07, AC-06, Async RabbitMQ, Fix STOMP, Fix CSRF, Improve Error Handler |
+| ✅ Đã nghiệm thu đợt này | 3 | T-01 (Submit Quiz), T-02 (XP), T-03 (Auto-save Draft) |
+
+**Gate còn mở:** triển khai lên database cũ `ai_tutor_dev` cần xử lý lịch sử/checksum V1 theo phương án giữ dữ liệu. Không sử dụng `flyway repair` hoặc reset volume trong đợt này.
+        

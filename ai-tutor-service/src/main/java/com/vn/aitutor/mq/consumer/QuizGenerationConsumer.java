@@ -35,12 +35,14 @@ public class QuizGenerationConsumer {
     private final QuestionBankRepository questionBankRepository;
     private final QuestionGeneratorAgent questionGeneratorAgent;
     private final SimpMessagingTemplate messagingTemplate;
+    private final org.springframework.transaction.support.TransactionTemplate transactions;
 
     @RabbitListener(queues = RabbitMQConfig.QUIZ_GENERATION_QUEUE)
     public void handleQuizGeneration(QuizGenerationMessage message) {
         log.info("Received quiz generation request for quizId: {}", message.getQuizId());
         try {
             Quiz quiz = quizRepository.findById(message.getQuizId()).orElseThrow();
+            if ("READY".equals(quiz.getGenerationStatus())) return;
             
             // Strategy 1: Find existing questions in QuestionBank (fallback)
             List<QuestionBank> existingQuestions = questionBankRepository.findRandomByTopicAndDifficulty(
@@ -82,7 +84,7 @@ public class QuizGenerationConsumer {
                         );
                         return response.getQuestions();
                     }).exceptionally(ex -> {
-                        log.error("Failed to generate a chunk of questions: {}", ex.getMessage());
+                        log.error("Failed to generate a chunk of questions", ex);
                         return new ArrayList<>(); // return empty to continue others
                     });
                     
@@ -96,11 +98,15 @@ public class QuizGenerationConsumer {
                 }
             }
 
-            // Save all questions to QuizQuestion
+            if (allQuestions.size() != message.getCount()) throw new IllegalStateException("Incomplete generated quiz");
+            String recipient = transactions.execute(tx -> {
+            Quiz lockedQuiz = quizRepository.lockById(quiz.getId()).orElseThrow();
+            if ("READY".equals(lockedQuiz.getGenerationStatus())) return null;
+            // Save questions and publish readiness atomically.
             int orderIndex = 1;
             for (QuestionBankCreateRequest q : allQuestions) {
                 QuizQuestion qq = new QuizQuestion();
-                qq.setQuiz(quiz);
+                qq.setQuiz(lockedQuiz);
                 qq.setQuestionText(q.getStem());
                 qq.setType(q.getType() != null ? q.getType() : QuestionType.MULTIPLE_CHOICE);
                 qq.setExplanation(q.getExplanation());
@@ -109,7 +115,7 @@ public class QuizGenerationConsumer {
                 qq.setPoints(1);
 
                 List<Map<String, Object>> options = new ArrayList<>();
-                String correctKey = "A";
+                String correctKey = null;
                 
                 List<String> choices = q.getChoices();
                 if (choices != null && !choices.isEmpty()) {
@@ -132,22 +138,34 @@ public class QuizGenerationConsumer {
                 qq.setOptions(options);
                 qq.setCorrectOptionKey(correctKey);
 
+                if (!com.vn.aitutor.service.QuizAccessService.validQuestion(qq))
+                    throw new IllegalArgumentException("Generated question has invalid answer or explanation");
+
                 quizQuestionRepository.save(qq);
             }
 
             // Update quiz status to PENDING
-            quiz.setActive(true); // Assuming active true means ready
-            quizRepository.save(quiz);
+            lockedQuiz.setActive(true);
+            lockedQuiz.setGenerationStatus("READY");
+            quizRepository.save(lockedQuiz);
+            return lockedQuiz.getCreatedBy().getUsername();
+            });
 
             // Send WebSocket notification
             log.info("Quiz generation completed. Sending WS notification.");
             Map<String, Object> wsMessage = new HashMap<>();
             wsMessage.put("type", "QUIZ_GENERATED");
             wsMessage.put("quizId", quiz.getId());
-            messagingTemplate.convertAndSendToUser(quiz.getCreatedBy().getUsername(), "/queue/notifications", (Object) wsMessage);
+            if (recipient != null) {
+                try { messagingTemplate.convertAndSendToUser(recipient, "/queue/notifications", (Object) wsMessage); }
+                catch (Exception notificationError) { log.warn("Quiz ready but notification failed for {}", quiz.getId(), notificationError); }
+            }
 
         } catch (Exception e) {
             log.error("Error generating quiz", e);
+            quizRepository.findById(message.getQuizId()).ifPresent(q -> {
+                if (!"READY".equals(q.getGenerationStatus())) { q.setGenerationStatus("FAILED"); quizRepository.save(q); }
+            });
         }
     }
 }

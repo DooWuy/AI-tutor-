@@ -18,6 +18,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> {
 
+    java.util.Optional<QuizAttempt> findBySourceDraftId(UUID sourceDraftId);
+    boolean existsByStudentIdAndQuizId(UUID studentId, UUID quizId);
+
     @Query(value = """
             SELECT COUNT(qa.id) AS quizAttemptCount,
                    AVG(qa.score) AS averageScore,

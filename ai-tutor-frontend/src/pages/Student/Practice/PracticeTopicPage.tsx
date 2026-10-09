@@ -3,32 +3,51 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, FileText, BrainCircuit, CheckCircle2 } from 'lucide-react';
 import { CreateQuizModal } from './components/CreateQuizModal';
 import { studentQuizApi, type StudentQuizDto } from '../../../services/studentQuizApi';
+import { getStoredSession } from '../../../services/authApi';
 
 export const PracticeTopicPage: React.FC = () => {
   const { subjectId } = useParams<{ subjectId: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'ASSIGNED' | 'CUSTOM'>('ASSIGNED');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
+  const [selectedQuiz, setSelectedQuiz] = useState<StudentQuizDto | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState('');
   const [assignedQuizzes, setAssignedQuizzes] = useState<StudentQuizDto[]>([]);
   const [customQuizzes, setCustomQuizzes] = useState<StudentQuizDto[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
-    if (subjectId) {
-      studentQuizApi.getAssignedQuizzes(subjectId).then(setAssignedQuizzes).catch(console.error);
-      studentQuizApi.getCustomQuizzes(subjectId).then(setCustomQuizzes).catch(console.error);
-    }
+    let cancelled = false;
+    const refresh = async () => {
+      if (!subjectId) return;
+      try {
+        const [assigned, custom] = await Promise.all([studentQuizApi.getAssignedQuizzes(subjectId), studentQuizApi.getCustomQuizzes(subjectId)]);
+        if (!cancelled) { setAssignedQuizzes(assigned); setCustomQuizzes(custom); }
+      } catch (ex) { if (!cancelled) setError(ex instanceof Error ? ex.message : 'Không tải được danh sách đề.'); }
+    };
+    void refresh();
+    // Polling also works when WebSocket notifications are temporarily unavailable.
+    const timer = window.setInterval(() => { if (!document.hidden) void refresh(); }, 5000);
+    return () => { cancelled = true; window.clearInterval(timer); };
   }, [subjectId]);
 
-  const handleStartQuiz = (quiz: any) => {
+  const handleStartQuiz = (quiz: StudentQuizDto) => {
+    if (quiz.status === 'PROCESSING' || quiz.status === 'FAILED') return;
     setSelectedQuiz(quiz);
     setShowConfirmModal(true);
   };
 
-  const confirmStart = () => {
-    setShowConfirmModal(false);
-    navigate(`/student/quiz-attempt/${selectedQuiz.id}`);
+  const confirmStart = async () => {
+    if (!selectedQuiz || starting) return;
+    setStarting(true); setError('');
+    try {
+      const draft = await studentQuizApi.saveDraft(selectedQuiz.id, []);
+      sessionStorage.setItem(`quiz-draft:${getStoredSession()?.user.userId}:${selectedQuiz.id}`, draft.draftId);
+      if (draft.attemptId) navigate(`/student/quiz-results/${draft.attemptId}`);
+      else navigate(`/student/quiz-attempt/${selectedQuiz.id}`, { state: { draftId: draft.draftId } });
+    } catch (ex) { setError(ex instanceof Error ? ex.message : 'Không thể mở bài thi.'); }
+    finally { setStarting(false); }
   };
 
   const quizzes = activeTab === 'ASSIGNED' ? assignedQuizzes : customQuizzes;
@@ -93,7 +112,7 @@ export const PracticeTopicPage: React.FC = () => {
                 </span>
               ) : (
                 <span className="bg-primary-fixed text-on-primary-fixed text-xs px-2 py-1 rounded-md font-medium shrink-0">
-                  Chưa làm
+                  {quiz.status === 'PROCESSING' ? 'Đang tạo đề…' : quiz.status === 'FAILED' ? 'Tạo đề thất bại' : 'Chưa làm'}
                 </span>
               )}
             </div>
@@ -115,6 +134,7 @@ export const PracticeTopicPage: React.FC = () => {
       </div>
 
       {/* Confirm Modal */}
+      {error && <p role="alert" className="text-error p-4">{error}</p>}
       {showConfirmModal && selectedQuiz && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-surface-container-lowest w-full max-w-md rounded-2xl p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
@@ -135,9 +155,10 @@ export const PracticeTopicPage: React.FC = () => {
               </button>
               <button 
                 onClick={confirmStart}
+                disabled={starting}
                 className="px-4 py-2 rounded-lg font-medium bg-primary text-on-primary hover:bg-primary/90 transition"
               >
-                Bắt đầu làm bài
+                {starting ? 'Đang mở bài…' : 'Bắt đầu làm bài'}
               </button>
             </div>
           </div>

@@ -9,6 +9,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface QuizRepository extends JpaRepository<Quiz, UUID> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT q FROM Quiz q WHERE q.id = :id")
+    Optional<Quiz> lockById(UUID id);
 
     Optional<Quiz> findFirstByTitle(String title);
 

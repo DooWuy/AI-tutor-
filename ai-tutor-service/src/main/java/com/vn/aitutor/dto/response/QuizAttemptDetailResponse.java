@@ -15,6 +15,10 @@ public class QuizAttemptDetailResponse {
     private boolean isAiGenerated;
     private Double score;
     private int xpEarned;
+    private int correctCount;
+    private int totalQuestions;
+    private int totalXp;
+    private int currentLevel;
     private Integer durationSeconds;
     private Instant submittedAt;
     private List<QuizAttemptAnswerDto> answers;

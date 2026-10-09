@@ -13,6 +13,7 @@ import com.vn.aitutor.entity.enums.QuestionType;
 import com.vn.aitutor.exception.ResourceNotFoundException;
 import com.vn.aitutor.repository.QuizQuestionRepository;
 import com.vn.aitutor.repository.QuizRepository;
+import com.vn.aitutor.repository.QuizAttemptRepository;
 import com.vn.aitutor.dto.response.QuestionBankListResponse;
 import com.vn.aitutor.repository.StudentRepository;
 import com.vn.aitutor.repository.UserRepository;
@@ -37,13 +38,17 @@ public class StudentQuizService {
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
     private final QuizGenerationProducer quizGenerationProducer;
+    private final QuizAttemptRepository quizAttemptRepository;
+    private final QuizAccessService access;
 
+    @Transactional(readOnly = true)
     public List<StudentQuizDto> getAssignedQuizzes(String subject) {
         // Find assigned quizzes (not AI generated) for the subject
         List<Quiz> quizzes = quizRepository.findBySubjectAndAiGeneratedFalseOrderByCreatedAtDesc(subject);
         return mapToDtoList(quizzes);
     }
 
+    @Transactional(readOnly = true)
     public List<StudentQuizDto> getCustomQuizzes(String subject) {
         User currentUser = getCurrentUser();
         List<Quiz> quizzes = quizRepository.findBySubjectAndAiGeneratedAndCreatedByIdOrderByCreatedAtDesc(subject, true, currentUser.getId());
@@ -65,6 +70,7 @@ public class StudentQuizService {
         quiz.setAiGenerated(true);
         quiz.setCreatedBy(currentUser);
         quiz.setActive(true);
+        quiz.setGenerationStatus("PROCESSING");
         
         quiz = quizRepository.save(quiz);
 
@@ -100,14 +106,19 @@ public class StudentQuizService {
 
     private List<StudentQuizDto> mapToDtoList(List<Quiz> quizzes) {
         List<StudentQuizDto> result = new ArrayList<>();
+        Student student = access.currentStudent();
         for (Quiz q : quizzes) {
+            if (!q.isActive()) continue;
+            if (q.getGradeLevel() != null && !q.getGradeLevel().isBlank() && !q.getGradeLevel().equals(student.getGradeLevel())
+                    && (student.getClassEntity() == null || !q.getGradeLevel().equals(student.getClassEntity().getGradeLevel()))) continue;
             int qCount = quizQuestionRepository.countByQuizId(q.getId());
             result.add(StudentQuizDto.builder()
                     .id(q.getId())
                     .title(q.getTitle())
                     .duration(q.getTimeLimit() != null ? q.getTimeLimit() : 0)
                     .questionCount(qCount)
-                    .status("PENDING") // Hardcoded status for now until QuizAttempt is integrated
+                    .status(!"READY".equals(q.getGenerationStatus()) ? q.getGenerationStatus()
+                            : quizAttemptRepository.existsByStudentIdAndQuizId(student.getId(), q.getId()) ? "COMPLETED" : "PENDING")
                     .build());
         }
         return result;

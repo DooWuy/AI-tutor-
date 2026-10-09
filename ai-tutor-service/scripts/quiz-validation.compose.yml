@@ -1,0 +1,8 @@
+services:
+  ai-tutor-service:
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/quiz_validation_20261008
+      APP_ANALYTICS_SEED_DEMO: 'false'
+      APP_ANALYTICS_KNOWLEDGE_GAP_JOB: 'false'
+      APP_ANALYTICS_AT_RISK_JOB: 'false'
+      APP_FRONTEND_URL: http://127.0.0.1:3000

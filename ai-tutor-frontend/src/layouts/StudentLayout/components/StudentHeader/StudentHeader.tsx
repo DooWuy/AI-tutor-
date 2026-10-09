@@ -48,6 +48,13 @@ export const StudentHeader: React.FC = () => {
   }, [user?.userId]);
 
   // WebSocket hook
+  useEffect(() => {
+    const refresh = () => { getMyStudentProfile().then(setStudentProfile).catch(console.error); };
+    window.addEventListener('student-profile-updated', refresh);
+    return () => window.removeEventListener('student-profile-updated', refresh);
+  }, []);
+
+  // WebSocket hook
   const { lastMessage } = useWebSocket(token);
 
   useEffect(() => {

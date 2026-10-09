@@ -50,7 +50,7 @@ public class QuizQuestion {
     @Column(name = "options", nullable = false, columnDefinition = "jsonb")
     private List<Map<String, Object>> options = new ArrayList<>();
 
-    @Column(name = "correct_option_key", length = 64)
+    @Column(name = "correct_option_key", length = 200)
     private String correctOptionKey;
 
     @Column(name = "explanation")

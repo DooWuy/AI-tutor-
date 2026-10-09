@@ -15,6 +15,9 @@ import java.util.UUID;
 
 @Repository
 public interface StudentRepository extends JpaRepository<Student, UUID> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Student s WHERE s.id = :id")
+    Optional<Student> lockById(@Param("id") UUID id);
     @Query(value = """
             SELECT s.* FROM students s
             JOIN users u ON u.id = s.user_id

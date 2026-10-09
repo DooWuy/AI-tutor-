@@ -5,32 +5,33 @@ import com.vn.aitutor.dto.response.QuizAttemptDetailResponse;
 import com.vn.aitutor.dto.response.QuizAttemptHistoryResponse;
 import com.vn.aitutor.entity.QuizAttempt;
 import com.vn.aitutor.entity.QuizAttemptAnswer;
-import com.vn.aitutor.entity.User;
+import com.vn.aitutor.entity.Student;
+import com.vn.aitutor.service.QuizAccessService;
+import com.vn.aitutor.exception.ResourceForbiddenException;
 import com.vn.aitutor.exception.ResourceNotFoundException;
 import com.vn.aitutor.repository.QuizAttemptAnswerRepository;
 import com.vn.aitutor.repository.QuizAttemptRepository;
-import com.vn.aitutor.repository.UserRepository;
 import com.vn.aitutor.service.IStudentQuizAttemptService;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class StudentQuizAttemptServiceImpl implements IStudentQuizAttemptService {
 
     private final QuizAttemptRepository quizAttemptRepository;
     private final QuizAttemptAnswerRepository quizAttemptAnswerRepository;
-    private final UserRepository userRepository;
+    private final QuizAccessService access;
 
     @Override
     public List<QuizAttemptHistoryResponse> getMyHistory() {
-        User currentUser = getCurrentUser();
+        Student currentUser = access.currentStudent();
         List<QuizAttempt> attempts = quizAttemptRepository.findVisibleHistoryByStudentId(currentUser.getId());
         
         return attempts.stream().map(a -> QuizAttemptHistoryResponse.builder()
@@ -49,16 +50,16 @@ public class StudentQuizAttemptServiceImpl implements IStudentQuizAttemptService
     @Override
     @Transactional
     public void hideAttempt(UUID attemptId) {
-        User currentUser = getCurrentUser();
+        Student currentUser = access.currentStudent();
         QuizAttempt attempt = quizAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz attempt not found"));
 
         if (!attempt.getStudent().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You do not have permission to hide this attempt");
+            throw new ResourceForbiddenException("You do not have permission to hide this attempt");
         }
 
         if (!attempt.getQuiz().isAiGenerated()) {
-            throw new RuntimeException("Cannot hide assigned quizzes");
+            throw new ResourceForbiddenException("Cannot hide assigned quizzes");
         }
 
         attempt.setIsVisible(false);
@@ -67,12 +68,12 @@ public class StudentQuizAttemptServiceImpl implements IStudentQuizAttemptService
 
     @Override
     public QuizAttemptDetailResponse getAttemptDetail(UUID attemptId) {
-        User currentUser = getCurrentUser();
+        Student currentUser = access.currentStudent();
         QuizAttempt attempt = quizAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz attempt not found"));
 
         if (!attempt.getStudent().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You do not have permission to view this attempt");
+            throw new ResourceForbiddenException("You do not have permission to view this attempt");
         }
 
         List<QuizAttemptAnswer> answers = quizAttemptAnswerRepository.findByAttemptId(attemptId);
@@ -98,15 +99,14 @@ public class StudentQuizAttemptServiceImpl implements IStudentQuizAttemptService
                 .isAiGenerated(attempt.getQuiz().isAiGenerated())
                 .score(attempt.getScore())
                 .xpEarned(attempt.getXpEarned())
+                .correctCount(attempt.getCorrectCount() != null ? attempt.getCorrectCount() : (int) answers.stream().filter(QuizAttemptAnswer::isCorrect).count())
+                .totalQuestions(answers.size())
+                .totalXp(currentUser.getTotalXp())
+                .currentLevel(currentUser.getCurrentLevel())
                 .durationSeconds(attempt.getDurationSeconds())
                 .submittedAt(attempt.getSubmittedAt())
                 .answers(answerDtos)
                 .build();
     }
 
-    private User getCurrentUser() {
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue(currentUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    }
 }

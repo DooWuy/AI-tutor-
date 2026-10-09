@@ -21,6 +21,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class StudentQuizController {
 
     private final StudentQuizService studentQuizService;
+    private final com.vn.aitutor.service.QuizSubmissionService submissions;
+
+    @GetMapping("/{quizId}")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ApiResponse<com.vn.aitutor.dto.response.QuizContentResponse> content(
+            @org.springframework.web.bind.annotation.PathVariable java.util.UUID quizId) {
+        return ApiResponse.<com.vn.aitutor.dto.response.QuizContentResponse>builder()
+                .success(true).data(submissions.content(quizId)).build();
+    }
 
     @GetMapping("/assigned")
     @PreAuthorize("hasRole('STUDENT')")
