@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/Login/LoginPage';
 import RegisterPage from './pages/Register/RegisterPage';
@@ -23,6 +23,11 @@ import QuizListPage from './pages/Assessment/QuizListPage';
 import QuizEditorPage from './pages/Assessment/QuizEditorPage';
 import QuizStatisticsPage from './pages/Assessment/QuizStatisticsPage';
 
+function QuizStatisticsRedirect() {
+  const { quizId } = useParams<{ quizId: string }>();
+  return <Navigate to={`/teacher/quizzes/${quizId}/statistics`} replace />;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -30,6 +35,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/quizzes/:quizId/statistics" element={<QuizStatisticsRedirect />} />
         
         {/* Student Routes */}
         <Route path="/student" element={<StudentLayout />}>

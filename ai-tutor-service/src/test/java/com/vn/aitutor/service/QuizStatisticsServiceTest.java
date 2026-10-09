@@ -57,6 +57,7 @@ class QuizStatisticsServiceTest {
         QuizStatisticsResponse stats = quizStatisticsService.statistics(quizId, principal);
 
         assertEquals(3L, stats.getAttemptCount());
+        assertEquals(new BigDecimal("6.8333"), stats.getAverageScore());
         assertEquals(new BigDecimal("50.0"), stats.getPassingRate());
         StudentQuizResultResponse first = stats.getStudents().get(0);
         StudentQuizResultResponse second = stats.getStudents().get(1);

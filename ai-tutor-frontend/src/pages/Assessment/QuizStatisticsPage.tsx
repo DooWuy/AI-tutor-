@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { quizAdminApi } from '../../services/assessmentApi';
 import type { QuizStatistics } from '../../types/assessment';
 import { ErrorBanner, PrimaryButton, useAssessmentBase } from './assessmentUi';
-import { MathText } from './MathContent';
+import { HardestQuestionsChart } from './HardestQuestionsChart';
 
 function formatWhen(value?: string | null) {
   if (!value) return '—';
@@ -64,21 +64,13 @@ export default function QuizStatisticsPage() {
 
           <div className="rounded-2xl border border-outline-variant p-4">
             <h2 className="font-bold text-on-surface">Câu sai nhiều nhất</h2>
-            {stats.hardestQuestions.length === 0 ? <p className="mt-2 text-sm text-on-surface-variant">Chưa có bài làm để phân tích độ khó.</p> : null}
-            <div className="mt-3 space-y-3">
-              {stats.hardestQuestions.map((item) => (
-                <div key={item.questionId}>
-                  <div className="mb-1 flex justify-between gap-3 text-sm">
-                    <MathText text={item.stem} className="min-w-0 flex-1" />
-                    <p className="shrink-0 font-semibold">{Number(item.wrongRate).toFixed(1)}%</p>
-                  </div>
-                  <div className="h-2 rounded-full bg-surface-container">
-                    <div className="h-2 rounded-full bg-error" style={{ width: `${Math.min(100, Number(item.wrongRate))}%` }} />
-                  </div>
-                  <p className="mt-1 text-xs text-on-surface-variant">{item.wrongCount}/{item.answerCount} lượt sai</p>
-                </div>
-              ))}
-            </div>
+            {stats.hardestQuestions.length === 0 ? (
+              <p className="mt-2 text-sm text-on-surface-variant">Chưa có bài làm để phân tích độ khó.</p>
+            ) : (
+              <div className="mt-3">
+                <HardestQuestionsChart questions={stats.hardestQuestions} />
+              </div>
+            )}
           </div>
 
           <div className="hidden overflow-hidden rounded-2xl border border-outline-variant md:block">

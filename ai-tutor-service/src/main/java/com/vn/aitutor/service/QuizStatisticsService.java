@@ -40,7 +40,9 @@ public class QuizStatisticsService {
         List<QuizAttempt> attempts = quizAttemptRepository.findSubmittedWithScore(quizId);
         Map<UUID, StudentAggregate> students = aggregate(attempts);
         List<Double> bestScores = students.values().stream().map(StudentAggregate::bestScore).toList();
-        double scoreSum = attempts.stream().mapToDouble(QuizAttempt::getScore).sum();
+        BigDecimal scoreSum = attempts.stream()
+                .map(attempt -> BigDecimal.valueOf(attempt.getScore()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         return QuizStatisticsResponse.builder()
                 .quizId(quiz.getId())
                 .title(quiz.getTitle())
