@@ -1,6 +1,7 @@
 package com.vn.aitutor.service;
 
 import com.vn.aitutor.curriculum.GradeLevels;
+import com.vn.aitutor.dto.request.GenerateQuestionsRequest;
 import com.vn.aitutor.dto.request.QuestionChoiceRequest;
 import com.vn.aitutor.dto.request.QuestionUpsertRequest;
 import com.vn.aitutor.dto.response.ChoiceResponse;
@@ -31,6 +32,7 @@ import com.vn.aitutor.service.QuestionComposer.ComposeRequest;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -125,8 +127,34 @@ public class QuestionBankService {
         return distinct.size();
     }
 
+    @Transactional(readOnly = true)
+    public QuestionType validateGenerate(UUID lessonId, GenerateQuestionsRequest request) {
+        if (request == null || request.getDifficulty() == null || request.getCount() == null) {
+            throw new ResourceBadRequestException("Độ khó và số lượng câu hỏi không được để trống");
+        }
+        QuestionType type = resolveType(request.getQuestionType());
+        QuestionContentRules.requireDifficulty(request.getDifficulty());
+        QuestionContentRules.requireGenerateCount(request.getCount());
+        requireLesson(lessonId);
+        return type;
+    }
+
+    @Transactional(readOnly = true)
+    public List<QuestionResponse> listPendingBatch(UUID batchId) {
+        if (batchId == null) {
+            return List.of();
+        }
+        return questionBankRepository.findByBatchIdAndReviewStatusOrderByCreatedAtAsc(batchId, ReviewStatus.PENDING)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @Transactional
-    public QuestionBatchResponse generate(UUID lessonId, int difficulty, int count, UserPrincipal principal) {
+    public QuestionBatchResponse generate(UUID lessonId, GenerateQuestionsRequest request, UserPrincipal principal) {
+        int difficulty = request.getDifficulty();
+        int count = request.getCount();
+        QuestionType type = resolveType(request.getQuestionType());
         QuestionContentRules.requireDifficulty(difficulty);
         QuestionContentRules.requireGenerateCount(count);
         Lesson lesson = requireLesson(lessonId);
@@ -140,8 +168,8 @@ public class QuestionBankService {
                 context,
                 difficulty,
                 count,
-                QuestionType.MULTIPLE_CHOICE,
-                4));
+                type,
+                type == QuestionType.TRUE_FALSE ? 2 : 4));
         UUID batchId = UUID.randomUUID();
         User author = author(principal);
         List<QuestionResponse> saved = new ArrayList<>();
@@ -170,6 +198,17 @@ public class QuestionBankService {
         List<UUID> ids = pending.stream().map(QuestionBankItem::getId).toList();
         questionChoiceRepository.deleteByQuestionIdIn(ids);
         questionBankRepository.deleteAllById(ids);
+    }
+
+    private QuestionType resolveType(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return QuestionType.MULTIPLE_CHOICE;
+        }
+        try {
+            return QuestionType.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new ResourceBadRequestException("Loại câu hỏi phải là trắc nghiệm, đúng/sai hoặc điền từ");
+        }
     }
 
     public String theoryContext(UUID lessonId) {

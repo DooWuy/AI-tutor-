@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 import com.vn.aitutor.entity.enums.QuestionType;
 import com.vn.aitutor.quiz.NormalizedQuestion;
 import com.vn.aitutor.service.QuestionComposer.ComposeRequest;
-import dev.langchain4j.model.chat.ChatLanguageModel;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,13 +19,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class QuestionComposerTest {
 
     @Mock
-    private ChatLanguageModel chatLanguageModel;
+    private GeminiQuestionClient geminiQuestionClient;
     @InjectMocks
     private QuestionComposer questionComposer;
 
     @Test
     void generatesFiveMultipleChoiceQuestionsAtTheRequestedDifficulty() {
-        when(chatLanguageModel.generate(anyString())).thenReturn(payload());
+        when(geminiQuestionClient.complete(anyString())).thenReturn(payload());
 
         List<NormalizedQuestion> questions = questionComposer.compose(new ComposeRequest(
                 "Tính đạo hàm hàm số mũ",

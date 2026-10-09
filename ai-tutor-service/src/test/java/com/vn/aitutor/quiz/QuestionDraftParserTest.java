@@ -31,6 +31,34 @@ class QuestionDraftParserTest {
         assertTrue(questions.stream().map(NormalizedQuestion::stem).anyMatch(stem -> stem.contains("hàm số mũ")));
     }
 
+    @Test
+    void acceptsLatexBackslashesAndAnAnswerKey() {
+        String raw = """
+                {"questions":[{
+                  "stem":"Tính đạo hàm của y = \\\\ln x tại x = e.",
+                  "explanation":"Đạo hàm của \\\\ln x là 1/x, nên tại x = e giá trị bằng 1/e.",
+                  "choices":[
+                    {"key":"A","text":"1","correct":false},
+                    {"key":"B","text":"1/e","correct":false},
+                    {"key":"C","text":"e","correct":false},
+                    {"key":"D","text":"0","correct":false}
+                  ],
+                  "correctText":"B"
+                }]}
+                """.replace("\\\\", "\\");
+
+        List<NormalizedQuestion> questions = QuestionDraftParser.parse(
+                raw, QuestionType.MULTIPLE_CHOICE, 4, 4, List.of());
+
+        assertEquals(1, questions.size());
+        assertEquals("B", questions.get(0).choices().stream()
+                .filter(ChoiceInput::correct)
+                .findFirst()
+                .orElseThrow()
+                .key());
+        assertTrue(questions.get(0).explanation().contains("\\ln"));
+    }
+
     private static String validItems() {
         StringBuilder builder = new StringBuilder();
         for (int i = 1; i <= 5; i++) {

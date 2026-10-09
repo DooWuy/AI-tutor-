@@ -150,17 +150,18 @@ public class QuizManagementService {
         return detail(quiz);
     }
 
+    @Transactional(readOnly = true)
+    public void validateGenerate(UUID quizId, QuizGenerateRequest request, UserPrincipal principal) {
+        Quiz quiz = quizAccess.require(quizId, principal);
+        assertQuestionsMutable(quiz);
+        requireRatios(request);
+    }
+
     @Transactional
     public QuizResponse generate(UUID quizId, QuizGenerateRequest request, UserPrincipal principal) {
         Quiz quiz = quizAccess.require(quizId, principal);
         assertQuestionsMutable(quiz);
-        int total = request.getMultipleChoice() + request.getTrueFalse() + request.getFillBlank();
-        if (total != request.getCount()) {
-            throw new ResourceBadRequestException("Tổng tỷ lệ loại câu phải bằng số lượng câu hỏi");
-        }
-        if (request.getMinDifficulty() > request.getMaxDifficulty()) {
-            throw new ResourceBadRequestException("Độ khó tối thiểu không được lớn hơn độ khó tối đa");
-        }
+        requireRatios(request);
         int stamped = (request.getMinDifficulty() + request.getMaxDifficulty()) / 2;
         if (stamped < 1) {
             stamped = request.getMinDifficulty();
@@ -173,6 +174,16 @@ public class QuizManagementService {
         fillType(quiz, QuestionType.FILL_BLANK, request.getFillBlank(), 0, request, stamped, context, excluded, order);
         quiz.setAiGenerated(true);
         return detail(quizRepository.save(quiz));
+    }
+
+    private void requireRatios(QuizGenerateRequest request) {
+        int total = request.getMultipleChoice() + request.getTrueFalse() + request.getFillBlank();
+        if (total != request.getCount()) {
+            throw new ResourceBadRequestException("Tổng tỷ lệ loại câu phải bằng số lượng câu hỏi");
+        }
+        if (request.getMinDifficulty() > request.getMaxDifficulty()) {
+            throw new ResourceBadRequestException("Độ khó tối thiểu không được lớn hơn độ khó tối đa");
+        }
     }
 
     private int fillType(

@@ -37,6 +37,17 @@ export interface QuestionBatch {
   questions: QuestionItem[];
 }
 
+export interface GenerationJob {
+  id: string;
+  kind: 'BANK' | 'QUIZ' | string;
+  status: 'RUNNING' | 'DONE' | 'FAILED' | 'ACKNOWLEDGED' | string;
+  lessonId?: string | null;
+  quizId?: string | null;
+  batchId?: string | null;
+  message?: string | null;
+  questions?: QuestionItem[] | null;
+}
+
 export interface QuestionDraft {
   stem: string;
   explanation: string;

@@ -8,6 +8,7 @@ import com.vn.aitutor.dto.response.QuestionBatchResponse;
 import com.vn.aitutor.dto.response.QuestionResponse;
 import com.vn.aitutor.dto.response.SkillResponse;
 import com.vn.aitutor.security.principal.UserPrincipal;
+import com.vn.aitutor.service.GenerationJobService;
 import com.vn.aitutor.service.QuestionBankService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -35,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class QuestionBankController {
 
     private final QuestionBankService questionBankService;
+    private final GenerationJobService generationJobService;
 
     @GetMapping("/skills")
     public ResponseEntity<ApiResponse<List<SkillResponse>>> listSkills(
@@ -88,7 +90,7 @@ public class QuestionBankController {
             @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(ok(
                 "AI đã soạn câu hỏi. Hãy xem trước trước khi nạp vào ngân hàng",
-                questionBankService.generate(lessonId, request.getDifficulty(), request.getCount(), principal)));
+                questionBankService.generate(lessonId, request, principal)));
     }
 
     @PutMapping("/batches/{batchId}/questions/{questionId}")
@@ -108,12 +110,15 @@ public class QuestionBankController {
 
     @PostMapping("/batches/{batchId}/confirm")
     public ResponseEntity<ApiResponse<List<QuestionResponse>>> confirm(@PathVariable UUID batchId) {
-        return ResponseEntity.ok(ok("Đã nạp câu hỏi vào ngân hàng", questionBankService.confirm(batchId)));
+        List<QuestionResponse> saved = questionBankService.confirm(batchId);
+        generationJobService.acknowledgeBatch(batchId);
+        return ResponseEntity.ok(ok("Đã nạp câu hỏi vào ngân hàng", saved));
     }
 
     @DeleteMapping("/batches/{batchId}")
     public ResponseEntity<ApiResponse<Void>> discard(@PathVariable UUID batchId) {
         questionBankService.discard(batchId);
+        generationJobService.acknowledgeBatch(batchId);
         return ResponseEntity.ok(ok("Đã hủy lô câu hỏi", null));
     }
 

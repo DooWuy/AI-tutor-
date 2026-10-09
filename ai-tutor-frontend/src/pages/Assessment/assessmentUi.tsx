@@ -27,7 +27,7 @@ export function Modal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-3 sm:items-center" role="dialog" aria-modal="true">
-      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-surface-container-lowest p-4 shadow-xl sm:p-6">
+      <div className="scroll-x max-h-[92vh] w-full max-w-4xl overflow-auto rounded-2xl bg-surface-container-lowest p-4 shadow-xl sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <h2 className="text-lg font-bold text-on-surface">{title}</h2>
           <button type="button" className="rounded-lg px-2 py-1 text-sm text-on-surface-variant hover:bg-surface-container" onClick={onClose}>

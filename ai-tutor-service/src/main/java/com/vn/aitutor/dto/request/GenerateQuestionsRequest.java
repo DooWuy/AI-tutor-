@@ -17,4 +17,6 @@ public class GenerateQuestionsRequest {
     @Min(value = 1, message = "Số lượng câu hỏi phải từ 1 đến 20")
     @Max(value = 20, message = "Số lượng câu hỏi phải từ 1 đến 20")
     private Integer count = 1;
+
+    private String questionType = "MULTIPLE_CHOICE";
 }

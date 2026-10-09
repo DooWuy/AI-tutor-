@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { quizAdminApi } from '../../services/assessmentApi';
 import type { QuizStatistics } from '../../types/assessment';
 import { ErrorBanner, PrimaryButton, useAssessmentBase } from './assessmentUi';
+import { MathText } from './MathContent';
 
 function formatWhen(value?: string | null) {
   if (!value) return '—';
@@ -68,7 +69,7 @@ export default function QuizStatisticsPage() {
               {stats.hardestQuestions.map((item) => (
                 <div key={item.questionId}>
                   <div className="mb-1 flex justify-between gap-3 text-sm">
-                    <p className="line-clamp-2">{item.stem}</p>
+                    <MathText text={item.stem} className="min-w-0 flex-1" />
                     <p className="shrink-0 font-semibold">{Number(item.wrongRate).toFixed(1)}%</p>
                   </div>
                   <div className="h-2 rounded-full bg-surface-container">

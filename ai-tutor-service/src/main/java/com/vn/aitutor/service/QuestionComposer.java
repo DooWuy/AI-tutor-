@@ -5,7 +5,6 @@ import com.vn.aitutor.exception.ServiceUnavailableException;
 import com.vn.aitutor.quiz.NormalizedQuestion;
 import com.vn.aitutor.quiz.QuestionContentRules;
 import com.vn.aitutor.quiz.QuestionDraftParser;
-import dev.langchain4j.model.chat.ChatLanguageModel;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +14,9 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class QuestionComposer {
 
-    private final ChatLanguageModel chatLanguageModel;
+    private static final int BATCH = 5;
+
+    private final GeminiQuestionClient geminiQuestionClient;
 
     public List<NormalizedQuestion> compose(ComposeRequest request) {
         QuestionContentRules.requireGenerateCount(request.count());
@@ -23,14 +24,10 @@ public class QuestionComposer {
         List<NormalizedQuestion> accepted = new ArrayList<>();
         List<String> stems = new ArrayList<>();
         int round = 0;
-        while (accepted.size() < request.count() && round < 2) {
-            int need = request.count() - accepted.size();
-            String raw;
-            try {
-                raw = chatLanguageModel.generate(prompt(request, need, stems));
-            } catch (RuntimeException ex) {
-                throw new ServiceUnavailableException("AI chưa soạn đủ câu hỏi hợp lệ. Hãy thử lại.", ex);
-            }
+        int maxRounds = Math.max(4, ((request.count() + BATCH - 1) / BATCH) * 2);
+        while (accepted.size() < request.count() && round < maxRounds) {
+            int need = Math.min(BATCH, request.count() - accepted.size());
+            String raw = geminiQuestionClient.complete(prompt(request, need, stems));
             List<NormalizedQuestion> parsed = QuestionDraftParser.parse(
                     raw, request.type(), request.difficulty(), request.exactChoiceCount(), stems);
             for (NormalizedQuestion question : parsed) {
@@ -67,6 +64,7 @@ public class QuestionComposer {
                 Chủ đề thêm: %s
                 Hãy tạo đúng %d câu %s.
                 Mỗi câu có stem, explanation (lời giải từng bước bằng tiếng Việt, 10-2000 ký tự), tags.
+                Mọi công thức trong stem, choices.text, correctText và explanation phải viết trong $...$ hoặc $$...$$, kể cả phân số và ký hiệu.
                 Chỉ trả JSON theo dạng {"questions":[{"stem":"","explanation":"","tags":[],"choices":[{"key":"A","text":"","correct":false}],"correctText":""}]}.
                 Tài liệu nguồn:
                 %s

@@ -90,8 +90,8 @@ export default function QuizListPage() {
       {loading ? <p className="text-sm text-on-surface-variant">Đang tải đề thi...</p> : null}
       {!loading && quizzes.length === 0 ? <p className="text-sm text-on-surface-variant">Chưa có đề thi phù hợp.</p> : null}
 
-      <div className="hidden overflow-hidden rounded-2xl border border-outline-variant md:block">
-        <table className="w-full text-left text-sm">
+      <div className="scroll-x hidden overflow-x-auto rounded-2xl border border-outline-variant md:block">
+        <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-surface-container text-on-surface-variant">
             <tr>
               <th className="px-4 py-3 font-semibold">Tiêu đề</th>

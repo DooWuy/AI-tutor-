@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { questionBankApi, quizAdminApi } from '../../services/assessmentApi';
-import type { QuestionItem, QuizDraft, QuizItem, SkillItem } from '../../types/assessment';
+import type { GenerationJob, QuestionItem, QuizDraft, QuizItem, SkillItem } from '../../types/assessment';
 import { questionTypeLabel, subjectLabel } from '../../types/assessment';
 import { ErrorBanner, Field, Modal, PrimaryButton, inputClass, useAssessmentBase } from './assessmentUi';
+import { QuestionView } from './MathContent';
 import { GRADES, SUBJECTS } from '../../types/assessment';
 
 const emptyQuiz = (): QuizDraft => ({
@@ -28,6 +29,9 @@ export default function QuizEditorPage() {
   const [saving, setSaving] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSkill, setPickerSkill] = useState('');
+  const [pickerDifficulty, setPickerDifficulty] = useState('ALL');
+  const [pickerType, setPickerType] = useState('ALL');
+  const [pickerQuery, setPickerQuery] = useState('');
   const [bankQuestions, setBankQuestions] = useState<QuestionItem[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
   const [topic, setTopic] = useState('');
@@ -38,6 +42,10 @@ export default function QuizEditorPage() {
   const [trueFalse, setTrueFalse] = useState(1);
   const [fillBlank, setFillBlank] = useState(1);
   const [aiMessage, setAiMessage] = useState('');
+  const [aiRunning, setAiRunning] = useState(false);
+  const [aiNotice, setAiNotice] = useState('');
+  const [pollNonce, setPollNonce] = useState(0);
+  const expectRunning = useRef(false);
 
   useEffect(() => {
     if (!quizId) return;
@@ -64,6 +72,57 @@ export default function QuizEditorPage() {
       .then(setSkills)
       .catch(() => setSkills([]));
   }, [draft.subject, draft.gradeLevel]);
+
+  useEffect(() => {
+    if (!quizId) return;
+    let stop = false;
+    let timer = 0;
+    let running = false;
+    const tick = () => {
+      quizAdminApi.currentGeneration(quizId)
+        .then(async (job: GenerationJob | null) => {
+          if (stop) return;
+          if (!job || job.status === 'ACKNOWLEDGED') {
+            running = false;
+            if (!expectRunning.current) setAiRunning(false);
+            return;
+          }
+          if (job.status === 'RUNNING') {
+            running = true;
+            expectRunning.current = true;
+            setAiRunning(true);
+            setAiMessage('AI đang biên soạn câu hỏi và lời giải chi tiết cho bạn...');
+            timer = window.setTimeout(tick, 2000);
+            return;
+          }
+          running = false;
+          expectRunning.current = false;
+          if (job.status === 'DONE') {
+            const updated = await quizAdminApi.get(quizId);
+            if (stop) return;
+            setQuiz(updated);
+            setAiRunning(false);
+            setAiMessage('');
+            setAiNotice('AI đã thêm câu hỏi vào đề.');
+            await questionBankApi.acknowledgeGeneration(job.id);
+            return;
+          }
+          if (job.status === 'FAILED') {
+            setAiRunning(false);
+            setAiMessage('');
+            setError(job.message || 'Không sinh được đề');
+          }
+        })
+        .catch(() => {
+          if (!stop && (running || expectRunning.current)) timer = window.setTimeout(tick, 4000);
+        });
+    };
+    tick();
+    return () => {
+      stop = true;
+      window.clearTimeout(timer);
+    };
+  }, [quizId, pollNonce]);
 
   useEffect(() => {
     if (!pickerSkill) {
@@ -111,11 +170,13 @@ export default function QuizEditorPage() {
 
   const generate = async () => {
     if (!quizId) return;
-    setSaving(true);
     setError('');
+    setAiNotice('');
+    expectRunning.current = true;
+    setAiRunning(true);
     setAiMessage('AI đang biên soạn câu hỏi và lời giải chi tiết cho bạn...');
     try {
-      const updated = await quizAdminApi.generate(quizId, {
+      const job = await quizAdminApi.startGeneration(quizId, {
         topic,
         count,
         minDifficulty,
@@ -124,13 +185,19 @@ export default function QuizEditorPage() {
         trueFalse,
         fillBlank,
       });
-      setQuiz(updated);
-      setAiMessage('');
+      if (job.status === 'FAILED') {
+        expectRunning.current = false;
+        setAiRunning(false);
+        setAiMessage('');
+        setError(job.message || 'Không sinh được đề');
+        return;
+      }
+      setPollNonce((current) => current + 1);
     } catch (err) {
+      expectRunning.current = false;
+      setAiRunning(false);
       setAiMessage('');
       setError(err instanceof Error ? err.message : 'Không sinh được đề');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -145,6 +212,13 @@ export default function QuizEditorPage() {
   };
 
   const ratioSum = multipleChoice + trueFalse + fillBlank;
+  const pickerText = pickerQuery.trim().toLowerCase();
+  const visibleBank = bankQuestions.filter((item) => {
+    if (pickerDifficulty !== 'ALL' && item.difficulty !== Number(pickerDifficulty)) return false;
+    if (pickerType !== 'ALL' && item.questionType !== pickerType) return false;
+    if (pickerText && !item.stem.toLowerCase().includes(pickerText)) return false;
+    return true;
+  });
 
   return (
     <section className="space-y-5">
@@ -207,14 +281,23 @@ export default function QuizEditorPage() {
           </div>
           <div className="space-y-3">
             {(quiz.questions || []).map((question, index) => (
-              <article key={question.id} className="rounded-2xl border border-outline-variant p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs text-on-surface-variant">Câu {index + 1} · {questionTypeLabel(question.questionType)} · Mức {question.difficulty}</p>
-                    <p className="mt-1 font-medium">{question.stem}</p>
-                  </div>
-                  <button type="button" className="text-sm font-semibold text-error" onClick={() => removeQuestion(question.id)}>Gỡ</button>
+              <article key={question.id} className="overflow-visible rounded-2xl border border-outline-variant p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-xs text-on-surface-variant">Câu {index + 1} · {questionTypeLabel(question.questionType)} · Mức {question.difficulty}</p>
+                  <button type="button" className="shrink-0 text-sm font-semibold text-error" onClick={() => removeQuestion(question.id)}>Gỡ</button>
                 </div>
+                <QuestionView
+                  stem={question.stem}
+                  choices={(question.options || []).map((option) => ({
+                    key: option.key,
+                    text: option.text,
+                    correct: !!question.correctOptionKey && option.key === question.correctOptionKey,
+                  }))}
+                  correctText={(question.options || []).some((option) => option.key === question.correctOptionKey)
+                    ? undefined
+                    : (question.correctText || question.correctOptionKey)}
+                  explanation={question.explanation}
+                />
               </article>
             ))}
             {(quiz.questions || []).length === 0 ? <p className="text-sm text-on-surface-variant">Đề chưa có câu hỏi.</p> : null}
@@ -233,31 +316,63 @@ export default function QuizEditorPage() {
             </div>
             <p className={`text-sm ${ratioSum === count ? 'text-on-surface-variant' : 'text-error'}`}>Tổng loại câu: {ratioSum}. Cần bằng số câu ({count}).</p>
             {aiMessage ? <p className="text-sm font-medium text-primary">{aiMessage}</p> : null}
-            <PrimaryButton disabled={saving || ratioSum !== count || !topic.trim()} onClick={generate}>Sinh bộ câu hỏi</PrimaryButton>
+            {aiRunning ? <p className="text-sm text-on-surface-variant">Bạn có thể rời trang. Tiến trình vẫn tiếp tục và câu hỏi sẽ có trong đề khi bạn quay lại.</p> : null}
+            {aiNotice ? <p className="text-sm font-medium text-primary">{aiNotice}</p> : null}
+            <PrimaryButton disabled={saving || aiRunning || ratioSum !== count || !topic.trim()} onClick={generate}>Sinh bộ câu hỏi</PrimaryButton>
           </div>
         </>
       ) : null}
 
       {pickerOpen ? (
         <Modal title="Chọn câu từ ngân hàng" onClose={() => setPickerOpen(false)}>
-          <Field label="Kỹ năng">
-            <select className={inputClass} value={pickerSkill} onChange={(event) => setPickerSkill(event.target.value)}>
-              <option value="">Chọn kỹ năng</option>
-              {skills.map((skill) => <option key={skill.id} value={skill.id}>{skill.name} ({skill.questionCount})</option>)}
-            </select>
-          </Field>
-          <p className="mt-2 text-xs text-on-surface-variant">Chỉ hiện câu cùng môn {subjectLabel(draft.subject)} và khối {draft.gradeLevel}.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Kỹ năng">
+              <select className={inputClass} aria-label="Lọc theo bài học" value={pickerSkill} onChange={(event) => setPickerSkill(event.target.value)}>
+                <option value="">Chọn kỹ năng</option>
+                {skills.map((skill) => <option key={skill.id} value={skill.id}>{skill.name} ({skill.questionCount})</option>)}
+              </select>
+            </Field>
+            <Field label="Từ khóa">
+              <input className={inputClass} aria-label="Lọc từ khóa" value={pickerQuery} placeholder="Tìm trong câu hỏi" onChange={(event) => setPickerQuery(event.target.value)} />
+            </Field>
+            <Field label="Độ khó">
+              <select className={inputClass} aria-label="Lọc độ khó" value={pickerDifficulty} onChange={(event) => setPickerDifficulty(event.target.value)}>
+                <option value="ALL">Tất cả</option>
+                {[1, 2, 3, 4, 5].map((level) => <option key={level} value={String(level)}>Mức {level}</option>)}
+              </select>
+            </Field>
+            <Field label="Loại trả lời">
+              <select className={inputClass} aria-label="Lọc loại trả lời" value={pickerType} onChange={(event) => setPickerType(event.target.value)}>
+                <option value="ALL">Tất cả</option>
+                <option value="MULTIPLE_CHOICE">Trắc nghiệm</option>
+                <option value="TRUE_FALSE">Đúng/Sai</option>
+                <option value="FILL_BLANK">Điền từ</option>
+              </select>
+            </Field>
+          </div>
+          <p className="mt-2 text-xs text-on-surface-variant">Chỉ hiện câu cùng môn {subjectLabel(draft.subject)} và khối {draft.gradeLevel}. {pickerSkill ? `${visibleBank.length} câu phù hợp.` : 'Hãy chọn kỹ năng.'}</p>
           <div className="mt-3 max-h-80 space-y-2 overflow-y-auto">
-            {bankQuestions.map((item) => (
-              <label key={item.id} className="flex items-start gap-2 rounded-xl border border-outline-variant p-3 text-sm">
+            {visibleBank.map((item) => (
+              <div key={item.id} className="flex items-start gap-2 rounded-xl border border-outline-variant p-3 text-sm">
                 <input
                   type="checkbox"
+                  className="mt-1"
+                  aria-label={`Chọn câu ${item.stem.slice(0, 40)}`}
                   checked={picked.includes(item.id)}
                   onChange={() => setPicked((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])}
                 />
-                <span>{item.stem}</span>
-              </label>
+                <div className="min-w-0 flex-1">
+                  <p className="mb-2 text-xs text-on-surface-variant">{questionTypeLabel(item.questionType)} · Mức {item.difficulty}</p>
+                  <QuestionView
+                    stem={item.stem}
+                    choices={item.choices}
+                    correctText={item.correctText}
+                    showSolution={false}
+                  />
+                </div>
+              </div>
             ))}
+            {pickerSkill && visibleBank.length === 0 ? <p className="text-sm text-on-surface-variant">Không có câu hỏi khớp bộ lọc.</p> : null}
           </div>
           <div className="mt-4 flex justify-end">
             <PrimaryButton disabled={saving || picked.length === 0} onClick={assign}>Gán {picked.length} câu</PrimaryButton>

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { questionBankApi } from '../../services/assessmentApi';
-import type { QuestionDraft, QuestionItem, SkillItem } from '../../types/assessment';
+import type { GenerationJob, QuestionDraft, QuestionItem, SkillItem } from '../../types/assessment';
 import { questionTypeLabel, subjectLabel } from '../../types/assessment';
 import { DangerButton, ErrorBanner, Field, Modal, PrimaryButton, inputClass, useAssessmentBase } from './assessmentUi';
+import { MathText, QuestionView } from './MathContent';
 
 const emptyDraft = (): QuestionDraft => ({
   stem: '',
@@ -43,10 +44,14 @@ export default function SkillQuestionsPage() {
   const [aiOpen, setAiOpen] = useState(false);
   const [aiDifficulty, setAiDifficulty] = useState(4);
   const [aiCount, setAiCount] = useState(5);
+  const [aiType, setAiType] = useState('MULTIPLE_CHOICE');
   const [aiLoading, setAiLoading] = useState(false);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [preview, setPreview] = useState<QuestionItem[]>([]);
   const [warning, setWarning] = useState('');
+  const [job, setJob] = useState<GenerationJob | null>(null);
+  const [pollNonce, setPollNonce] = useState(0);
+  const jobEpoch = useRef(0);
 
   const reload = () => {
     setLoading(true);
@@ -65,6 +70,50 @@ export default function SkillQuestionsPage() {
     // skillId is the only external trigger
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skillId]);
+
+  const applyJob = (next: GenerationJob | null) => {
+    setJob(next);
+    if (!next) return;
+    if (next.status === 'RUNNING') {
+      setAiLoading(true);
+      return;
+    }
+    setAiLoading(false);
+    if (next.status === 'DONE') {
+      setBatchId(next.batchId || null);
+      setPreview(next.questions || []);
+      setWarning(next.message || '');
+      return;
+    }
+    if (next.status === 'FAILED') {
+      setError('');
+    }
+  };
+
+  useEffect(() => {
+    if (!skillId) return;
+    let stop = false;
+    let timer = 0;
+    const tick = () => {
+      const ticket = jobEpoch.current;
+      questionBankApi.currentGeneration(skillId)
+        .then((next) => {
+          if (stop || ticket !== jobEpoch.current) return;
+          applyJob(next);
+          if (next?.status === 'RUNNING') timer = window.setTimeout(tick, 2000);
+        })
+        .catch(() => {
+          if (!stop && ticket === jobEpoch.current) timer = window.setTimeout(tick, 4000);
+        });
+    };
+    tick();
+    return () => {
+      stop = true;
+      window.clearTimeout(timer);
+    };
+    // applyJob closes over the latest setters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skillId, pollNonce]);
 
   const allChecked = questions.length > 0 && selected.length === questions.length;
   const draftTags = useMemo(() => tagText.split(',').map((item) => item.trim()).filter(Boolean), [tagText]);
@@ -119,14 +168,12 @@ export default function SkillQuestionsPage() {
     setError('');
     setWarning('');
     try {
-      const batch = await questionBankApi.generate(skillId, aiDifficulty, aiCount);
-      setBatchId(batch.batchId);
-      setPreview(batch.questions);
-      setWarning(batch.warning || '');
+      const started = await questionBankApi.startGeneration(skillId, aiDifficulty, aiCount, aiType);
+      applyJob(started);
+      setPollNonce((current) => current + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'AI chưa soạn được câu hỏi');
-    } finally {
       setAiLoading(false);
+      setError(err instanceof Error ? err.message : 'AI chưa soạn được câu hỏi');
     }
   };
 
@@ -143,6 +190,8 @@ export default function SkillQuestionsPage() {
         await questionBankApi.updateDraft(batchId, item.id, toDraft(item));
       }
       await questionBankApi.confirmBatch(batchId);
+      jobEpoch.current += 1;
+      setJob(null);
       setAiOpen(false);
       setBatchId(null);
       setPreview([]);
@@ -154,18 +203,40 @@ export default function SkillQuestionsPage() {
     }
   };
 
-  const closeAi = async () => {
-    if (batchId) {
-      try {
-        await questionBankApi.discardBatch(batchId);
-      } catch {
-        // The modal still closes. Unconfirmed rows stay pending and out of the active list.
-      }
-    }
+  const closeAi = () => {
     setAiOpen(false);
-    setBatchId(null);
-    setPreview([]);
-    setAiLoading(false);
+  };
+
+  const discardAi = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      if (batchId) await questionBankApi.discardBatch(batchId);
+      else if (job) await questionBankApi.acknowledgeGeneration(job.id);
+      jobEpoch.current += 1;
+      setJob(null);
+      setAiOpen(false);
+      setBatchId(null);
+      setPreview([]);
+      setWarning('');
+      setAiLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không hủy được bản nháp');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const dismissFailedJob = async () => {
+    if (!job) return;
+    try {
+      await questionBankApi.acknowledgeGeneration(job.id);
+    } catch {
+      // The banner still closes locally. The next visit can show the same notice.
+    }
+    jobEpoch.current += 1;
+    setJob(null);
+    setError('');
   };
 
   return (
@@ -180,74 +251,73 @@ export default function SkillQuestionsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <PrimaryButton onClick={openCreate}>+ Tạo câu hỏi</PrimaryButton>
-          <PrimaryButton onClick={() => { setAiOpen(true); setPreview([]); setBatchId(null); }}>Tạo câu hỏi bằng AI</PrimaryButton>
+          <PrimaryButton onClick={() => setAiOpen(true)}>Tạo câu hỏi bằng AI</PrimaryButton>
           <DangerButton disabled={selected.length === 0} onClick={() => setConfirmBulk(true)}>Xóa các câu hỏi đã chọn</DangerButton>
         </div>
       </div>
       <ErrorBanner message={error} />
+      {!aiOpen && job?.status === 'RUNNING' ? (
+        <div className="rounded-xl border border-primary/30 bg-primary-fixed px-4 py-3 text-sm">
+          <p className="font-medium text-primary">AI đang biên soạn câu hỏi và lời giải chi tiết cho bạn...</p>
+          <p className="mt-1 text-on-surface-variant">Bạn có thể đóng hộp thoại hoặc rời trang. Tiến trình vẫn tiếp tục.</p>
+          <button type="button" className="mt-2 font-semibold text-primary" onClick={() => setAiOpen(true)}>Xem tiến trình</button>
+        </div>
+      ) : null}
+      {!aiOpen && job?.status === 'DONE' ? (
+        <div className="rounded-xl border border-primary/30 bg-primary-fixed px-4 py-3 text-sm">
+          <p className="font-medium text-on-surface">AI đã soạn xong {preview.length} câu. Bản nháp vẫn chờ bạn xem trước.</p>
+          <div className="mt-2 flex flex-wrap gap-3">
+            <button type="button" className="font-semibold text-primary" onClick={() => setAiOpen(true)}>Xem bản nháp</button>
+            <button type="button" className="font-semibold text-error" onClick={discardAi}>Hủy bản nháp</button>
+          </div>
+        </div>
+      ) : null}
+      {!aiOpen && job?.status === 'FAILED' ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-error/30 bg-error-container px-4 py-3 text-sm">
+          <p>{job.message || 'AI chưa soạn được câu hỏi'}</p>
+          <button type="button" className="font-semibold" onClick={dismissFailedJob}>Đóng</button>
+        </div>
+      ) : null}
       {loading ? <p className="text-sm text-on-surface-variant">Đang tải câu hỏi...</p> : null}
       {!loading && questions.length === 0 ? <p className="text-sm text-on-surface-variant">Kỹ năng này chưa có câu hỏi trong ngân hàng.</p> : null}
 
-      <div className="hidden overflow-hidden rounded-2xl border border-outline-variant md:block">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-surface-container text-on-surface-variant">
-            <tr>
-              <th className="px-4 py-3">
-                <input type="checkbox" checked={allChecked} onChange={() => setSelected(allChecked ? [] : questions.map((item) => item.id))} aria-label="Chọn tất cả câu hỏi" />
-              </th>
-              <th className="px-4 py-3 font-semibold">Nội dung</th>
-              <th className="px-4 py-3 font-semibold">Độ khó</th>
-              <th className="px-4 py-3 font-semibold">Thẻ</th>
-              <th className="px-4 py-3 font-semibold">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {questions.map((item) => (
-              <tr key={item.id} className="border-t border-outline-variant align-top">
-                <td className="px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(item.id)}
-                    aria-label={`Chọn câu ${item.stem.slice(0, 40)}`}
-                    onChange={() => setSelected((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])}
-                  />
-                </td>
-                <td className="px-4 py-3">
-                  <p className="font-medium text-on-surface">{item.stem}</p>
-                  <p className="text-xs text-on-surface-variant">{questionTypeLabel(item.questionType)}</p>
-                </td>
-                <td className="px-4 py-3">Mức {item.difficulty}</td>
-                <td className="px-4 py-3">{(item.tags || []).join(', ') || '—'}</td>
-                <td className="px-4 py-3">
-                  <button type="button" className="font-semibold text-primary" onClick={() => openEdit(item)}>Sửa</button>
-                  <button
-                    type="button"
-                    className="ml-3 font-semibold text-error"
-                    onClick={() => { setSelected([item.id]); setConfirmBulk(true); }}
-                  >
-                    Xóa
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="space-y-3 md:hidden">
+      {questions.length > 0 ? (
+        <label className="flex items-center gap-2 text-sm text-on-surface">
+          <input type="checkbox" checked={allChecked} onChange={() => setSelected(allChecked ? [] : questions.map((item) => item.id))} aria-label="Chọn tất cả câu hỏi" />
+          Chọn tất cả
+        </label>
+      ) : null}
+      <div className="space-y-3">
         {questions.map((item) => (
           <article key={item.id} className="rounded-2xl border border-outline-variant p-4">
-            <label className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={selected.includes(item.id)}
-                onChange={() => setSelected((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])}
-              />
-              <span className="font-medium">{item.stem}</span>
-            </label>
-            <p className="mt-2 text-xs text-on-surface-variant">Mức {item.difficulty} · {(item.tags || []).join(', ') || 'Không có thẻ'}</p>
-            <button type="button" className="mt-3 text-sm font-semibold text-primary" onClick={() => openEdit(item)}>Sửa</button>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <label className="flex items-center gap-2 text-xs text-on-surface-variant">
+                <input
+                  type="checkbox"
+                  aria-label={`Chọn câu ${item.stem.slice(0, 40)}`}
+                  checked={selected.includes(item.id)}
+                  onChange={() => setSelected((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])}
+                />
+                {questionTypeLabel(item.questionType)} · Mức {item.difficulty}
+                {(item.tags || []).length > 0 ? ` · ${item.tags.join(', ')}` : ''}
+              </label>
+              <div className="flex gap-3 text-sm">
+                <button type="button" className="font-semibold text-primary" onClick={() => openEdit(item)}>Sửa</button>
+                <button
+                  type="button"
+                  className="font-semibold text-error"
+                  onClick={() => { setSelected([item.id]); setConfirmBulk(true); }}
+                >
+                  Xóa
+                </button>
+              </div>
+            </div>
+            <QuestionView
+              stem={item.stem}
+              choices={item.choices}
+              correctText={item.correctText}
+              explanation={item.explanation}
+            />
           </article>
         ))}
       </div>
@@ -278,18 +348,47 @@ export default function SkillQuestionsPage() {
             <input className={inputClass} value={skill ? `${skill.skillCode} — ${skill.name}` : skillId} readOnly />
           </Field>
           {preview.length === 0 ? (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Field label="Độ khó">
-                <select className={inputClass} value={aiDifficulty} onChange={(event) => setAiDifficulty(Number(event.target.value))}>
-                  {[1, 2, 3, 4, 5].map((level) => <option key={level} value={level}>Mức {level}</option>)}
-                </select>
-              </Field>
-              <Field label="Số lượng (1-20)">
-                <input className={inputClass} type="number" min={1} max={20} value={aiCount} onChange={(event) => setAiCount(Number(event.target.value))} />
-              </Field>
+            <div className="mt-4 space-y-3">
+              <fieldset>
+                <legend className="text-sm font-medium text-on-surface">Loại câu</legend>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {[
+                    ['MULTIPLE_CHOICE', 'Trắc nghiệm'],
+                    ['TRUE_FALSE', 'Đúng/Sai'],
+                    ['FILL_BLANK', 'Điền từ'],
+                  ].map(([value, label]) => (
+                    <label
+                      key={value}
+                      className={`cursor-pointer rounded-xl border px-3 py-2 text-sm font-semibold ${aiType === value ? 'border-primary bg-primary text-on-primary' : 'border-outline-variant text-on-surface'}`}
+                    >
+                      <input className="sr-only" type="radio" name="ai-question-type" value={value} checked={aiType === value} onChange={() => setAiType(value)} />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Độ khó">
+                  <select className={inputClass} value={aiDifficulty} onChange={(event) => setAiDifficulty(Number(event.target.value))}>
+                    {[1, 2, 3, 4, 5].map((level) => <option key={level} value={level}>Mức {level}</option>)}
+                  </select>
+                </Field>
+                <Field label="Số lượng (1-20)">
+                  <input className={inputClass} type="number" min={1} max={20} value={aiCount} onChange={(event) => setAiCount(Number(event.target.value))} />
+                </Field>
+              </div>
             </div>
           ) : null}
-          {aiLoading ? <p className="mt-4 text-sm font-medium text-primary">AI đang biên soạn câu hỏi và lời giải chi tiết cho bạn...</p> : null}
+          {aiLoading ? (
+            <div className="mt-4 text-sm">
+              <p className="font-medium text-primary">AI đang biên soạn câu hỏi và lời giải chi tiết cho bạn...</p>
+              <p className="mt-1 text-on-surface-variant">Đóng hộp thoại hoặc rời trang không dừng tiến trình.</p>
+            </div>
+          ) : null}
+          {job?.status === 'FAILED' ? <p className="mt-3 text-sm text-error">{job.message || 'AI chưa soạn được câu hỏi'}</p> : null}
+          {preview.length > 0 || job?.status === 'DONE' ? (
+            <p className="mt-3 text-sm text-on-surface-variant">Đóng hộp thoại không hủy bản nháp. Hủy bản nháp khi bạn muốn bỏ các câu này.</p>
+          ) : null}
           {warning ? <p className="mt-3 text-sm text-on-surface-variant">{warning}</p> : null}
           <div className="mt-4 space-y-4">
             {preview.map((item, index) => (
@@ -308,27 +407,51 @@ export default function SkillQuestionsPage() {
                     Xóa
                   </button>
                 </div>
+                <QuestionView
+                  stem={item.stem}
+                  choices={item.choices}
+                  correctText={item.correctText}
+                  explanation={item.explanation}
+                />
+                <p className="mb-1 mt-3 text-xs font-semibold text-on-surface-variant">Chỉnh nội dung</p>
                 <textarea className={`${inputClass} min-h-16 w-full`} value={item.stem} onChange={(event) => updatePreview(item.id, { stem: event.target.value })} />
                 <div className="mt-2 space-y-2">
-                  {item.choices.map((choice, choiceIndex) => (
-                    <label key={choice.key} className="flex items-center gap-2 text-sm">
+                  {item.questionType === 'FILL_BLANK' ? (
+                    <div>
+                      <p className="mb-1 text-xs font-semibold text-primary">Đáp án</p>
+                      <div className="answer-frame mb-2 rounded-xl bg-primary-fixed px-3 py-2">
+                        <MathText text={item.correctText} />
+                      </div>
                       <input
-                        type="radio"
-                        name={`correct-${item.id}`}
-                        checked={choice.correct}
-                        onChange={() => updatePreview(item.id, {
-                          choices: item.choices.map((row, rowIndex) => ({ ...row, correct: rowIndex === choiceIndex })),
-                        })}
+                        className={`${inputClass} w-full`}
+                        value={item.correctText || ''}
+                        aria-label="Sửa đáp án điền từ"
+                        onChange={(event) => updatePreview(item.id, { correctText: event.target.value })}
                       />
-                      <span className="w-5">{choice.key}</span>
+                    </div>
+                  ) : item.choices.map((choice, choiceIndex) => (
+                    <div key={choice.key} className={`answer-frame rounded-xl px-3 py-2 ${choice.correct ? 'bg-primary-fixed ring-1 ring-primary/25' : 'bg-surface-container/60'}`}>
+                      <label className="mb-1 flex items-center gap-2 text-xs font-semibold">
+                        <input
+                          type="radio"
+                          name={`correct-${item.id}`}
+                          checked={choice.correct}
+                          onChange={() => updatePreview(item.id, {
+                            choices: item.choices.map((row, rowIndex) => ({ ...row, correct: rowIndex === choiceIndex })),
+                          })}
+                        />
+                        {choice.key}. {choice.correct ? <span className="text-primary">Đáp án đúng</span> : null}
+                      </label>
+                      <MathText text={choice.text} />
                       <input
-                        className={`${inputClass} flex-1`}
+                        className={`${inputClass} mt-2 w-full`}
                         value={choice.text}
+                        aria-label={`Sửa phương án ${choice.key}`}
                         onChange={(event) => updatePreview(item.id, {
                           choices: item.choices.map((row, rowIndex) => rowIndex === choiceIndex ? { ...row, text: event.target.value } : row),
                         })}
                       />
-                    </label>
+                    </div>
                   ))}
                 </div>
                 <textarea className={`${inputClass} mt-2 min-h-16 w-full`} value={item.explanation} onChange={(event) => updatePreview(item.id, { explanation: event.target.value })} />
@@ -337,9 +460,16 @@ export default function SkillQuestionsPage() {
           </div>
           <div className="mt-4 flex justify-end gap-2">
             {preview.length === 0 ? (
-              <PrimaryButton disabled={aiLoading} onClick={startAi}>Bắt đầu tạo câu hỏi</PrimaryButton>
+              job?.status === 'DONE' ? (
+                <button type="button" className="rounded-xl px-4 py-2 text-sm font-semibold text-error" onClick={discardAi}>Hủy bản nháp</button>
+              ) : (
+                <PrimaryButton disabled={aiLoading} onClick={startAi}>{aiLoading ? 'Đang soạn...' : 'Bắt đầu tạo câu hỏi'}</PrimaryButton>
+              )
             ) : (
-              <PrimaryButton disabled={saving || preview.length === 0} onClick={confirmAi}>Xác nhận nạp vào Ngân hàng</PrimaryButton>
+              <>
+                <button type="button" className="rounded-xl px-4 py-2 text-sm font-semibold text-error" onClick={discardAi}>Hủy bản nháp</button>
+                <PrimaryButton disabled={saving || preview.length === 0} onClick={confirmAi}>Xác nhận nạp vào Ngân hàng</PrimaryButton>
+              </>
             )}
           </div>
         </Modal>
@@ -441,6 +571,17 @@ function QuestionForm({
       <Field label="Thẻ, cách nhau bởi dấu phẩy">
         <input className={inputClass} value={tagText} onChange={(event) => setTagText(event.target.value)} />
       </Field>
+      {editor.stem.trim() ? (
+        <div className="rounded-xl border border-outline-variant p-3">
+          <p className="mb-2 text-xs font-semibold text-on-surface-variant">Xem trước</p>
+          <QuestionView
+            stem={editor.stem}
+            choices={editor.choices}
+            correctText={editor.correctText}
+            explanation={editor.explanation}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

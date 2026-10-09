@@ -100,3 +100,53 @@
 ::-webkit-scrollbar {
   display: none;
 }
+
+/* Tailwind preflight sets svg { display: block }, which stacks KaTeX glyphs. */
+.katex svg {
+  display: inline;
+  max-width: none;
+  vertical-align: baseline;
+}
+
+/* \frac is auto-upgraded to \dfrac in prepareMathSource, so fractions are
+   always display-style. Give lines enough room so the tall dfrac boxes
+   don't bleed into adjacent lines. */
+.math-text,
+.answer-frame {
+  overflow: visible;
+  line-height: 3.2;
+}
+
+.math-text .katex {
+  font-size: 1.08em;
+  overflow: visible;
+}
+
+.math-text .katex-html {
+  overflow: visible;
+}
+
+.math-text .katex .base {
+  overflow: visible;
+}
+
+/* Slightly thicker fraction bar for legibility */
+.math-text .katex .frac-line {
+  border-bottom-width: 0.06em;
+}
+
+.math-text .katex-display {
+  margin: 0.55rem 0;
+  overflow: visible;
+}
+
+.scroll-x::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-x::-webkit-scrollbar-thumb {
+  background: #c1c6d5;
+  border-radius: 999px;
+}

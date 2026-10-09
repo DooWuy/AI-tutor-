@@ -1,6 +1,7 @@
 import type { ApiResponse } from '../types/auth';
 import { getStoredSession } from './authApi';
 import type {
+  GenerationJob,
   QuestionBatch,
   QuestionDraft,
   QuestionItem,
@@ -90,11 +91,20 @@ export const questionBankApi = {
     request<null>(`/question-bank/questions/${questionId}`, { method: 'DELETE' }),
   bulkDelete: (ids: string[]) =>
     request<{ deleted: number }>('/question-bank/questions/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
-  generate: (lessonId: string, difficulty: number, count: number) =>
+  generate: (lessonId: string, difficulty: number, count: number, questionType = 'MULTIPLE_CHOICE') =>
     request<QuestionBatch>(`/question-bank/skills/${lessonId}/generate`, {
       method: 'POST',
-      body: JSON.stringify({ difficulty, count }),
+      body: JSON.stringify({ difficulty, count, questionType }),
     }),
+  startGeneration: (lessonId: string, difficulty: number, count: number, questionType = 'MULTIPLE_CHOICE') =>
+    request<GenerationJob>(`/question-bank/skills/${lessonId}/generation-jobs`, {
+      method: 'POST',
+      body: JSON.stringify({ difficulty, count, questionType }),
+    }),
+  currentGeneration: (lessonId: string) =>
+    request<GenerationJob | null>(`/question-bank/skills/${lessonId}/generation-jobs/current`),
+  acknowledgeGeneration: (jobId: string) =>
+    request<GenerationJob>(`/generation-jobs/${jobId}/acknowledge`, { method: 'POST' }),
   updateDraft: (batchId: string, questionId: string, body: QuestionDraft) =>
     request<QuestionItem>(`/question-bank/batches/${batchId}/questions/${questionId}`, {
       method: 'PUT',
@@ -135,6 +145,20 @@ export const quizAdminApi = {
       fillBlank: number;
     },
   ) => request<QuizItem>(`/quizzes/${quizId}/generate`, { method: 'POST', body: JSON.stringify(body) }),
+  startGeneration: (
+    quizId: string,
+    body: {
+      topic: string;
+      count: number;
+      minDifficulty: number;
+      maxDifficulty: number;
+      multipleChoice: number;
+      trueFalse: number;
+      fillBlank: number;
+    },
+  ) => request<GenerationJob>(`/quizzes/${quizId}/generation-jobs`, { method: 'POST', body: JSON.stringify(body) }),
+  currentGeneration: (quizId: string) =>
+    request<GenerationJob | null>(`/quizzes/${quizId}/generation-jobs/current`),
   statistics: (quizId: string) => request<QuizStatistics>(`/quizzes/${quizId}/statistics`),
   async downloadExcel(quizId: string) {
     const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/statistics/export.xlsx`, {
