@@ -2,6 +2,8 @@ package com.vn.aitutor.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -40,11 +42,15 @@ public class QuizQuestion {
     @Column(name = "question_text", nullable = false)
     private String questionText;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", length = 32)
+    private com.vn.aitutor.entity.enums.QuestionType type;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "options", nullable = false, columnDefinition = "jsonb")
     private List<Map<String, Object>> options = new ArrayList<>();
 
-    @Column(name = "correct_option_key", length = 64)
+    @Column(name = "correct_option_key", length = 200)
     private String correctOptionKey;
 
     @Column(name = "explanation")

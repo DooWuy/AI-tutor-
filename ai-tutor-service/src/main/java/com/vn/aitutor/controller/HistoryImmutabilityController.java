@@ -20,19 +20,19 @@ public class HistoryImmutabilityController {
 
     private final HistoryGuard historyGuard;
 
-    @PutMapping("/api/v1/quiz-attempts/{id}")
+    @PutMapping({"/api/v1/quiz-attempts/{id}", "/api/v1/student/quiz-attempts/{id}"})
     public void rejectQuizAttemptPut(
             @AuthenticationPrincipal UserPrincipal principal, @PathVariable UUID id, HttpServletRequest request) {
         reject(principal, request);
     }
 
-    @PatchMapping("/api/v1/quiz-attempts/{id}")
+    @PatchMapping({"/api/v1/quiz-attempts/{id}", "/api/v1/student/quiz-attempts/{id}"})
     public void rejectQuizAttemptPatch(
             @AuthenticationPrincipal UserPrincipal principal, @PathVariable UUID id, HttpServletRequest request) {
         reject(principal, request);
     }
 
-    @DeleteMapping("/api/v1/quiz-attempts/{id}")
+    @DeleteMapping({"/api/v1/quiz-attempts/{id}", "/api/v1/student/quiz-attempts/{id}"})
     public void rejectQuizAttemptDelete(
             @AuthenticationPrincipal UserPrincipal principal, @PathVariable UUID id, HttpServletRequest request) {
         reject(principal, request);

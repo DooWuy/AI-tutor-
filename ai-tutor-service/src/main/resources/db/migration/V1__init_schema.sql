@@ -471,3 +471,29 @@ CREATE TABLE audit_logs (
 
 ALTER TABLE books DROP CONSTRAINT ck_books_grade_level;
 ALTER TABLE books ADD CONSTRAINT ck_books_grade_level CHECK (grade_level IN ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'));
+
+CREATE TABLE skills (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(100) NOT NULL UNIQUE,
+    subject VARCHAR(100),
+    grade_level VARCHAR(50),
+    description VARCHAR(1000),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ
+);
+
+CREATE TABLE question_bank (
+    id UUID PRIMARY KEY,
+    stem VARCHAR(2000) NOT NULL,
+    difficulty INTEGER NOT NULL DEFAULT 3,
+    choices JSONB NOT NULL,
+    correct_answer VARCHAR(500) NOT NULL,
+    explanation VARCHAR(2000) NOT NULL,
+    tags JSONB,
+    skill_id UUID,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_question_bank_skill FOREIGN KEY (skill_id) REFERENCES skills (id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_question_bank_skill_id ON question_bank (skill_id);

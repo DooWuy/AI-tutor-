@@ -12,12 +12,16 @@ public class WebSocketExceptionHandler extends StompSubProtocolErrorHandler {
 
     @Override
     public Message<byte[]> handleClientMessageProcessingError(Message<byte[]> clientMessage, Throwable ex) {
+        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+        System.err.println("WebSocket Error: " + cause.getMessage());
+        cause.printStackTrace();
+        
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.ERROR);
-        accessor.setMessage(ex.getMessage());
+        accessor.setMessage(cause.getMessage());
         accessor.setLeaveMutable(true);
 
         return MessageBuilder.createMessage(
-                ex.getMessage() != null ? ex.getMessage().getBytes() : new byte[0],
+                cause.getMessage() != null ? cause.getMessage().getBytes() : new byte[0],
                 accessor.getMessageHeaders()
         );
     }

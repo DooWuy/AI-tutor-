@@ -1,7 +1,7 @@
 package com.vn.aitutor.listener;
 
 import com.vn.aitutor.config.RabbitMQConfig;
-import com.vn.aitutor.dto.BookExtractionMessage;
+import com.vn.aitutor.dto.message.BookExtractionMessage;
 import com.vn.aitutor.service.BookExtractionService;
 import com.vn.aitutor.service.ICloudinaryService;
 import lombok.RequiredArgsConstructor;
@@ -24,3 +24,4 @@ public class BookExtractionListener {
         }
     }
 }
+

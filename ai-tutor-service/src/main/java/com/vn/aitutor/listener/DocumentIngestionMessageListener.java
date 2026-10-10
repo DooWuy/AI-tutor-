@@ -1,7 +1,7 @@
 package com.vn.aitutor.listener;
 
 import com.vn.aitutor.config.RabbitMQConfig;
-import com.vn.aitutor.dto.DocumentIngestionMessage;
+import com.vn.aitutor.dto.message.DocumentIngestionMessage;
 import com.vn.aitutor.service.DocumentIngestionProcessor;
 import com.vn.aitutor.service.DocumentStatusService;
 import lombok.RequiredArgsConstructor;
@@ -27,3 +27,4 @@ public class DocumentIngestionMessageListener {
         }
     }
 }
+

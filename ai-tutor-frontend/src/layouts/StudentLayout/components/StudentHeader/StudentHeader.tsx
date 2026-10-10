@@ -48,6 +48,13 @@ export const StudentHeader: React.FC = () => {
   }, [user?.userId]);
 
   // WebSocket hook
+  useEffect(() => {
+    const refresh = () => { getMyStudentProfile().then(setStudentProfile).catch(console.error); };
+    window.addEventListener('student-profile-updated', refresh);
+    return () => window.removeEventListener('student-profile-updated', refresh);
+  }, []);
+
+  // WebSocket hook
   const { lastMessage } = useWebSocket(token);
 
   useEffect(() => {
@@ -148,7 +155,7 @@ export const StudentHeader: React.FC = () => {
             <Link className={getNavLinkClass('/student/dashboard')} to="/student/dashboard">Trang chủ</Link>
             <Link className={getNavLinkClass('/student/timetable')} to="/student/timetable">Thời khóa biểu</Link>
             <Link className={getNavLinkClass('/student/chat')} to="/student/chat">Hỏi đáp SGK</Link>
-            <Link className={styles.navLink} to="#">Luyện đề</Link>
+            <Link className={getNavLinkClass('/student/practice')} to="/student/practice">Luyện đề</Link>
             <Link className={styles.navLink} to="#">Bảng vàng</Link>
           </nav>
         </div>
@@ -158,7 +165,7 @@ export const StudentHeader: React.FC = () => {
             <Link className={location.pathname.includes('/student/dashboard') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Trang chủ</Link>
             <Link className={location.pathname.includes('/student/timetable') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/timetable" onClick={() => setIsMobileMenuOpen(false)}>Thời khóa biểu</Link>
             <Link className={location.pathname.includes('/student/chat') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/chat" onClick={() => setIsMobileMenuOpen(false)}>Hỏi đáp SGK</Link>
-            <Link className={styles.mobileMenuItem} to="#" onClick={() => setIsMobileMenuOpen(false)}>Luyện đề</Link>
+            <Link className={location.pathname.includes('/student/practice') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/practice" onClick={() => setIsMobileMenuOpen(false)}>Luyện đề</Link>
             <Link className={styles.mobileMenuItem} to="#" onClick={() => setIsMobileMenuOpen(false)}>Bảng vàng</Link>
           </div>
         )}

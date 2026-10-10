@@ -1,4 +1,4 @@
-package com.vn.aitutor.dto;
+package com.vn.aitutor.dto.message;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,3 +15,4 @@ public class DocumentIngestionMessage {
     private UUID documentId;
     private String fileUrl;
 }
+

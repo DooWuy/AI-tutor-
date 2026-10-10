@@ -18,6 +18,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> {
 
+    java.util.Optional<QuizAttempt> findBySourceDraftId(UUID sourceDraftId);
+    boolean existsByStudentIdAndQuizId(UUID studentId, UUID quizId);
+
     @Query(value = """
             SELECT COUNT(qa.id) AS quizAttemptCount,
                    AVG(qa.score) AS averageScore,
@@ -190,4 +193,11 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
             @Param("fromTs") Instant fromTs,
             @Param("toTs") Instant toTs,
             @Param("subject") String subject);
+    @Query("""
+            SELECT qa FROM QuizAttempt qa
+            WHERE qa.student.id = :studentId
+              AND qa.isVisible = true
+            ORDER BY qa.submittedAt DESC
+            """)
+    List<QuizAttempt> findVisibleHistoryByStudentId(@Param("studentId") UUID studentId);
 }
