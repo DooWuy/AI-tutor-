@@ -31,6 +31,12 @@ export interface QuestionItem {
   batchId?: string | null;
 }
 
+export interface QuestionImportResult {
+  imported: number;
+  failed: number;
+  errors: { row: number; message: string }[];
+}
+
 export interface QuestionBatch {
   batchId: string;
   warning?: string | null;

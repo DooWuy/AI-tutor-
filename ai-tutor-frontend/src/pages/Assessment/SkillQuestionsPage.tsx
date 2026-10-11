@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { questionBankApi } from '../../services/assessmentApi';
-import type { GenerationJob, QuestionDraft, QuestionItem, SkillItem } from '../../types/assessment';
+import type { GenerationJob, QuestionDraft, QuestionImportResult, QuestionItem, SkillItem } from '../../types/assessment';
 import { questionTypeLabel, subjectLabel } from '../../types/assessment';
-import { DangerButton, ErrorBanner, Field, Modal, PrimaryButton, inputClass, useAssessmentBase } from './assessmentUi';
+import { groupTitle, subjectGradePath } from './questionBankGroups';
+import { DangerButton, ErrorBanner, Field, Modal, PrimaryButton, SecondaryButton, inputClass, useAssessmentBase } from './assessmentUi';
 import { MathText, QuestionView } from './MathContent';
 
 const emptyDraft = (): QuestionDraft => ({
@@ -52,6 +53,9 @@ export default function SkillQuestionsPage() {
   const [job, setJob] = useState<GenerationJob | null>(null);
   const [pollNonce, setPollNonce] = useState(0);
   const jobEpoch = useRef(0);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importReport, setImportReport] = useState<QuestionImportResult | null>(null);
 
   const reload = () => {
     setLoading(true);
@@ -163,6 +167,31 @@ export default function SkillQuestionsPage() {
     }
   };
 
+  const downloadTemplate = async () => {
+    setError('');
+    try {
+      await questionBankApi.downloadTemplate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không tải được file mẫu');
+    }
+  };
+
+  const importExcel = async (file: File) => {
+    setImporting(true);
+    setError('');
+    try {
+      const report = await questionBankApi.importExcel(skillId, file);
+      setImportReport(report);
+      if (report.imported > 0) reload();
+    } catch (err) {
+      setImportReport(null);
+      setError(err instanceof Error ? err.message : 'Không nhập được file Excel');
+    } finally {
+      setImporting(false);
+      if (fileInput.current) fileInput.current.value = '';
+    }
+  };
+
   const startAi = async () => {
     setAiLoading(true);
     setError('');
@@ -243,7 +272,17 @@ export default function SkillQuestionsPage() {
     <section className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Link className="text-sm text-primary hover:underline" to={`${base}/question-bank`}>Ngân hàng câu hỏi</Link>
+          <p className="text-sm text-primary">
+            <Link className="hover:underline" to={`${base}/question-bank`}>Ngân hàng câu hỏi</Link>
+            {skill ? (
+              <>
+                <span className="text-on-surface-variant"> / </span>
+                <Link className="hover:underline" to={subjectGradePath(base, skill.subject, skill.gradeLevel)}>
+                  {groupTitle(skill.subject, skill.gradeLevel)}
+                </Link>
+              </>
+            ) : null}
+          </p>
           <h1 className="text-2xl font-bold text-on-surface">{skill?.name || 'Câu hỏi theo kỹ năng'}</h1>
           {skill ? (
             <p className="text-sm text-on-surface-variant">{skill.skillCode} · {subjectLabel(skill.subject)} · Lớp {skill.gradeLevel}</p>
@@ -252,10 +291,37 @@ export default function SkillQuestionsPage() {
         <div className="flex flex-wrap gap-2">
           <PrimaryButton onClick={openCreate}>+ Tạo câu hỏi</PrimaryButton>
           <PrimaryButton onClick={() => setAiOpen(true)}>Tạo câu hỏi bằng AI</PrimaryButton>
+          <SecondaryButton disabled={importing} onClick={() => fileInput.current?.click()}>
+            {importing ? 'Đang nhập...' : 'Nhập Excel'}
+          </SecondaryButton>
+          <SecondaryButton onClick={downloadTemplate}>Tải mẫu</SecondaryButton>
           <DangerButton disabled={selected.length === 0} onClick={() => setConfirmBulk(true)}>Xóa các câu hỏi đã chọn</DangerButton>
         </div>
       </div>
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void importExcel(file);
+        }}
+      />
+      <p className="text-sm text-on-surface-variant">File mẫu có cột Loại, Nội dung, Giải thích, Độ khó, Thẻ, phương án A–F và Đáp án đúng. Hãy sửa các dòng ví dụ trước khi nhập.</p>
       <ErrorBanner message={error} />
+      {importReport ? (
+        <div className="rounded-xl border border-outline-variant px-4 py-3 text-sm">
+          <p className="font-medium text-on-surface">Đã nhập {importReport.imported} câu vào ngân hàng.</p>
+          {importReport.failed > 0 ? (
+            <ul className="mt-2 space-y-1 text-on-surface-variant">
+              {importReport.errors.map((item) => (
+                <li key={`${item.row}-${item.message}`}>Dòng {item.row}: {item.message}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
       {!aiOpen && job?.status === 'RUNNING' ? (
         <div className="rounded-xl border border-primary/30 bg-primary-fixed px-4 py-3 text-sm">
           <p className="font-medium text-primary">AI đang biên soạn câu hỏi và lời giải chi tiết cho bạn...</p>

@@ -4,6 +4,7 @@ import type {
   GenerationJob,
   QuestionBatch,
   QuestionDraft,
+  QuestionImportResult,
   QuestionItem,
   QuizDraft,
   QuizItem,
@@ -85,6 +86,28 @@ export const questionBankApi = {
     request<QuestionItem[]>(`/question-bank/skills/${lessonId}/questions`),
   createQuestion: (lessonId: string, body: QuestionDraft) =>
     request<QuestionItem>(`/question-bank/skills/${lessonId}/questions`, { method: 'POST', body: JSON.stringify(body) }),
+  importExcel: (lessonId: string, file: File) => {
+    const body = new FormData();
+    body.append('file', file);
+    return request<QuestionImportResult>(`/question-bank/skills/${lessonId}/import`, { method: 'POST', body });
+  },
+  async downloadTemplate() {
+    const response = await fetch(`${API_BASE_URL}/question-bank/import-template.xlsx`, {
+      credentials: 'include',
+      headers: authHeaders(false),
+    });
+    if (!response.ok) {
+      const payload = await parseJson<ApiResponse<unknown>>(response);
+      throw new AssessmentApiError(errorMessage(payload, response.status), response.status);
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'mau-ngan-hang-cau-hoi.xlsx';
+    link.click();
+    URL.revokeObjectURL(url);
+  },
   updateQuestion: (questionId: string, body: QuestionDraft) =>
     request<QuestionItem>(`/question-bank/questions/${questionId}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteQuestion: (questionId: string) =>

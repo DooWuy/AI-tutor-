@@ -111,6 +111,27 @@ export function PrimaryButton({
   );
 }
 
+export function SecondaryButton({
+  children,
+  onClick,
+  disabled,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="rounded-xl border border-outline-variant bg-surface px-4 py-2 text-sm font-semibold text-on-surface disabled:opacity-50"
+    >
+      {children}
+    </button>
+  );
+}
+
 export function DangerButton({ children, onClick, disabled }: { children: ReactNode; onClick?: () => void; disabled?: boolean }) {
   return (
     <button type="button" disabled={disabled} onClick={onClick} className="rounded-xl bg-error px-4 py-2 text-sm font-semibold text-on-error disabled:opacity-50">

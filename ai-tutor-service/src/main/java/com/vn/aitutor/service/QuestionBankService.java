@@ -6,6 +6,7 @@ import com.vn.aitutor.dto.request.QuestionChoiceRequest;
 import com.vn.aitutor.dto.request.QuestionUpsertRequest;
 import com.vn.aitutor.dto.response.ChoiceResponse;
 import com.vn.aitutor.dto.response.QuestionBatchResponse;
+import com.vn.aitutor.dto.response.QuestionImportResponse;
 import com.vn.aitutor.dto.response.QuestionResponse;
 import com.vn.aitutor.dto.response.SkillResponse;
 import com.vn.aitutor.entity.Lesson;
@@ -20,6 +21,8 @@ import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.exception.ResourceNotFoundException;
 import com.vn.aitutor.quiz.ChoiceInput;
 import com.vn.aitutor.quiz.NormalizedQuestion;
+import com.vn.aitutor.quiz.QuestionBankWorkbook;
+import com.vn.aitutor.quiz.QuestionBankWorkbook.ImportedRow;
 import com.vn.aitutor.quiz.QuestionContentRules;
 import com.vn.aitutor.repository.DocumentChunkRepository;
 import com.vn.aitutor.repository.LessonRepository;
@@ -43,6 +46,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class QuestionBankService {
 
     static final int CONTEXT_BUDGET = 8000;
+    static final int MAX_IMPORT_BYTES = 5 * 1024 * 1024;
     static final String NO_THEORY_WARNING =
             "Kỹ năng chưa có tài liệu lý thuyết. AI soạn theo tên kỹ năng.";
 
@@ -82,6 +86,42 @@ public class QuestionBankService {
         item.setReviewStatus(ReviewStatus.ACTIVE);
         apply(item, normalize(request));
         return toResponse(questionBankRepository.save(item));
+    }
+
+    @Transactional
+    public QuestionImportResponse importExcel(UUID lessonId, String filename, byte[] content, UserPrincipal principal) {
+        if (filename == null || !filename.toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
+            throw new ResourceBadRequestException("Chỉ nhận file Excel .xlsx");
+        }
+        if (content != null && content.length > MAX_IMPORT_BYTES) {
+            throw new ResourceBadRequestException("File Excel tối đa 5 MB");
+        }
+        Lesson lesson = requireLesson(lessonId);
+        User creator = author(principal);
+        List<QuestionImportResponse.RowError> errors = new ArrayList<>();
+        int imported = 0;
+        for (ImportedRow row : QuestionBankWorkbook.read(content)) {
+            if (row.error() != null) {
+                errors.add(error(row.rowNumber(), row.error()));
+                continue;
+            }
+            try {
+                QuestionBankItem item = new QuestionBankItem();
+                item.setLesson(lesson);
+                item.setCreatedBy(creator);
+                item.setReviewStatus(ReviewStatus.ACTIVE);
+                apply(item, normalize(row.request()));
+                questionBankRepository.save(item);
+                imported++;
+            } catch (ResourceBadRequestException ex) {
+                errors.add(error(row.rowNumber(), ex.getMessage()));
+            }
+        }
+        return QuestionImportResponse.builder()
+                .imported(imported)
+                .failed(errors.size())
+                .errors(errors)
+                .build();
     }
 
     @Transactional
@@ -366,5 +406,9 @@ public class QuestionBankService {
 
     private boolean blank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private QuestionImportResponse.RowError error(int row, String message) {
+        return QuestionImportResponse.RowError.builder().row(row).message(message).build();
     }
 }

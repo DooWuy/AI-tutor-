@@ -5,17 +5,23 @@ import com.vn.aitutor.dto.request.GenerateQuestionsRequest;
 import com.vn.aitutor.dto.request.QuestionUpsertRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.QuestionBatchResponse;
+import com.vn.aitutor.dto.response.QuestionImportResponse;
 import com.vn.aitutor.dto.response.QuestionResponse;
 import com.vn.aitutor.dto.response.SkillResponse;
+import com.vn.aitutor.exception.ResourceBadRequestException;
+import com.vn.aitutor.quiz.QuestionBankWorkbook;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.GenerationJobService;
 import com.vn.aitutor.service.QuestionBankService;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,12 +34,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/question-bank")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
 public class QuestionBankController {
+
+    private static final MediaType XLSX = MediaType.parseMediaType(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
     private final QuestionBankService questionBankService;
     private final GenerationJobService generationJobService;
@@ -57,6 +67,31 @@ public class QuestionBankController {
             @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ok("Đã lưu câu hỏi vào ngân hàng", questionBankService.create(lessonId, request, principal)));
+    }
+
+    @GetMapping("/import-template.xlsx")
+    public ResponseEntity<byte[]> importTemplate() {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"mau-ngan-hang-cau-hoi.xlsx\"")
+                .contentType(XLSX)
+                .body(QuestionBankWorkbook.template());
+    }
+
+    @PostMapping(value = "/skills/{lessonId}/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<QuestionImportResponse>> importExcel(
+            @PathVariable UUID lessonId,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        byte[] content;
+        try {
+            content = file == null ? new byte[0] : file.getBytes();
+        } catch (IOException ex) {
+            throw new ResourceBadRequestException("Không đọc được file Excel");
+        }
+        String filename = file == null ? "" : file.getOriginalFilename();
+        return ResponseEntity.ok(ok(
+                "Đã nhập câu hỏi từ Excel",
+                questionBankService.importExcel(lessonId, filename, content, principal)));
     }
 
     @GetMapping("/questions/{questionId}")

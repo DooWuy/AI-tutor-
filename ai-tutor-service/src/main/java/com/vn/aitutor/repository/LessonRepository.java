@@ -54,7 +54,7 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
                     ) qc ON qc.lesson_id = l.id
                     WHERE (:subject IS NULL OR b.subject = :subject)
                       AND (:gradeLevel IS NULL OR b.grade_level = :gradeLevel)
-                    ORDER BY b.subject, b.grade_level, c.display_order, l.display_order, l.title
+                    ORDER BY b.subject, b.grade_level, b.created_at, b.title, c.display_order, l.display_order, l.title
                     """,
             nativeQuery = true)
     List<SkillSummaryRow> findSkills(

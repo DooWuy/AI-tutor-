@@ -18,6 +18,7 @@ import { AdminDashboardPage } from './pages/Admin/AdminDashboardPage';
 import { AdminStudentDetailShell } from './pages/Admin/Students/AdminStudentDetailShell';
 import { StudentManagementPage } from './pages/Admin/Students/StudentManagementPage';
 import QuestionBankPage from './pages/Assessment/QuestionBankPage';
+import SubjectSkillsPage from './pages/Assessment/SubjectSkillsPage';
 import SkillQuestionsPage from './pages/Assessment/SkillQuestionsPage';
 import QuizListPage from './pages/Assessment/QuizListPage';
 import QuizEditorPage from './pages/Assessment/QuizEditorPage';
@@ -51,6 +52,7 @@ function App() {
           <Route path="dashboard" element={<Navigate to="/teacher/analytics" replace />} />
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="question-bank" element={<QuestionBankPage />} />
+          <Route path="question-bank/:subject/:grade" element={<SubjectSkillsPage />} />
           <Route path="question-bank/:skillId" element={<SkillQuestionsPage />} />
           <Route path="quizzes" element={<QuizListPage />} />
           <Route path="quizzes/new" element={<QuizEditorPage />} />
@@ -68,6 +70,7 @@ function App() {
           <Route path="students" element={<StudentManagementPage />} />
           <Route path="students/:studentId" element={<AdminStudentDetailShell />} />
           <Route path="question-bank" element={<QuestionBankPage />} />
+          <Route path="question-bank/:subject/:grade" element={<SubjectSkillsPage />} />
           <Route path="question-bank/:skillId" element={<SkillQuestionsPage />} />
           <Route path="quizzes" element={<QuizListPage />} />
           <Route path="quizzes/new" element={<QuizEditorPage />} />
