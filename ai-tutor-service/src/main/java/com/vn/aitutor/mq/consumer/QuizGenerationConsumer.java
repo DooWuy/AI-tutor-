@@ -46,7 +46,7 @@ public class QuizGenerationConsumer {
             if ("READY".equals(quiz.getGenerationStatus())) return;
             
             List<QuestionBankItem> existingQuestions = List.of();
-            if (message.getTopic() != null && !message.getTopic().isBlank() && message.getDifficulty() != null) {
+            if (message.getTopic() != null && !message.getTopic().isBlank()) {
                 existingQuestions = questionBankRepository.findActiveByStemAndDifficulty(
                         message.getTopic(), message.getDifficulty());
                 if (existingQuestions.size() > message.getCount()) {
