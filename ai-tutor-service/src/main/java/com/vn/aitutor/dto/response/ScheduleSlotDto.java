@@ -1,4 +1,4 @@
-package com.vn.aitutor.dto;
+package com.vn.aitutor.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,3 +22,4 @@ public class ScheduleSlotDto {
     private String room;
     private String scheduleType;
 }
+

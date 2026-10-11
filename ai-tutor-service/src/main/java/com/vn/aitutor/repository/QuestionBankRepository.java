@@ -51,4 +51,15 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBankItem, 
             @Param("gradeLevel") String gradeLevel,
             @Param("excludedEmpty") boolean excludedEmpty,
             @Param("excludedIds") Collection<UUID> excludedIds);
+
+    @EntityGraph(attributePaths = "choices")
+    @Query("""
+            select q from QuestionBankItem q
+            where q.reviewStatus = com.vn.aitutor.entity.enums.ReviewStatus.ACTIVE
+              and q.difficulty = :difficulty
+              and lower(q.stem) like lower(concat('%', :topic, '%'))
+            order by q.createdAt desc
+            """)
+    List<QuestionBankItem> findActiveByStemAndDifficulty(
+            @Param("topic") String topic, @Param("difficulty") int difficulty);
 }

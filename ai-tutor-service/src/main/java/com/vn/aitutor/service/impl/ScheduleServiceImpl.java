@@ -5,7 +5,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-import com.vn.aitutor.dto.ScheduleSlotDto;
+import com.vn.aitutor.dto.response.ScheduleSlotDto;
 import com.vn.aitutor.dto.request.ScheduleCreateRequest;
 import com.vn.aitutor.dto.response.OcrExtractionResponse;
 import com.vn.aitutor.dto.response.ScheduleResponse;
@@ -361,3 +361,4 @@ public class ScheduleServiceImpl implements IScheduleService {
                 .build();
     }
 }
+

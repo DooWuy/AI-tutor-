@@ -8,7 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.vn.aitutor.dto.DocumentIngestionMessage;
+import com.vn.aitutor.dto.message.DocumentIngestionMessage;
 import com.vn.aitutor.entity.Document;
 import com.vn.aitutor.entity.User;
 import com.vn.aitutor.entity.enums.DocumentStatus;

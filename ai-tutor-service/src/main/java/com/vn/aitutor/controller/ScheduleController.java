@@ -4,6 +4,7 @@ import com.vn.aitutor.dto.request.ScheduleCreateRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.OcrExtractionResponse;
 import com.vn.aitutor.dto.response.ScheduleResponse;
+import com.vn.aitutor.dto.response.ScheduleSlotDto;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.IScheduleService;
 import lombok.RequiredArgsConstructor;
@@ -61,13 +62,13 @@ public class ScheduleController {
     }
 
     @PostMapping("/slots")
-    public ResponseEntity<ApiResponse<com.vn.aitutor.dto.ScheduleSlotDto>> addScheduleSlot(
+    public ResponseEntity<ApiResponse<ScheduleSlotDto>> addScheduleSlot(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @RequestBody com.vn.aitutor.dto.ScheduleSlotDto request) {
+            @RequestBody ScheduleSlotDto request) {
         
-        com.vn.aitutor.dto.ScheduleSlotDto response = scheduleService.addScheduleSlot(userPrincipal.getUsers().getId(), request);
+        ScheduleSlotDto response = scheduleService.addScheduleSlot(userPrincipal.getUsers().getId(), request);
         
-        return ResponseEntity.ok(ApiResponse.<com.vn.aitutor.dto.ScheduleSlotDto>builder()
+        return ResponseEntity.ok(ApiResponse.<ScheduleSlotDto>builder()
                 .success(true)
                 .message("Thêm tiết học thành công")
                 .data(response)
@@ -75,14 +76,14 @@ public class ScheduleController {
     }
 
     @PutMapping("/slots/{slotId}")
-    public ResponseEntity<ApiResponse<com.vn.aitutor.dto.ScheduleSlotDto>> updateScheduleSlot(
+    public ResponseEntity<ApiResponse<ScheduleSlotDto>> updateScheduleSlot(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable java.util.UUID slotId,
-            @RequestBody com.vn.aitutor.dto.ScheduleSlotDto request) {
+            @RequestBody ScheduleSlotDto request) {
         
-        com.vn.aitutor.dto.ScheduleSlotDto response = scheduleService.updateScheduleSlot(userPrincipal.getUsers().getId(), slotId, request);
+        ScheduleSlotDto response = scheduleService.updateScheduleSlot(userPrincipal.getUsers().getId(), slotId, request);
         
-        return ResponseEntity.ok(ApiResponse.<com.vn.aitutor.dto.ScheduleSlotDto>builder()
+        return ResponseEntity.ok(ApiResponse.<ScheduleSlotDto>builder()
                 .success(true)
                 .message("Cập nhật tiết học thành công")
                 .data(response)

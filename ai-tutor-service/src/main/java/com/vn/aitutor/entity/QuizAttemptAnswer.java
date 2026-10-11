@@ -40,7 +40,7 @@ public class QuizAttemptAnswer {
     @JoinColumn(name = "question_id", nullable = false)
     private QuizQuestion question;
 
-    @Column(name = "selected_option_key", length = 64)
+    @Column(name = "selected_option_key", length = 200)
     private String selectedOptionKey;
 
     @Column(name = "is_correct", nullable = false)

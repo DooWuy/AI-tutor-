@@ -47,7 +47,7 @@ public class QuizQuestion {
     @Column(name = "options", nullable = false, columnDefinition = "jsonb")
     private List<Map<String, Object>> options = new ArrayList<>();
 
-    @Column(name = "correct_option_key", length = 64)
+    @Column(name = "correct_option_key", length = 200)
     private String correctOptionKey;
 
     @Column(name = "explanation")
@@ -65,6 +65,14 @@ public class QuizQuestion {
     @Enumerated(EnumType.STRING)
     @Column(name = "question_type", nullable = false, length = 32)
     private QuestionType questionType = QuestionType.MULTIPLE_CHOICE;
+
+    public QuestionType getType() {
+        return questionType;
+    }
+
+    public void setType(QuestionType type) {
+        this.questionType = type == null ? QuestionType.MULTIPLE_CHOICE : type;
+    }
 
     @Column(name = "difficulty", nullable = false)
     private int difficulty = 3;

@@ -14,7 +14,7 @@ import com.vn.aitutor.service.ICloudinaryService;
 import com.vn.aitutor.service.IDocumentIngestionService;
 import com.vn.aitutor.service.LearningMaterialValidator;
 import com.vn.aitutor.config.RabbitMQConfig;
-import com.vn.aitutor.dto.DocumentIngestionMessage;
+import com.vn.aitutor.dto.message.DocumentIngestionMessage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -104,3 +104,4 @@ public class DocumentIngestionServiceImpl implements IDocumentIngestionService {
                 .orElseThrow(() -> new com.vn.aitutor.exception.ResourceNotFoundException("Không tìm thấy người dùng"));
     }
 }
+

@@ -20,7 +20,8 @@ class CurriculumCodesTest {
         assertEquals("10", GradeLevels.normalize("Lớp 10"));
         assertEquals("11", GradeLevels.normalize("Khối 11"));
         assertEquals("12", GradeLevels.normalize("12"));
-        assertThrows(ResourceBadRequestException.class, () -> GradeLevels.normalize("Lớp 5"));
+        assertEquals("5", GradeLevels.normalize("Lớp 5"));
+        assertThrows(ResourceBadRequestException.class, () -> GradeLevels.normalize("Lớp 13"));
     }
 
     @Test

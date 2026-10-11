@@ -91,7 +91,7 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - ai_tutor_ollama:/root/.ollama
+      - ./ollama_data:/root/.ollama
     restart: unless-stopped
 
   ai-tutor-frontend:

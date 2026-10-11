@@ -17,6 +17,9 @@ public class RabbitMQConfig {
     public static final String DOCUMENT_INGESTION_ROUTING_KEY = "document.ingestion.routing.key";
     public static final String CURRICULUM_EXTRACTION_QUEUE = "curriculum.extraction.queue";
     public static final String CURRICULUM_EXTRACTION_ROUTING_KEY = "curriculum.extraction.routing.key";
+    
+    public static final String QUIZ_GENERATION_QUEUE = "quiz.generation.queue";
+    public static final String QUIZ_GENERATION_ROUTING_KEY = "quiz.generation.routing.key";
 
     @Bean
     public Queue documentIngestionQueue() {
@@ -43,6 +46,18 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(curriculumExtractionQueue)
                 .to(documentExchange)
                 .with(CURRICULUM_EXTRACTION_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue quizGenerationQueue() {
+        return new Queue(QUIZ_GENERATION_QUEUE, true);
+    }
+
+    @Bean
+    public Binding bindingQuizGeneration(Queue quizGenerationQueue, DirectExchange documentExchange) {
+        return BindingBuilder.bind(quizGenerationQueue)
+                .to(documentExchange)
+                .with(QUIZ_GENERATION_ROUTING_KEY);
     }
 
     @Bean

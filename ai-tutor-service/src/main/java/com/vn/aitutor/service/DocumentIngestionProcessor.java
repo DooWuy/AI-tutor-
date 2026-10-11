@@ -1,7 +1,7 @@
 package com.vn.aitutor.service;
 
 import com.vn.aitutor.curriculum.LatexAwareSplitter;
-import com.vn.aitutor.dto.DocumentIngestionMessage;
+import com.vn.aitutor.dto.message.DocumentIngestionMessage;
 import com.vn.aitutor.entity.Document;
 import com.vn.aitutor.entity.DocumentChunk;
 import com.vn.aitutor.entity.enums.DocumentStatus;
@@ -123,3 +123,4 @@ public class DocumentIngestionProcessor {
         messagingTemplate.convertAndSendToUser(userId, "/queue/document-progress", payload);
     }
 }
+

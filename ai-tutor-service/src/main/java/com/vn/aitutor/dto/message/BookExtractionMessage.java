@@ -1,4 +1,4 @@
-package com.vn.aitutor.dto;
+package com.vn.aitutor.dto.message;
 
 import com.vn.aitutor.dto.request.ExtractStructureRequest;
 import java.util.List;
@@ -21,3 +21,4 @@ public class BookExtractionMessage {
     private String documentType;
     private List<ExtractStructureRequest.ChapterNode> chapters;
 }
+

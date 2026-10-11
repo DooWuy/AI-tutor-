@@ -61,4 +61,6 @@ public interface QuizAttemptAnswerRepository extends JpaRepository<QuizAttemptAn
                     """,
             nativeQuery = true)
     List<QuestionWrongRateRow> aggregateWrongRates(@Param("quizId") UUID quizId);
+
+    List<QuizAttemptAnswer> findByAttemptId(UUID attemptId);
 }

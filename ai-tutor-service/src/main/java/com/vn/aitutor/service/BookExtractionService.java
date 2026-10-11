@@ -2,8 +2,8 @@ package com.vn.aitutor.service;
 
 import com.vn.aitutor.config.RabbitMQConfig;
 import com.vn.aitutor.curriculum.PdfSplitterUtil;
-import com.vn.aitutor.dto.BookExtractionMessage;
-import com.vn.aitutor.dto.DocumentIngestionMessage;
+import com.vn.aitutor.dto.message.BookExtractionMessage;
+import com.vn.aitutor.dto.message.DocumentIngestionMessage;
 import com.vn.aitutor.dto.request.ExtractStructureRequest;
 import com.vn.aitutor.dto.request.ExtractStructureRequest.ChapterNode;
 import com.vn.aitutor.dto.request.ExtractStructureRequest.LessonNode;
@@ -163,3 +163,5 @@ public class BookExtractionService {
         messagingTemplate.convertAndSendToUser(userId, "/queue/curriculum-ingest", payload);
     }
 }
+
+
