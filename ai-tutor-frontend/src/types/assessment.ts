@@ -23,7 +23,7 @@ export interface QuestionItem {
   stem: string;
   explanation: string;
   difficulty: number;
-  questionType: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_BLANK' | string;
+  questionType: 'MULTIPLE_CHOICE' | 'MULTI_SELECT' | 'TRUE_FALSE' | 'FILL_BLANK' | string;
   reviewStatus: 'PENDING' | 'ACTIVE' | string;
   tags: string[];
   choices: ChoiceItem[];
@@ -159,6 +159,7 @@ export function subjectLabel(value?: string | null) {
 }
 
 export function questionTypeLabel(value?: string | null) {
+  if (value === 'MULTI_SELECT') return 'Trắc nghiệm nhiều đáp án';
   if (value === 'TRUE_FALSE') return 'Đúng/Sai';
   if (value === 'FILL_BLANK') return 'Điền từ';
   return 'Trắc nghiệm';

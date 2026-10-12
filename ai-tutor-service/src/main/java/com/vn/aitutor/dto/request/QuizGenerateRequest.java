@@ -40,4 +40,8 @@ public class QuizGenerateRequest {
     @NotNull(message = "Số câu điền từ không được để trống")
     @Min(value = 0, message = "Số câu điền từ không được âm")
     private Integer fillBlank;
+
+    @NotNull(message = "Số câu trắc nghiệm nhiều đáp án không được để trống")
+    @Min(value = 0, message = "Số câu trắc nghiệm nhiều đáp án không được âm")
+    private Integer multiSelect;
 }

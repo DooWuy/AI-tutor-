@@ -48,6 +48,9 @@ public final class QuestionBankWorkbook {
             writeRow(sheet, 3, "Điền từ", "Điền số tiếp theo của dãy 2, 4, 6.",
                     "Dãy tăng thêm 2 ở mỗi số hạng.", 3, "dãy số",
                     new String[] {"", "", "", "", "", ""}, "8");
+            writeRow(sheet, 4, "Trắc nghiệm nhiều đáp án", "Những số nào sau đây là số chẵn?",
+                    "Số chẵn là số chia hết cho 2.", 2, "số chẵn",
+                    new String[] {"2", "3", "4", "5", "", ""}, "A,C");
             workbook.write(out);
             return out.toByteArray();
         } catch (IOException ex) {
@@ -137,7 +140,8 @@ public final class QuestionBankWorkbook {
         }
         String type = questionType(typeRaw);
         if (type == null) {
-            return new ImportedRow(rowNumber, null, "Loại câu hỏi phải là Trắc nghiệm, Đúng/Sai hoặc Điền từ");
+            return new ImportedRow(rowNumber, null,
+                    "Loại câu hỏi phải là Trắc nghiệm, Trắc nghiệm nhiều đáp án, Đúng/Sai hoặc Điền từ");
         }
         Integer difficulty = difficulty(difficultyRaw);
         if (difficulty == null) {
@@ -163,10 +167,22 @@ public final class QuestionBankWorkbook {
 
     private static void markCorrect(List<QuestionChoiceRequest> choices, String answer) {
         String wanted = answer.trim();
+        boolean whole = choices.stream().anyMatch(choice ->
+                choice.getKey().equalsIgnoreCase(wanted) || choice.getText().equalsIgnoreCase(wanted));
+        List<String> tokens = new ArrayList<>();
+        if (whole || wanted.isEmpty()) {
+            tokens.add(wanted);
+        } else {
+            for (String part : wanted.split("[,;]")) {
+                if (!part.isBlank()) {
+                    tokens.add(part.trim());
+                }
+            }
+        }
         for (QuestionChoiceRequest choice : choices) {
-            boolean byKey = choice.getKey().equalsIgnoreCase(wanted);
-            boolean byText = choice.getText().equalsIgnoreCase(wanted);
-            choice.setCorrect(byKey || byText);
+            boolean matched = tokens.stream().anyMatch(token ->
+                    choice.getKey().equalsIgnoreCase(token) || choice.getText().equalsIgnoreCase(token));
+            choice.setCorrect(matched);
         }
     }
 
@@ -194,6 +210,8 @@ public final class QuestionBankWorkbook {
         String key = fold(raw);
         return switch (key) {
             case "tracnghiem", "multiplechoice", "mc" -> "MULTIPLE_CHOICE";
+            case "tracnghiemnhieudapan", "tracnghiemnhieudapandung", "chonnhieu", "chonnhieudapan",
+                    "nhieudapan", "multiselect", "multipleanswer", "multipleanswers", "multipleresponse" -> "MULTI_SELECT";
             case "dungsai", "truefalse", "tf" -> "TRUE_FALSE";
             case "dientu", "dienkhuyet", "fillblank", "fillinblank", "shortanswer", "traloingan" -> "FILL_BLANK";
             default -> null;

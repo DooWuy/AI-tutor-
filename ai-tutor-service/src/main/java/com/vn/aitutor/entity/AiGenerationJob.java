@@ -82,6 +82,9 @@ public class AiGenerationJob {
     @Column(name = "fill_blank")
     private Integer fillBlank;
 
+    @Column(name = "multi_select")
+    private Integer multiSelect;
+
     @Column(name = "message")
     private String message;
 

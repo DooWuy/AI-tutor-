@@ -91,16 +91,18 @@ class QuestionBankServiceTest {
         QuestionImportResponse result = questionBankService.importExcel(
                 lessonId, "bo-cau-hoi.xlsx", withShortStem(QuestionBankWorkbook.template()), principal);
 
-        assertEquals(3, result.getImported());
+        assertEquals(4, result.getImported());
         assertEquals(1, result.getFailed());
-        assertEquals(5, result.getErrors().get(0).getRow());
+        assertEquals(6, result.getErrors().get(0).getRow());
         assertEquals("Nội dung câu hỏi phải từ 10 đến 2000 ký tự", result.getErrors().get(0).getMessage());
         ArgumentCaptor<QuestionBankItem> saved = ArgumentCaptor.forClass(QuestionBankItem.class);
-        verify(questionBankRepository, times(3)).save(saved.capture());
+        verify(questionBankRepository, times(4)).save(saved.capture());
         assertEquals(QuestionType.MULTIPLE_CHOICE, saved.getAllValues().get(0).getQuestionType());
         assertEquals(QuestionType.TRUE_FALSE, saved.getAllValues().get(1).getQuestionType());
         assertEquals(QuestionType.FILL_BLANK, saved.getAllValues().get(2).getQuestionType());
         assertEquals("8", saved.getAllValues().get(2).getCorrectText());
+        assertEquals(QuestionType.MULTI_SELECT, saved.getAllValues().get(3).getQuestionType());
+        assertEquals(2, saved.getAllValues().get(3).getChoices().stream().filter(choice -> choice.isCorrect()).count());
     }
 
     @Test
@@ -114,7 +116,7 @@ class QuestionBankServiceTest {
     private static byte[] withShortStem(byte[] template) throws IOException {
         try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(template));
                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            var row = workbook.getSheetAt(0).createRow(4);
+            var row = workbook.getSheetAt(0).createRow(5);
             row.createCell(0).setCellValue("Trắc nghiệm");
             row.createCell(1).setCellValue("ngắn");
             row.createCell(2).setCellValue("Lời giải này đủ dài.");

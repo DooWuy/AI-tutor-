@@ -247,7 +247,8 @@ public class QuestionBankService {
         try {
             return QuestionType.valueOf(raw.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw new ResourceBadRequestException("Loại câu hỏi phải là trắc nghiệm, đúng/sai hoặc điền từ");
+            throw new ResourceBadRequestException(
+                    "Loại câu hỏi phải là trắc nghiệm, trắc nghiệm nhiều đáp án, đúng/sai hoặc điền từ");
         }
     }
 

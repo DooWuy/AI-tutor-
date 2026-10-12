@@ -17,5 +17,6 @@ public record GenerationWork(
         Integer maxDifficulty,
         Integer multipleChoice,
         Integer trueFalse,
-        Integer fillBlank) {
+        Integer fillBlank,
+        Integer multiSelect) {
 }

@@ -39,6 +39,7 @@ export default function QuizEditorPage() {
   const [minDifficulty, setMinDifficulty] = useState(2);
   const [maxDifficulty, setMaxDifficulty] = useState(4);
   const [multipleChoice, setMultipleChoice] = useState(3);
+  const [multiSelect, setMultiSelect] = useState(0);
   const [trueFalse, setTrueFalse] = useState(1);
   const [fillBlank, setFillBlank] = useState(1);
   const [aiMessage, setAiMessage] = useState('');
@@ -182,6 +183,7 @@ export default function QuizEditorPage() {
         minDifficulty,
         maxDifficulty,
         multipleChoice,
+        multiSelect,
         trueFalse,
         fillBlank,
       });
@@ -211,7 +213,7 @@ export default function QuizEditorPage() {
     }
   };
 
-  const ratioSum = multipleChoice + trueFalse + fillBlank;
+  const ratioSum = multipleChoice + multiSelect + trueFalse + fillBlank;
   const pickerText = pickerQuery.trim().toLowerCase();
   const visibleBank = bankQuestions.filter((item) => {
     if (pickerDifficulty !== 'ALL' && item.difficulty !== Number(pickerDifficulty)) return false;
@@ -288,12 +290,18 @@ export default function QuizEditorPage() {
                 </div>
                 <QuestionView
                   stem={question.stem}
-                  choices={(question.options || []).map((option) => ({
-                    key: option.key,
-                    text: option.text,
-                    correct: !!question.correctOptionKey && option.key === question.correctOptionKey,
-                  }))}
-                  correctText={(question.options || []).some((option) => option.key === question.correctOptionKey)
+                  choices={(question.options || []).map((option) => {
+                    const keys = (question.correctOptionKey || '').split(/[,;]/).map((part) => part.trim()).filter(Boolean);
+                    return {
+                      key: option.key,
+                      text: option.text,
+                      correct: !!option.key && keys.includes(option.key),
+                    };
+                  })}
+                  correctText={(question.options || []).some((option) => {
+                    const keys = (question.correctOptionKey || '').split(/[,;]/).map((part) => part.trim()).filter(Boolean);
+                    return !!option.key && keys.includes(option.key);
+                  })
                     ? undefined
                     : (question.correctText || question.correctOptionKey)}
                   explanation={question.explanation}
@@ -311,6 +319,7 @@ export default function QuizEditorPage() {
               <Field label="Độ khó tối thiểu"><input className={inputClass} type="number" min={1} max={5} value={minDifficulty} onChange={(event) => setMinDifficulty(Number(event.target.value))} /></Field>
               <Field label="Độ khó tối đa"><input className={inputClass} type="number" min={1} max={5} value={maxDifficulty} onChange={(event) => setMaxDifficulty(Number(event.target.value))} /></Field>
               <Field label="Trắc nghiệm"><input className={inputClass} type="number" min={0} value={multipleChoice} onChange={(event) => setMultipleChoice(Number(event.target.value))} /></Field>
+              <Field label="Trắc nghiệm nhiều đáp án"><input className={inputClass} type="number" min={0} value={multiSelect} onChange={(event) => setMultiSelect(Number(event.target.value))} /></Field>
               <Field label="Đúng/Sai"><input className={inputClass} type="number" min={0} value={trueFalse} onChange={(event) => setTrueFalse(Number(event.target.value))} /></Field>
               <Field label="Điền từ"><input className={inputClass} type="number" min={0} value={fillBlank} onChange={(event) => setFillBlank(Number(event.target.value))} /></Field>
             </div>
@@ -345,6 +354,7 @@ export default function QuizEditorPage() {
               <select className={inputClass} aria-label="Lọc loại trả lời" value={pickerType} onChange={(event) => setPickerType(event.target.value)}>
                 <option value="ALL">Tất cả</option>
                 <option value="MULTIPLE_CHOICE">Trắc nghiệm</option>
+                <option value="MULTI_SELECT">Trắc nghiệm nhiều đáp án</option>
                 <option value="TRUE_FALSE">Đúng/Sai</option>
                 <option value="FILL_BLANK">Điền từ</option>
               </select>

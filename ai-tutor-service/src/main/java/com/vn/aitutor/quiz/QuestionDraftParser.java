@@ -49,7 +49,7 @@ public final class QuestionDraftParser {
             boolean correct = bool(choice, "correct") || bool(choice, "isCorrect");
             choices.add(new ChoiceInput(text(choice, "key"), text(choice, "text"), correct));
         }
-        markAnswerKey(choices, text(item, "correctText"));
+        markAnswerKey(choices, text(item, "correctText"), type);
         List<String> tags = new ArrayList<>();
         for (JsonNode tag : item.path("tags")) {
             if (tag.isTextual()) {
@@ -140,7 +140,11 @@ public final class QuestionDraftParser {
                 || text.startsWith("tan", start);
     }
 
-    private static void markAnswerKey(List<ChoiceInput> choices, String correctText) {
+    private static void markAnswerKey(List<ChoiceInput> choices, String correctText, QuestionType type) {
+        if (type == QuestionType.MULTI_SELECT) {
+            markSeveral(choices, correctText);
+            return;
+        }
         if (correctText == null || correctText.isBlank()) {
             return;
         }
@@ -151,6 +155,30 @@ public final class QuestionDraftParser {
         for (int i = 0; i < choices.size(); i++) {
             ChoiceInput choice = choices.get(i);
             boolean selected = key.equalsIgnoreCase(choice.key()) || key.equalsIgnoreCase(choice.text());
+            choices.set(i, new ChoiceInput(choice.key(), choice.text(), selected));
+        }
+    }
+
+    private static void markSeveral(List<ChoiceInput> choices, String correctText) {
+        if (choices.stream().filter(ChoiceInput::correct).count() >= 2) {
+            return;
+        }
+        if (correctText == null || correctText.isBlank()) {
+            return;
+        }
+        List<String> tokens = new ArrayList<>();
+        for (String part : correctText.split("[,;]")) {
+            if (!part.isBlank()) {
+                tokens.add(part.trim());
+            }
+        }
+        if (tokens.size() < 2) {
+            return;
+        }
+        for (int i = 0; i < choices.size(); i++) {
+            ChoiceInput choice = choices.get(i);
+            boolean selected = tokens.stream().anyMatch(token ->
+                    token.equalsIgnoreCase(choice.key()) || token.equalsIgnoreCase(choice.text()));
             choices.set(i, new ChoiceInput(choice.key(), choice.text(), selected));
         }
     }

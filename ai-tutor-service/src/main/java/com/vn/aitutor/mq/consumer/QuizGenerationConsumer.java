@@ -171,7 +171,9 @@ public class QuizGenerationConsumer {
     }
 
     private QuestionBankCreateRequest toRequest(QuestionBankItem item) {
-        if (item.getStem() == null || item.getStem().isBlank() || item.getExplanation() == null || item.getExplanation().isBlank()) {
+        if (item.getQuestionType() == QuestionType.MULTI_SELECT
+                || item.getStem() == null || item.getStem().isBlank()
+                || item.getExplanation() == null || item.getExplanation().isBlank()) {
             return null;
         }
         List<String> choices = new ArrayList<>();

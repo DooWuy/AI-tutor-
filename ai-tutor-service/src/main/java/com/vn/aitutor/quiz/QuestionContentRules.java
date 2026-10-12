@@ -54,7 +54,7 @@ public final class QuestionContentRules {
             min = exactChoiceCount;
             max = exactChoiceCount;
         }
-        List<ChoiceInput> cleanChoices = normalizeChoices(choices, min, max);
+        List<ChoiceInput> cleanChoices = normalizeChoices(choices, min, max, resolved);
         return new NormalizedQuestion(
                 cleanStem, cleanExplanation, difficulty, resolved, cleanTags, cleanChoices, null);
     }
@@ -96,7 +96,8 @@ public final class QuestionContentRules {
         }
     }
 
-    private static List<ChoiceInput> normalizeChoices(List<ChoiceInput> choices, int min, int max) {
+    private static List<ChoiceInput> normalizeChoices(
+            List<ChoiceInput> choices, int min, int max, QuestionType type) {
         if (choices == null || choices.size() < min || choices.size() > max) {
             throw new ResourceBadRequestException(
                     "Câu hỏi cần từ " + min + " đến " + max + " phương án");
@@ -123,7 +124,12 @@ public final class QuestionContentRules {
             }
             cleaned.add(new ChoiceInput(key, text, isCorrect));
         }
-        if (correct != 1) {
+        if (type == QuestionType.MULTI_SELECT) {
+            if (correct < 2 || correct >= cleaned.size()) {
+                throw new ResourceBadRequestException(
+                        "Trắc nghiệm nhiều đáp án cần ít nhất hai đáp án đúng và còn một phương án sai");
+            }
+        } else if (correct != 1) {
             throw new ResourceBadRequestException("Phải có đúng một đáp án đúng");
         }
         return cleaned;

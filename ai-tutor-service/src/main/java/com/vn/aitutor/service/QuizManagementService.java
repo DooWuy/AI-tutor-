@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -170,6 +171,7 @@ public class QuizManagementService {
         int order = quizQuestionRepository.maxOrderIndex(quizId);
         List<UUID> excluded = new ArrayList<>(quizQuestionRepository.findSourceIds(quizId));
         order = fillType(quiz, QuestionType.MULTIPLE_CHOICE, request.getMultipleChoice(), 4, request, stamped, context, excluded, order);
+        order = fillType(quiz, QuestionType.MULTI_SELECT, countOf(request.getMultiSelect()), 4, request, stamped, context, excluded, order);
         order = fillType(quiz, QuestionType.TRUE_FALSE, request.getTrueFalse(), 2, request, stamped, context, excluded, order);
         fillType(quiz, QuestionType.FILL_BLANK, request.getFillBlank(), 0, request, stamped, context, excluded, order);
         quiz.setAiGenerated(true);
@@ -177,13 +179,20 @@ public class QuizManagementService {
     }
 
     private void requireRatios(QuizGenerateRequest request) {
-        int total = request.getMultipleChoice() + request.getTrueFalse() + request.getFillBlank();
+        int total = request.getMultipleChoice()
+                + countOf(request.getMultiSelect())
+                + request.getTrueFalse()
+                + request.getFillBlank();
         if (total != request.getCount()) {
             throw new ResourceBadRequestException("Tổng tỷ lệ loại câu phải bằng số lượng câu hỏi");
         }
         if (request.getMinDifficulty() > request.getMaxDifficulty()) {
             throw new ResourceBadRequestException("Độ khó tối thiểu không được lớn hơn độ khó tối đa");
         }
+    }
+
+    private int countOf(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private int fillType(
@@ -247,7 +256,7 @@ public class QuizManagementService {
             question.setCorrectText(source.getCorrectText());
             question.setTopic(source.getLesson() == null ? null : source.getLesson().getTitle());
             question.setSourceQuestion(source);
-            question.setOptions(optionsOf(source.getChoices()));
+            question.setOptions(optionsOf(source.getChoices(), source.getQuestionType() == QuestionType.MULTI_SELECT));
             question.setCorrectOptionKey(correctKey(source.getChoices()));
             return question;
         }
@@ -259,22 +268,26 @@ public class QuizManagementService {
         question.setCorrectText(draft.correctText());
         question.setTopic(draft.type().name());
         List<Map<String, Object>> options = new ArrayList<>();
-        String correctKey = null;
+        List<String> correctKeys = new ArrayList<>();
+        boolean multi = draft.type() == QuestionType.MULTI_SELECT;
         for (var choice : draft.choices()) {
             Map<String, Object> option = new LinkedHashMap<>();
             option.put("key", choice.key());
             option.put("text", choice.text());
+            if (multi) {
+                option.put("content", choice.text());
+            }
             options.add(option);
             if (choice.correct()) {
-                correctKey = choice.key();
+                correctKeys.add(choice.key());
             }
         }
         question.setOptions(options);
-        question.setCorrectOptionKey(correctKey);
+        question.setCorrectOptionKey(correctKeys.isEmpty() ? null : String.join(",", correctKeys));
         return question;
     }
 
-    private List<Map<String, Object>> optionsOf(List<QuestionChoice> choices) {
+    private List<Map<String, Object>> optionsOf(List<QuestionChoice> choices, boolean includeContent) {
         List<Map<String, Object>> options = new ArrayList<>();
         if (choices == null) {
             return options;
@@ -283,6 +296,9 @@ public class QuizManagementService {
             Map<String, Object> option = new LinkedHashMap<>();
             option.put("key", choice.getChoiceKey());
             option.put("text", choice.getChoiceText());
+            if (includeContent) {
+                option.put("content", choice.getChoiceText());
+            }
             options.add(option);
         }
         return options;
@@ -292,12 +308,12 @@ public class QuizManagementService {
         if (choices == null) {
             return null;
         }
-        for (QuestionChoice choice : choices) {
-            if (choice.isCorrect()) {
-                return choice.getChoiceKey();
-            }
-        }
-        return null;
+        String joined = choices.stream()
+                .filter(QuestionChoice::isCorrect)
+                .map(QuestionChoice::getChoiceKey)
+                .filter(key -> key != null && !key.isBlank())
+                .collect(Collectors.joining(","));
+        return joined.isEmpty() ? null : joined;
     }
 
     private void assertBankQuestionMatches(Quiz quiz, QuestionBankItem source) {

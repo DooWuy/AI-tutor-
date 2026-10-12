@@ -59,8 +59,9 @@ class QuizSubmissionIntegrationTest {
         for (QuestionType type : QuestionType.values()) {
             QuizQuestion question = new QuizQuestion(); question.setQuiz(quiz); question.setQuestionText("Test " + type);
             question.setType(type); question.setOrderIndex(quizQuestions.size() + 1); question.setExplanation("Explanation " + type);
-            boolean choice = type == QuestionType.MULTIPLE_CHOICE || type == QuestionType.TRUE_FALSE;
-            question.setCorrectOptionKey(choice ? "A" : "Hà Nội");
+            boolean multi = type == QuestionType.MULTI_SELECT;
+            boolean choice = type == QuestionType.MULTIPLE_CHOICE || type == QuestionType.TRUE_FALSE || multi;
+            question.setCorrectOptionKey(multi ? "A,B" : choice ? "A" : "Hà Nội");
             question.setOptions(choice ? List.of(Map.of("key", "A", "content", "Đúng"), Map.of("key", "B", "content", "Sai")) : List.of());
             quizQuestions.add(questions.saveAndFlush(question));
         }

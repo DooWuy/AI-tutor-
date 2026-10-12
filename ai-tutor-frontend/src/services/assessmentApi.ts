@@ -164,6 +164,7 @@ export const quizAdminApi = {
       minDifficulty: number;
       maxDifficulty: number;
       multipleChoice: number;
+      multiSelect: number;
       trueFalse: number;
       fillBlank: number;
     },
@@ -176,6 +177,7 @@ export const quizAdminApi = {
       minDifficulty: number;
       maxDifficulty: number;
       multipleChoice: number;
+      multiSelect: number;
       trueFalse: number;
       fillBlank: number;
     },

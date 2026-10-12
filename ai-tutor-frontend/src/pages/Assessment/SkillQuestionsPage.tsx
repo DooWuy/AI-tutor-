@@ -308,7 +308,7 @@ export default function SkillQuestionsPage() {
           if (file) void importExcel(file);
         }}
       />
-      <p className="text-sm text-on-surface-variant">File mẫu có cột Loại, Nội dung, Giải thích, Độ khó, Thẻ, phương án A–F và Đáp án đúng. Hãy sửa các dòng ví dụ trước khi nhập.</p>
+      <p className="text-sm text-on-surface-variant">File mẫu có cột Loại, Nội dung, Giải thích, Độ khó, Thẻ, phương án A–F và Đáp án đúng. Trắc nghiệm nhiều đáp án ghi các đáp án đúng cách nhau bởi dấu phẩy, ví dụ A,C. Hãy sửa các dòng ví dụ trước khi nhập.</p>
       <ErrorBanner message={error} />
       {importReport ? (
         <div className="rounded-xl border border-outline-variant px-4 py-3 text-sm">
@@ -420,6 +420,7 @@ export default function SkillQuestionsPage() {
                 <div className="mt-2 flex flex-wrap gap-2">
                   {[
                     ['MULTIPLE_CHOICE', 'Trắc nghiệm'],
+                    ['MULTI_SELECT', 'Trắc nghiệm nhiều đáp án'],
                     ['TRUE_FALSE', 'Đúng/Sai'],
                     ['FILL_BLANK', 'Điền từ'],
                   ].map(([value, label]) => (
@@ -499,11 +500,15 @@ export default function SkillQuestionsPage() {
                     <div key={choice.key} className={`answer-frame rounded-xl px-3 py-2 ${choice.correct ? 'bg-primary-fixed ring-1 ring-primary/25' : 'bg-surface-container/60'}`}>
                       <label className="mb-1 flex items-center gap-2 text-xs font-semibold">
                         <input
-                          type="radio"
-                          name={`correct-${item.id}`}
+                          type={item.questionType === 'MULTI_SELECT' ? 'checkbox' : 'radio'}
+                          name={item.questionType === 'MULTI_SELECT' ? undefined : `correct-${item.id}`}
                           checked={choice.correct}
                           onChange={() => updatePreview(item.id, {
-                            choices: item.choices.map((row, rowIndex) => ({ ...row, correct: rowIndex === choiceIndex })),
+                            choices: item.choices.map((row, rowIndex) => (
+                              item.questionType === 'MULTI_SELECT'
+                                ? { ...row, correct: rowIndex === choiceIndex ? !row.correct : row.correct }
+                                : { ...row, correct: rowIndex === choiceIndex }
+                            )),
                           })}
                         />
                         {choice.key}. {choice.correct ? <span className="text-primary">Đáp án đúng</span> : null}
@@ -571,6 +576,14 @@ function QuestionForm({
       setEditor({ ...editor, questionType, choices: [] });
       return;
     }
+    if (questionType === 'MULTI_SELECT') {
+      setEditor({
+        ...editor,
+        questionType,
+        choices: ['A', 'B', 'C', 'D'].map((key, index) => ({ key, text: '', correct: index < 2 })),
+      });
+      return;
+    }
     setEditor({ ...editor, questionType, choices: emptyDraft().choices });
   };
 
@@ -579,6 +592,7 @@ function QuestionForm({
       <Field label="Loại câu">
         <select className={inputClass} value={editor.questionType} onChange={(event) => setType(event.target.value)}>
           <option value="MULTIPLE_CHOICE">Trắc nghiệm</option>
+          <option value="MULTI_SELECT">Trắc nghiệm nhiều đáp án</option>
           <option value="TRUE_FALSE">Đúng/Sai</option>
           <option value="FILL_BLANK">Điền từ</option>
         </select>
@@ -597,14 +611,24 @@ function QuestionForm({
         </Field>
       ) : (
         <div className="space-y-2">
+          {editor.questionType === 'MULTI_SELECT' ? (
+            <p className="text-xs text-on-surface-variant">Chọn ít nhất hai đáp án đúng và để lại một phương án sai.</p>
+          ) : null}
           {editor.choices.map((choice, index) => (
             <div key={choice.key} className="flex items-center gap-2">
               <input
-                type="radio"
-                name="correct-choice"
+                type={editor.questionType === 'MULTI_SELECT' ? 'checkbox' : 'radio'}
+                name={editor.questionType === 'MULTI_SELECT' ? undefined : 'correct-choice'}
                 checked={choice.correct}
                 aria-label={`Đáp án đúng ${choice.key}`}
-                onChange={() => setEditor({ ...editor, choices: editor.choices.map((row, rowIndex) => ({ ...row, correct: rowIndex === index })) })}
+                onChange={() => setEditor({
+                  ...editor,
+                  choices: editor.choices.map((row, rowIndex) => (
+                    editor.questionType === 'MULTI_SELECT'
+                      ? { ...row, correct: rowIndex === index ? !row.correct : row.correct }
+                      : { ...row, correct: rowIndex === index }
+                  )),
+                })}
               />
               <input
                 className={`${inputClass} flex-1`}
@@ -617,7 +641,7 @@ function QuestionForm({
               />
             </div>
           ))}
-          {editor.questionType === 'MULTIPLE_CHOICE' && editor.choices.length < 6 ? (
+          {(editor.questionType === 'MULTIPLE_CHOICE' || editor.questionType === 'MULTI_SELECT') && editor.choices.length < 6 ? (
             <button
               type="button"
               className="text-sm font-semibold text-primary"

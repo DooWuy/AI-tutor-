@@ -59,6 +59,45 @@ class QuestionDraftParserTest {
         assertTrue(questions.get(0).explanation().contains("\\ln"));
     }
 
+    @Test
+    void acceptsSeveralCorrectFlagsAndACommaSeparatedAnswer() {
+        String flagged = """
+                {"questions":[{
+                  "stem":"Những số nào sau đây là số chẵn trong bốn số đã cho?",
+                  "explanation":"Số chẵn là số chia hết cho hai, nên chọn 2 và 4.",
+                  "choices":[
+                    {"key":"A","text":"2","correct":true},
+                    {"key":"B","text":"3","correct":false},
+                    {"key":"C","text":"4","correct":true},
+                    {"key":"D","text":"5","correct":false}
+                  ]
+                }]}
+                """;
+        List<NormalizedQuestion> fromFlags = QuestionDraftParser.parse(
+                flagged, QuestionType.MULTI_SELECT, 2, 4, List.of());
+        assertEquals(1, fromFlags.size());
+        assertEquals(List.of("A", "C"), fromFlags.get(0).choices().stream()
+                .filter(ChoiceInput::correct).map(ChoiceInput::key).toList());
+
+        String keyed = """
+                {"questions":[{
+                  "stem":"Những số nào sau đây là số chẵn trong bốn số đã cho?",
+                  "explanation":"Số chẵn là số chia hết cho hai, nên chọn 2 và 4.",
+                  "correctText":"A,C",
+                  "choices":[
+                    {"key":"A","text":"2","correct":false},
+                    {"key":"B","text":"3","correct":false},
+                    {"key":"C","text":"4","correct":false},
+                    {"key":"D","text":"5","correct":false}
+                  ]
+                }]}
+                """;
+        List<NormalizedQuestion> fromKey = QuestionDraftParser.parse(
+                keyed, QuestionType.MULTI_SELECT, 2, 4, List.of());
+        assertEquals(1, fromKey.size());
+        assertEquals(2, fromKey.get(0).choices().stream().filter(ChoiceInput::correct).count());
+    }
+
     private static String validItems() {
         StringBuilder builder = new StringBuilder();
         for (int i = 1; i <= 5; i++) {

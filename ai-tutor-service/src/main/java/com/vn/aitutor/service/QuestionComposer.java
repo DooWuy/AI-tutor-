@@ -49,6 +49,9 @@ public class QuestionComposer {
         String typeGuide = switch (request.type()) {
             case TRUE_FALSE -> "đúng/sai với đúng 2 phương án, một phương án đúng";
             case FILL_BLANK -> "điền từ, trường correctText là đáp án ngắn, choices để mảng rỗng";
+            case MULTI_SELECT -> "trắc nghiệm nhiều đáp án với đúng " + request.exactChoiceCount()
+                    + " phương án, từ 2 đến " + (request.exactChoiceCount() - 1)
+                    + " phương án đúng. Đặt correct=true cho từng phương án đúng và correct=false cho ít nhất một phương án sai";
             case MULTIPLE_CHOICE -> "trắc nghiệm với đúng " + request.exactChoiceCount() + " phương án, một phương án đúng";
         };
         String avoid = existingStems.isEmpty()

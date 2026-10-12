@@ -20,7 +20,7 @@ class QuestionBankWorkbookTest {
     void templateContainsOneRowOfEachOfficialType() {
         List<ImportedRow> rows = QuestionBankWorkbook.read(QuestionBankWorkbook.template());
 
-        assertEquals(3, rows.size());
+        assertEquals(4, rows.size());
         assertEquals(2, rows.get(0).rowNumber());
         QuestionUpsertRequest multipleChoice = rows.get(0).request();
         assertEquals("MULTIPLE_CHOICE", multipleChoice.getQuestionType());
@@ -35,6 +35,13 @@ class QuestionBankWorkbookTest {
         assertEquals("FILL_BLANK", fill.getQuestionType());
         assertEquals("8", fill.getCorrectText());
         assertTrue(fill.getChoices().isEmpty());
+
+        QuestionUpsertRequest multi = rows.get(3).request();
+        assertEquals("MULTI_SELECT", multi.getQuestionType());
+        assertEquals(4, multi.getChoices().size());
+        assertTrue(multi.getChoices().stream().filter(choice -> choice.isCorrect()).map(choice -> choice.getKey()).toList()
+                .containsAll(List.of("A", "C")));
+        assertEquals(2, multi.getChoices().stream().filter(choice -> choice.isCorrect()).count());
     }
 
     @Test
@@ -51,7 +58,22 @@ class QuestionBankWorkbookTest {
         assertEquals(2, rows.size());
         assertNull(rows.get(0).error());
         assertEquals(4, rows.get(1).rowNumber());
-        assertEquals("Loại câu hỏi phải là Trắc nghiệm, Đúng/Sai hoặc Điền từ", rows.get(1).error());
+        assertEquals("Loại câu hỏi phải là Trắc nghiệm, Trắc nghiệm nhiều đáp án, Đúng/Sai hoặc Điền từ", rows.get(1).error());
+    }
+
+    @Test
+    void multiSelectMarksEveryListedKey() throws IOException {
+        byte[] content = sheet(new String[][] {
+            QuestionBankWorkbook.HEADERS,
+            {"Trắc nghiệm nhiều đáp án", "Những số nào sau đây là số chẵn?", "Số chẵn chia hết cho hai.", "2", "", "2", "3", "4", "5", "", "", "a; c"}
+        });
+
+        List<ImportedRow> rows = QuestionBankWorkbook.read(content);
+
+        assertNull(rows.get(0).error());
+        assertEquals("MULTI_SELECT", rows.get(0).request().getQuestionType());
+        assertTrue(rows.get(0).request().getChoices().stream().filter(choice -> choice.isCorrect()).map(choice -> choice.getKey()).toList()
+                .containsAll(List.of("A", "C")));
     }
 
     @Test

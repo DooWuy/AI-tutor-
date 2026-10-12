@@ -56,6 +56,7 @@ public class GenerationWorker {
             request.setMultipleChoice(work.multipleChoice());
             request.setTrueFalse(work.trueFalse());
             request.setFillBlank(work.fillBlank());
+            request.setMultiSelect(work.multiSelect() == null ? 0 : work.multiSelect());
             quizManagementService.generate(work.quizId(), request, principal);
             store.markDone(jobId, null, null);
         } catch (RuntimeException ex) {

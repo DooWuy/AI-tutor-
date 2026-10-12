@@ -65,6 +65,7 @@ public class GenerationJobStore {
         job.setMultipleChoice(request.getMultipleChoice());
         job.setTrueFalse(request.getTrueFalse());
         job.setFillBlank(request.getFillBlank());
+        job.setMultiSelect(request.getMultiSelect());
         return toResponse(repository.saveAndFlush(job));
     }
 
@@ -109,7 +110,8 @@ public class GenerationJobStore {
                         job.getMaxDifficulty(),
                         job.getMultipleChoice(),
                         job.getTrueFalse(),
-                        job.getFillBlank()));
+                        job.getFillBlank(),
+                        job.getMultiSelect()));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

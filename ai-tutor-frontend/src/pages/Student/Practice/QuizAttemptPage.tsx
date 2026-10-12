@@ -168,7 +168,18 @@ function QuizAttemptSession({ quizId }: { quizId: string }) {
       <progress value={answered} max={quiz.questions.length} aria-label="Tiến trình trả lời" />
       <h2 className="quiz-question">{question.questionText}</h2>
       <fieldset disabled={locked} className="quiz-options"><legend className="sr-only">Đáp án câu {index + 1}</legend>
-        {question.type === 'MULTIPLE_CHOICE' || question.type === 'TRUE_FALSE' ? question.options.map(option => <label key={option.key} className={`quiz-option ${values[question.id] === option.key ? 'quiz-selected' : ''}`}><input type="radio" name={question.id} value={option.key} checked={values[question.id] === option.key} onChange={() => change(question.id, option.key)} /><strong>{option.key}</strong><span>{option.content}</span></label>)
+        {question.type === 'MULTI_SELECT' ? <>
+          <p>Chọn mọi đáp án đúng.</p>
+          {question.options.map(option => {
+            const selected = (values[question.id] || '').split(/[,;]/).map(part => part.trim()).filter(Boolean);
+            const checked = selected.includes(option.key);
+            return <label key={option.key} className={`quiz-option ${checked ? 'quiz-selected' : ''}`}><input type="checkbox" value={option.key} checked={checked} onChange={() => {
+              const next = new Set(selected);
+              if (checked) next.delete(option.key); else next.add(option.key);
+              change(question.id, question.options.map(item => item.key).filter(key => next.has(key)).join(','));
+            }} /><strong>{option.key}</strong><span>{option.content}</span></label>;
+          })}
+        </> : question.type === 'MULTIPLE_CHOICE' || question.type === 'TRUE_FALSE' ? question.options.map(option => <label key={option.key} className={`quiz-option ${values[question.id] === option.key ? 'quiz-selected' : ''}`}><input type="radio" name={question.id} value={option.key} checked={values[question.id] === option.key} onChange={() => change(question.id, option.key)} /><strong>{option.key}</strong><span>{option.content}</span></label>)
           : <><label htmlFor="quiz-answer">{question.type === 'FILL_IN_BLANK' ? 'Điền câu trả lời' : 'Câu trả lời ngắn'}</label><textarea id="quiz-answer" rows={4} maxLength={200} value={values[question.id] || ''} onChange={event => change(question.id, event.target.value)} placeholder="Nhập câu trả lời…" /><small>{(values[question.id] || '').length}/200 ký tự · Chấm theo đáp án chuẩn, không phân biệt hoa thường.</small></>}
       </fieldset>
       <footer className="quiz-navigation"><button disabled={index === 0} onClick={() => setIndex(n => n - 1)}><ArrowLeft size={18} /> Quay lại</button>{index < quiz.questions.length - 1 ? <button onClick={() => setIndex(n => n + 1)}>Tiếp theo <ArrowRight size={18} /></button> : <button className="quiz-primary" disabled={locked} onClick={() => setConfirm(true)}>Nộp bài</button>}</footer>

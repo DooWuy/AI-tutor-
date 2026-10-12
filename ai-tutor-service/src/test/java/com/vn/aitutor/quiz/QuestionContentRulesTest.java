@@ -1,5 +1,6 @@
 package com.vn.aitutor.quiz;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -57,6 +58,40 @@ class QuestionContentRulesTest {
                 null,
                 false));
         assertTrue(twoCorrect.getMessage().contains("một đáp án đúng"));
+    }
+
+    @Test
+    void multiSelectRequiresAtLeastTwoCorrectAnswersAndOneWrong() {
+        ResourceBadRequestException oneCorrect = assertThrows(ResourceBadRequestException.class, () -> QuestionContentRules.require(
+                "Những số nào sau đây là số chẵn?",
+                "Số chẵn chia hết cho hai.",
+                QuestionType.MULTI_SELECT,
+                List.of(
+                        new ChoiceInput("A", "2", true),
+                        new ChoiceInput("B", "3", false),
+                        new ChoiceInput("C", "4", false)),
+                List.of(),
+                2,
+                null,
+                null,
+                false));
+        assertTrue(oneCorrect.getMessage().contains("ít nhất hai đáp án đúng"));
+
+        NormalizedQuestion accepted = QuestionContentRules.require(
+                "Những số nào sau đây là số chẵn?",
+                "Số chẵn chia hết cho hai.",
+                QuestionType.MULTI_SELECT,
+                List.of(
+                        new ChoiceInput("A", "2", true),
+                        new ChoiceInput("B", "3", false),
+                        new ChoiceInput("C", "4", true)),
+                List.of(),
+                2,
+                null,
+                null,
+                false);
+        assertEquals(QuestionType.MULTI_SELECT, accepted.type());
+        assertEquals(2, accepted.choices().stream().filter(ChoiceInput::correct).count());
     }
 
     @Test

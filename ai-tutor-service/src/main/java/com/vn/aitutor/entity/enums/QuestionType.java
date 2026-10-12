@@ -6,7 +6,8 @@ import java.util.Locale;
 public enum QuestionType {
     MULTIPLE_CHOICE,
     TRUE_FALSE,
-    FILL_BLANK;
+    FILL_BLANK,
+    MULTI_SELECT;
 
     public static QuestionType parseOrDefault(String raw) {
         if (raw == null || raw.isBlank()) {
