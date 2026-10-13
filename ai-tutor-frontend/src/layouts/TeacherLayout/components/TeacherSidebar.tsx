@@ -16,6 +16,12 @@ export function TeacherSidebar() {
       icon: 'groups',
     },
     {
+      to: '/teacher/question-bank',
+      label: 'Ngân hàng câu hỏi',
+      subtitle: 'Question Bank',
+      icon: 'library_books',
+    },
+    {
       to: '/teacher/quizzes',
       label: 'Ngân hàng đề thi',
       subtitle: 'Quiz Management',

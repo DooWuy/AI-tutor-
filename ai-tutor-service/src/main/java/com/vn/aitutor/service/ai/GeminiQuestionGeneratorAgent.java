@@ -115,7 +115,7 @@ public class GeminiQuestionGeneratorAgent implements QuestionGeneratorAgent {
                 Tạo chính xác %d câu hỏi cho kỹ năng: %s, mức độ khó: %d.
                 Chỉ trả JSON hợp lệ theo dạng {"questions":[...]}.
                 Mỗi item bắt buộc có:
-                - type: một trong MULTIPLE_CHOICE, TRUE_FALSE, FILL_IN_BLANK, SHORT_ANSWER
+                - type: một trong MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK
                 - stem: nội dung câu hỏi rõ ràng
                 - choices: MULTIPLE_CHOICE có 4 lựa chọn; TRUE_FALSE có ["Đúng","Sai"]; dạng điền/tự luận dùng []
                 - correctAnswer: nếu có choices thì phải trùng đúng một phần tử trong choices; nếu không thì là đáp án ngắn
@@ -139,8 +139,12 @@ public class GeminiQuestionGeneratorAgent implements QuestionGeneratorAgent {
         if (value == null || value.isNull()) {
             return QuestionType.MULTIPLE_CHOICE;
         }
+        String raw = value.asString();
+        if ("FILL_IN_BLANK".equals(raw) || "SHORT_ANSWER".equals(raw) || "FILL_BLANK".equals(raw)) {
+            return QuestionType.FILL_BLANK;
+        }
         try {
-            return QuestionType.valueOf(value.asString());
+            return QuestionType.valueOf(raw);
         } catch (IllegalArgumentException ex) {
             log.warn("Unknown question type from Gemini: {}", value.asString());
             return QuestionType.MULTIPLE_CHOICE;

@@ -2,6 +2,7 @@ import { useRef, useState, type DragEvent, type ChangeEvent } from 'react';
 import { styles } from '../TeachingMaterialsPage.styles';
 import {
   CURRICULUM_OPTIONS,
+  guessSubject,
   type PendingUploadBook,
 } from '../types/curriculum';
 
@@ -20,18 +21,7 @@ export function BookImportDropzone({ onFilesAdded, onError }: BookImportDropzone
   const parseFileInfo = (file: File): PendingUploadBook => {
     let cleanName = file.name.replace(/\.pdf$/i, '').trim();
 
-    // Guess subject
-    let guessedSubject: string = 'Toán';
-    if (cleanName.toLowerCase().includes('toán')) guessedSubject = 'Toán';
-    else if (cleanName.toLowerCase().includes('văn')) guessedSubject = 'Ngữ văn';
-    else if (cleanName.toLowerCase().includes('anh')) guessedSubject = 'Tiếng Anh';
-    else if (cleanName.toLowerCase().includes('lí') || cleanName.toLowerCase().includes('vật lý')) guessedSubject = 'Vật lý';
-    else if (cleanName.toLowerCase().includes('hóa')) guessedSubject = 'Hóa học';
-    else if (cleanName.toLowerCase().includes('sinh')) guessedSubject = 'Sinh học';
-    else if (cleanName.toLowerCase().includes('sử')) guessedSubject = 'Lịch sử';
-    else if (cleanName.toLowerCase().includes('địa')) guessedSubject = 'Địa lý';
-    else if (cleanName.toLowerCase().includes('tin')) guessedSubject = 'Tin học';
-    else if (cleanName.toLowerCase().includes('công dân') || cleanName.toLowerCase().includes('gdcd')) guessedSubject = 'GDCD';
+    const guessedSubject = guessSubject(cleanName);
 
     // Guess grade (Lớp 1-12)
     let guessedGrade = 'Lớp 12';

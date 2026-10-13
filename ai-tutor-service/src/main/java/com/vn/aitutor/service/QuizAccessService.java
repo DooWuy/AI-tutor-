@@ -52,6 +52,19 @@ public class QuizAccessService {
                 || q.getCorrectOptionKey().length() > 200
                 || q.getExplanation() == null || q.getExplanation().isBlank()) return false;
         QuestionType type = q.getType() == null ? QuestionType.MULTIPLE_CHOICE : q.getType();
+        if (type == QuestionType.MULTI_SELECT) {
+            if (q.getOptions() == null || q.getOptions().size() < 2) return false;
+            Set<String> expected = QuizGradingService.choiceKeys(q.getCorrectOptionKey());
+            if (expected.size() < 2) return false;
+            Set<String> optionKeys = new HashSet<>();
+            for (var option : q.getOptions()) {
+                if (!(option.get("key") instanceof String key) || key.isBlank()) return false;
+                Object body = option.get("content") != null ? option.get("content") : option.get("text");
+                if (!(body instanceof String text) || text.isBlank()) return false;
+                optionKeys.add(key.toUpperCase(Locale.ROOT));
+            }
+            return optionKeys.containsAll(expected);
+        }
         if (type == QuestionType.MULTIPLE_CHOICE || type == QuestionType.TRUE_FALSE)
             return q.getOptions() != null && q.getOptions().size() >= 2
                     && q.getOptions().stream().allMatch(o -> o.get("key") instanceof String && o.get("content") instanceof String)
