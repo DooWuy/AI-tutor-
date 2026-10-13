@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Bot } from 'lucide-react'
+import { ThemeToggle } from '../../components/common/ThemeToggle'
 import { useAuth } from '../../context/AuthContext'
 import { LoginBackground } from './components/LoginBackground'
 import { styles } from './LoginPage.styles'
@@ -78,6 +79,7 @@ export default function LoginPage() {
             </span>
           </Link>
           <nav className={styles.header.nav}>
+            <ThemeToggle className="hover:bg-surface-variant/40" />
             <Link className={styles.header.navLink} to="/">
               <span className="material-symbols-outlined text-[18px]">arrow_back</span>
               <span>Về trang chủ</span>

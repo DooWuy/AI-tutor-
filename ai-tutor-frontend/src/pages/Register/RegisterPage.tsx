@@ -1,6 +1,7 @@
 import { useState, useMemo, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bot } from 'lucide-react';
+import { ThemeToggle } from '../../components/common/ThemeToggle';
 import { register } from '../../services/authApi';
 import type { RegisterData } from '../../types/auth';
 import { styles } from './RegisterPage.styles';
@@ -114,6 +115,7 @@ export default function RegisterPage() {
             </span>
           </Link>
           <nav className={styles.header.nav}>
+            <ThemeToggle className="hover:bg-surface-variant/40" />
             <Link className={styles.header.navLink} to="/">
               <span className="material-symbols-outlined text-[18px]">arrow_back</span>
               <span>Về trang chủ</span>
@@ -125,8 +127,7 @@ export default function RegisterPage() {
       <main className={styles.layout.main}>
         <div className={styles.layout.mainInner}>
           <section 
-            className={styles.layout.contentWrapper}
-            style={{ backgroundImage: "linear-gradient(rgba(249, 249, 255, 0.9), rgba(249, 249, 255, 0.9)), url('https://lh3.googleusercontent.com/aida-public/AB6AXuAMz2NUoLlni8Gj29Ws144xyiNkOAdivoN1bmcX9uvmuK2mkkaAdJl7Lyhc3ChJfl2e1StcdolfSPd4HO8wbo35s5URWo_Fn_H3vO3uViozqOSH3jSVz6V-LDO6M3Jlu24D2GxGziEFndDeo5ykO0vhWv6WUs7S6ZkS-f_B1ahv9T1Tdf478B_erQ-kIJaUEa6ErCqpmRAQxxFIQYjhANbwDMsY3Kqy7k2Fgt8hwA-6lk76enOf9ZuB')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+            className={`${styles.layout.contentWrapper} bg-gradient-to-br from-[#ebf3ff] via-[#f2f7ff] to-[#fdeef2] dark:from-[#070a12] dark:via-[#0b0f19] dark:to-[#111827] transition-colors duration-300`}
           >
             <div className={styles.layout.card}>
               <div>

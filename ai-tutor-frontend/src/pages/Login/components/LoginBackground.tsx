@@ -1,7 +1,12 @@
 export function LoginBackground() {
   return (
-    <div className="absolute inset-0 pointer-events-none select-none overflow-hidden bg-gradient-to-br from-[#ebf3ff] via-[#f2f7ff] to-[#fdeef2]">
-      <svg className="absolute inset-0 w-full h-full opacity-60" xmlns="http://www.w3.org/2000/svg">
+    <div className="absolute inset-0 pointer-events-none select-none overflow-hidden bg-gradient-to-br from-[#ebf3ff] via-[#f2f7ff] to-[#fdeef2] dark:from-[#070a12] dark:via-[#0b0f19] dark:to-[#111827] transition-colors duration-300">
+      {/* Ambient glow in dark mode */}
+      <div className="hidden dark:block absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="hidden dark:block absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Grid Pattern */}
+      <svg className="absolute inset-0 w-full h-full opacity-60 dark:opacity-15 transition-opacity" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="playful-grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <circle cx="20" cy="20" r="1.5" fill="#3b82f6" opacity="0.15"></circle>
@@ -9,7 +14,9 @@ export function LoginBackground() {
         </defs>
         <rect width="100%" height="100%" fill="url(#playful-grid)"></rect>
       </svg>
-      <div className="hidden lg:block absolute bottom-0 left-0 w-[380px] xl:w-[440px] pointer-events-none z-0">
+
+      {/* Left Character Illustration */}
+      <div className="hidden lg:block absolute bottom-0 left-0 w-[380px] xl:w-[440px] pointer-events-none z-0 opacity-100 dark:opacity-40 transition-opacity">
         <svg viewBox="0 0 440 360" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto drop-shadow-sm">
           <ellipse cx="190" cy="345" rx="160" ry="18" fill="#dbeafe" opacity="0.6"></ellipse>
           <rect x="40" y="290" width="75" height="20" rx="5" fill="#3b82f6"></rect>
@@ -46,7 +53,9 @@ export function LoginBackground() {
           <rect x="35" y="200" width="12" height="12" rx="2.5" fill="#60a5fa" opacity="0.7" transform="rotate(25 35 200)"></rect>
         </svg>
       </div>
-      <div className="hidden lg:block absolute bottom-0 right-0 w-[380px] xl:w-[440px] pointer-events-none z-0">
+
+      {/* Right Character Illustration */}
+      <div className="hidden lg:block absolute bottom-0 right-0 w-[380px] xl:w-[440px] pointer-events-none z-0 opacity-100 dark:opacity-40 transition-opacity">
         <svg viewBox="0 0 440 360" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto drop-shadow-sm">
           <ellipse cx="240" cy="345" rx="160" ry="18" fill="#fbcfe8" opacity="0.4"></ellipse>
           <rect x="300" y="295" width="46" height="40" rx="6" fill="#f97316"></rect>
@@ -88,5 +97,5 @@ export function LoginBackground() {
         </svg>
       </div>
     </div>
-  )
+  );
 }
