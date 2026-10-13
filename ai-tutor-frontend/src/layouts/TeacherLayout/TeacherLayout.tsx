@@ -1,30 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { getStoredSession } from '../../services/authApi';
-import type { User } from '../../types/auth';
+import { useAuth } from '../../context/AuthContext';
 import { TeacherHeader } from './components/TeacherHeader';
 import { TeacherSidebar } from './components/TeacherSidebar';
 import { styles } from './TeacherLayout.styles';
 
 export function TeacherLayout() {
-  const [currentUser] = useState<User | null>(() => getStoredSession()?.user ?? null);
+  const { user, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const session = getStoredSession();
-    if (!session) {
+    if (isLoading) return;
+    if (!isAuthenticated || !user) {
       navigate('/login', { replace: true });
       return;
     }
 
-    if (session.user.role !== 'TEACHER' && session.user.role !== 'ADMIN') {
+    if (user.role !== 'TEACHER' && user.role !== 'ADMIN') {
       navigate('/login', { replace: true });
     }
-  }, [navigate]);
+  }, [isAuthenticated, user, isLoading, navigate]);
 
   return (
     <div className={styles.layout}>
-      <TeacherHeader user={currentUser} />
+      <TeacherHeader user={user} />
       <div className={styles.bodyWrapper}>
         <TeacherSidebar />
         <main className={styles.mainContent}>

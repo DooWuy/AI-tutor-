@@ -7,9 +7,12 @@ import { RenameSessionModal } from './components/RenameSessionModal';
 import { DeleteSessionModal } from './components/DeleteSessionModal';
 import { getChatSessions, getChatSessionMessages, createChatSession } from '../../../services/chatApi';
 import type { ChatSession, ChatMessage } from '../../../services/chatApi';
-import { getStoredSession } from '../../../services/authApi';
+import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../context/ToastContext';
 
 export const AIChatPage: React.FC = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -18,7 +21,6 @@ export const AIChatPage: React.FC = () => {
   // Responsive UI states
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -27,17 +29,7 @@ export const AIChatPage: React.FC = () => {
   const [sessionToDelete, setSessionToDelete] = useState<ChatSession | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  const session = getStoredSession();
-  const studentAvatar = session?.user?.avatarUrl || `https://ui-avatars.com/api/?name=Student&background=0A5EB0&color=fff`;
-
-  // Auto-dismiss toast
-  useEffect(() => {
-    if (!toastMessage) return;
-    const timer = setTimeout(() => {
-      setToastMessage(null);
-    }, 3500);
-    return () => clearTimeout(timer);
-  }, [toastMessage]);
+  const studentAvatar = user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || 'Student')}&background=0A5EB0&color=fff`;
 
   const handleSelectSession = async (id: string) => {
     setActiveSessionId(id);
@@ -73,9 +65,10 @@ export const AIChatPage: React.FC = () => {
       setActiveSessionId(newSession.id);
       setMessages([]);
       setIsMobileSidebarOpen(false);
-      setToastMessage(`Đã tạo phiên hỏi đáp môn ${subject}`);
+      toast.success(`Đã tạo phiên hỏi đáp môn ${subject}`);
     } catch (error) {
       console.error('Failed to create session', error);
+      toast.error('Không thể tạo phiên hỏi đáp mới');
     }
   };
 
@@ -88,7 +81,7 @@ export const AIChatPage: React.FC = () => {
     setSessions((prev) =>
       prev.map((s) => (s.id === updatedSession.id ? updatedSession : s))
     );
-    setToastMessage('Đã cập nhật tên cuộc trò chuyện');
+    toast.success('Đã cập nhật tên cuộc trò chuyện');
   };
 
   const handleOpenDelete = (sessionItem: ChatSession) => {
@@ -109,7 +102,7 @@ export const AIChatPage: React.FC = () => {
         setMessages([]);
       }
     }
-    setToastMessage('Đã xóa vĩnh viễn cuộc trò chuyện');
+    toast.info('Đã xóa vĩnh viễn cuộc trò chuyện');
   };
 
   const handleSendMessage = async (content: string) => {
@@ -242,14 +235,6 @@ export const AIChatPage: React.FC = () => {
         onToggleSidebarCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         onCreateSession={() => setIsCreateModalOpen(true)}
       />
-
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-inverse-surface text-inverse-on-surface px-4 py-2.5 rounded-xl text-xs font-semibold shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <span className="material-symbols-outlined text-sm text-emerald-400">check_circle</span>
-          <span>{toastMessage}</span>
-        </div>
-      )}
 
       {/* Modals */}
       <CreateSessionModal

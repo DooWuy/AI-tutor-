@@ -4,6 +4,7 @@ import com.vn.aitutor.entity.Notification;
 import com.vn.aitutor.entity.ScheduleSlot;
 import com.vn.aitutor.repository.NotificationRepository;
 import com.vn.aitutor.repository.ScheduleSlotRepository;
+import com.vn.aitutor.service.IMailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -24,6 +25,7 @@ public class ScheduleNotificationJob {
     private final ScheduleSlotRepository scheduleSlotRepository;
     private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final IMailService mailService;
 
     @Scheduled(fixedRate = 60000) // Run every 60 seconds
     public void scanAndSendNotifications() {
@@ -62,14 +64,31 @@ public class ScheduleNotificationJob {
 
             notificationRepository.save(notification);
 
-            // Push to user via WebSocket
+            // Push to user via WebSocket (Notification Bell)
             messagingTemplate.convertAndSendToUser(
                     slot.getSchedule().getStudent().getUser().getUsername(),
                     "/queue/notifications",
                     notification
             );
             
-            log.info("Sent reminder notification to {} for subject {}", notification.getUser().getUsername(), slot.getSubjectName());
+            // Send reminder to student's registered account email
+            try {
+                String userEmail = slot.getSchedule().getStudent().getUser().getEmail();
+                String fullName = slot.getSchedule().getStudent().getUser().getFullName();
+                if (userEmail != null && !userEmail.isBlank()) {
+                    mailService.sendClassReminderEmail(
+                            userEmail,
+                            fullName != null ? fullName : "bạn",
+                            slot.getSubjectName(),
+                            slot.getStartTime().toString(),
+                            slot.getRoom()
+                    );
+                }
+            } catch (Exception emailEx) {
+                log.warn("Failed to send class reminder email to {}: {}", slot.getSchedule().getStudent().getUser().getEmail(), emailEx.getMessage());
+            }
+
+            log.info("Sent reminder notification (Bell & Email) to {} for subject {}", notification.getUser().getUsername(), slot.getSubjectName());
         }
     }
 }

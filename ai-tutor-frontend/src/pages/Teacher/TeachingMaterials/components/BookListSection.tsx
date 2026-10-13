@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { styles } from '../TeachingMaterialsPage.styles';
+import { useAlert } from '../../../../context/AlertContext';
 import {
   SUBJECT_OPTIONS,
   GRADE_OPTIONS,
@@ -23,6 +24,7 @@ export function BookListSection({
   onOpenScanModal,
   onDeleteBook,
 }: BookListSectionProps) {
+  const { showError, showConfirm } = useAlert();
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('ALL');
   const [selectedGrade, setSelectedGrade] = useState('ALL');
@@ -45,22 +47,28 @@ export function BookListSection({
   const handleDelete = async (book: BookItem) => {
     const hasChapters = (book.chapters?.length || 0) > 0;
     if (hasChapters) {
-      alert(
-        'Không thể xóa sách đang chứa các chương và bài học bên trong (Quy tắc AC-07). Vui lòng dọn dẹp nội dung con trước khi xóa sách.'
-      );
+      showError({
+        title: 'Không thể xóa sách',
+        description: 'Sách đang chứa các chương và bài học bên trong (Quy tắc AC-07). Vui lòng dọn dẹp nội dung con trước khi xóa sách.',
+        confirmText: 'Đóng',
+      });
       return;
     }
 
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa sách "${book.title}" khỏi hệ thống?`)) {
-      return;
-    }
-
-    setDeletingId(book.id);
-    try {
-      await onDeleteBook(book);
-    } finally {
-      setDeletingId(null);
-    }
+    showConfirm({
+      title: 'Xác nhận xóa sách',
+      description: `Bạn có chắc chắn muốn xóa sách "${book.title}" khỏi hệ thống? Dữ liệu giáo trình liên quan sẽ bị xóa.`,
+      confirmText: 'Xóa ngay',
+      cancelText: 'Hủy',
+      onConfirm: async () => {
+        setDeletingId(book.id);
+        try {
+          await onDeleteBook(book);
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
 
   return (

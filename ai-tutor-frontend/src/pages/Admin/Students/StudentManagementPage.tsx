@@ -4,7 +4,6 @@ import {
   AlertCircle,
   ArrowUpDown,
   Check,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -22,6 +21,7 @@ import {
 } from 'lucide-react';
 import { fetchStudents } from '../../../services/adminStudentApi';
 import { analyticsApi } from '../../../services/analyticsApi';
+import { useToast } from '../../../context/ToastContext';
 import type { ClassOption } from '../../Teacher/Analytics/types/analytics';
 import type {
   AdminStudentListItem,
@@ -79,17 +79,21 @@ export function StudentManagementPage() {
   const [deleteTarget, setDeleteTarget] = useState<AdminStudentListItem | null>(null);
 
   // Toast & Copy
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
-    setToastMessage({ text, type });
-    window.setTimeout(() => setToastMessage(null), 4000);
+    if (type === 'success') {
+      toast.success(text);
+    } else {
+      toast.error(text);
+    }
   };
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
+    toast.info(`Đã sao chép mã ${code}`);
     window.setTimeout(() => setCopiedCode(null), 2000);
   };
 
@@ -179,29 +183,6 @@ export function StudentManagementPage() {
 
   return (
     <section className="space-y-6 pb-12 font-sans" aria-labelledby="student-management-title">
-      {/* Toast Alert */}
-      {toastMessage && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-xs font-bold transition-all ${
-            toastMessage.type === 'success'
-              ? 'bg-emerald-600 text-white shadow-emerald-900/20'
-              : 'bg-[#ba1a1a] text-white shadow-red-900/20'
-          }`}
-          role="status"
-        >
-          {toastMessage.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-          <span>{toastMessage.text}</span>
-          <button
-            type="button"
-            onClick={() => setToastMessage(null)}
-            className="ml-2 hover:opacity-75 cursor-pointer"
-            aria-label="Đóng thông báo"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
       {/* Breadcrumb (Mục 5.1) */}
       <nav className="flex items-center gap-2 text-xs text-[#717785]" aria-label="Breadcrumb">
         <Link to="/admin" className="hover:text-[#005cb8]">Quản trị hệ thống</Link>

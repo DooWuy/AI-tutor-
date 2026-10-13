@@ -1,14 +1,12 @@
 import { useMemo, useState, useEffect, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Bot } from 'lucide-react'
-import { login, logout, getStoredSession, persistSession } from '../../services/authApi'
-import type { AuthSession } from '../../types/auth'
+import { useAuth } from '../../context/AuthContext'
 import { LoginBackground } from './components/LoginBackground'
 import { styles } from './LoginPage.styles'
 
-// session functions imported from authApi
-
 export default function LoginPage() {
+  const { user, login: contextLogin, logout: contextLogout, isAuthenticated } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(true)
@@ -16,21 +14,20 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
-  const [session, setSession] = useState<AuthSession | null>(() => getStoredSession())
   
-  const firstName = useMemo(() => session?.user.fullName?.trim().split(/\s+/).at(-1), [session])
+  const firstName = useMemo(() => user?.fullName?.trim().split(/\s+/).at(-1), [user])
 
   const navigate = useNavigate()
 
   // Redirect automatically if session exists
   useEffect(() => {
-    if (session) {
+    if (isAuthenticated && user) {
       let target = '/student/dashboard'
-      if (session.user.role === 'ADMIN') target = '/admin/dashboard'
-      else if (session.user.role === 'TEACHER') target = '/teacher/dashboard'
+      if (user.role === 'ADMIN') target = '/admin/dashboard'
+      else if (user.role === 'TEACHER') target = '/teacher/dashboard'
       navigate(target, { replace: true })
     }
-  }, [session, navigate])
+  }, [isAuthenticated, user, navigate])
 
   function validate() {
     const errors: { email?: string; password?: string } = {}
@@ -45,8 +42,8 @@ export default function LoginPage() {
     if (!validate()) return
     setIsSubmitting(true)
     try {
-      const nextSession = await login({ email: email.trim(), password })
-      persistSession(nextSession, remember); setSession(nextSession); setPassword('')
+      const nextSession = await contextLogin({ email: email.trim(), password }, remember)
+      setPassword('')
       let target = '/student/dashboard'
       if (nextSession.user.role === 'ADMIN') target = '/admin/dashboard'
       else if (nextSession.user.role === 'TEACHER') target = '/teacher/dashboard'
@@ -57,10 +54,11 @@ export default function LoginPage() {
   }
 
   async function handleLogout() {
-    if (!session) return
+    if (!user) return
     setIsSubmitting(true)
-    await logout()
-    setSession(null); setMessage(null); setIsSubmitting(false)
+    await contextLogout()
+    setMessage(null)
+    setIsSubmitting(false)
   }
 
   return (
@@ -94,7 +92,7 @@ export default function LoginPage() {
             <LoginBackground />
 
             <div className={styles.layout.card}>
-              {session ? (
+              {user ? (
                 <>
                   <div className={styles.auth.titleWrapper}>
                     <div className={styles.auth.successIconWrapper}>
@@ -104,9 +102,9 @@ export default function LoginPage() {
                     <p className={styles.auth.subtitle}>Chào {firstName || 'bạn'}, phiên đăng nhập đã được lưu.</p>
                   </div>
                   <div className={styles.session.infoBox}>
-                    <div className={styles.session.infoRow}><span className={styles.session.infoLabel}>Họ và tên</span><span className={styles.session.infoValue}>{session.user.fullName}</span></div>
-                    <div className={styles.session.infoRow}><span className={styles.session.infoLabel}>Email</span><span className={styles.session.infoValue}>{session.user.email}</span></div>
-                    <div className={styles.session.infoRow}><span className={styles.session.infoLabel}>Vai trò</span><span className={styles.session.infoValue}>{session.user.role}</span></div>
+                    <div className={styles.session.infoRow}><span className={styles.session.infoLabel}>Họ và tên</span><span className={styles.session.infoValue}>{user.fullName}</span></div>
+                    <div className={styles.session.infoRow}><span className={styles.session.infoLabel}>Email</span><span className={styles.session.infoValue}>{user.email}</span></div>
+                    <div className={styles.session.infoRow}><span className={styles.session.infoLabel}>Vai trò</span><span className={styles.session.infoValue}>{user.role}</span></div>
                   </div>
                   <button onClick={handleLogout} disabled={isSubmitting} className={styles.session.logoutBtn}>
                     {isSubmitting ? 'Đang xử lý...' : 'Đăng xuất để thử lại'}

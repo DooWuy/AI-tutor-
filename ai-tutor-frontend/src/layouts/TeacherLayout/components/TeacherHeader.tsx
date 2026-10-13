@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../../../services/authApi';
+import { useAuth } from '../../../context/AuthContext';
+import { ThemeToggle } from '../../../components/common/ThemeToggle';
 import type { User } from '../../../types/auth';
 import { styles } from '../TeacherLayout.styles';
 
@@ -9,6 +10,7 @@ interface TeacherHeaderProps {
 
 export function TeacherHeader({ user }: TeacherHeaderProps) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     await logout();
@@ -57,6 +59,8 @@ export function TeacherHeader({ user }: TeacherHeaderProps) {
               <span>{initials}</span>
             )}
           </div>
+
+          <ThemeToggle />
 
           <button
             type="button"

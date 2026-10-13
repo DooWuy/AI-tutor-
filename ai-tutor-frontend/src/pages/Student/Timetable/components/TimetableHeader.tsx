@@ -12,6 +12,7 @@ interface TimetableHeaderProps {
   handlePreviousWeek: () => void;
   handleNextWeek: () => void;
   weekOffset?: number;
+  onOpenColorModal?: () => void;
 }
 
 export const TimetableHeader: React.FC<TimetableHeaderProps> = ({
@@ -25,6 +26,7 @@ export const TimetableHeader: React.FC<TimetableHeaderProps> = ({
   handlePreviousWeek,
   handleNextWeek,
   weekOffset = 0,
+  onOpenColorModal,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -66,13 +68,40 @@ export const TimetableHeader: React.FC<TimetableHeaderProps> = ({
             <span className="material-symbols-outlined text-base text-primary">tune</span>
             <span className="">Cài đặt</span>
           </button>
+          {onOpenColorModal && (
+            <button 
+              className={styles.configBtn} 
+              onClick={onOpenColorModal}
+              title="Tùy chỉnh mã màu thông minh cho từng môn học"
+            >
+              <span className="material-symbols-outlined text-base text-primary">palette</span>
+              <span className="">Mã màu</span>
+            </button>
+          )}
           
           <div className={styles.weekSwitcher}>
-            <button className={styles.weekBtn} onClick={handlePreviousWeek}>
+            <button
+              type="button"
+              className={styles.weekBtn}
+              onClick={handlePreviousWeek}
+              title="Tuần trước"
+              aria-label="Tuần trước"
+            >
               <span className="material-symbols-outlined text-lg">chevron_left</span>
             </button>
-            <div className={styles.weekText}>{getWeekLabel()}: {weekStart} - {weekEnd}</div>
-            <button className={styles.weekBtn} onClick={handleNextWeek}>
+            <div
+              className={styles.weekText}
+              title={`${getWeekLabel()}: ${weekStart} - ${weekEnd}`}
+            >
+              {getWeekLabel()}: {weekStart} - {weekEnd}
+            </div>
+            <button
+              type="button"
+              className={styles.weekBtn}
+              onClick={handleNextWeek}
+              title="Tuần sau"
+              aria-label="Tuần sau"
+            >
               <span className="material-symbols-outlined text-lg">chevron_right</span>
             </button>
           </div>

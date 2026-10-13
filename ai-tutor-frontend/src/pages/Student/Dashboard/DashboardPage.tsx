@@ -1,9 +1,8 @@
 import { styles } from './DashboardPage.styles';
-import { getStoredSession } from '../../../services/authApi';
+import { useAuth } from '../../../context/AuthContext';
 
 export const DashboardPage = () => {
-  const session = getStoredSession();
-  const user = session ? session.user : null;
+  const { user } = useAuth();
   const fullName = user?.fullName || 'Người dùng';
 
   return (

@@ -90,6 +90,8 @@ public class ScheduleServiceImpl implements IScheduleService {
         String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
         String prompt = "Trích xuất thông tin thời khóa biểu trong ảnh thành mảng JSON. " +
             "Ánh xạ các 'tiết học' thành giờ thực tế 'startTime' (VD: 07:00:00) và 'endTime' (VD: 09:15:00). " +
+            "Bỏ qua các hoạt động sinh hoạt phụ như 'Truy bài', 'Truy bài đầu giờ', '15 phút đầu giờ' vì chúng không phải môn học chính khóa. " +
+            "Chuẩn hóa tên môn học cho gọn gàng và đẹp: bỏ các chữ tiền tố 'T.cường', 'T. cường', 'Tăng cường', 'TC' (ví dụ: 'T.cường Toán' chuyển thành 'Toán', 'T.cường Tiếng Việt' chuyển thành 'Tiếng Việt', 'T.cường Tiếng Anh' chuyển thành 'Tiếng Anh'). " +
             "Trả về CHỈ một mảng JSON array chứa các object: dayOfWeek (2 đến 8), subjectName, startTime, endTime, teacherName, room. " +
             "KHÔNG bọc trong markdown (```json).";
 
@@ -108,6 +110,15 @@ public class ScheduleServiceImpl implements IScheduleService {
             extractedJsonText = extractedJsonText.replaceAll("(?is)^```json\\s*|\\s*```$", "").trim();
 
             List<ScheduleSlotDto> slots = objectMapper.readValue(extractedJsonText, new TypeReference<List<ScheduleSlotDto>>() {});
+            if (slots != null) {
+                slots = slots.stream()
+                        .filter(s -> s.getSubjectName() != null && !s.getSubjectName().toLowerCase().contains("truy bài"))
+                        .map(s -> {
+                            s.setSubjectName(sanitizeSubjectName(s.getSubjectName()));
+                            return s;
+                        })
+                        .collect(Collectors.toList());
+            }
 
             return OcrExtractionResponse.builder()
                     .name("Thời khóa biểu tự động")
@@ -157,7 +168,7 @@ public class ScheduleServiceImpl implements IScheduleService {
             slot.setDayOfWeek(dto.getDayOfWeek());
             slot.setStartTime(dto.getStartTime());
             slot.setEndTime(dto.getEndTime());
-            slot.setSubjectName(dto.getSubjectName());
+            slot.setSubjectName(sanitizeSubjectName(dto.getSubjectName()));
             slot.setTeacherName(dto.getTeacherName());
             slot.setRoom(dto.getRoom());
             slot.setScheduleType(dto.getScheduleType());
@@ -166,13 +177,32 @@ public class ScheduleServiceImpl implements IScheduleService {
 
         scheduleSlotRepository.saveAll(slotsToSave);
 
-        return mapToResponse(savedSchedule, request.getSlots());
+        List<ScheduleSlotDto> responseSlots = slotsToSave.stream().map(slot -> ScheduleSlotDto.builder()
+                .id(slot.getId())
+                .dayOfWeek(slot.getDayOfWeek())
+                .startTime(slot.getStartTime())
+                .endTime(slot.getEndTime())
+                .subjectName(slot.getSubjectName())
+                .teacherName(slot.getTeacherName())
+                .room(slot.getRoom())
+                .scheduleType(slot.getScheduleType())
+                .build()).collect(Collectors.toList());
+
+        return mapToResponse(savedSchedule, responseSlots);
     }
 
     @Override
     public ScheduleResponse getActiveSchedule(UUID userId) {
         Schedule schedule = scheduleRepository.findActiveScheduleByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thời khóa biểu đang hoạt động cho User này"));
+                .orElse(null);
+        if (schedule == null) {
+            return ScheduleResponse.builder()
+                    .name("Thời khóa biểu")
+                    .isActive(false)
+                    .slots(Collections.emptyList())
+                    .build();
+        }
+
         List<ScheduleSlot> slots = scheduleSlotRepository.findByScheduleId(schedule.getId());
         
         List<ScheduleSlotDto> slotDtos = slots.stream().map(slot -> ScheduleSlotDto.builder()
@@ -180,7 +210,7 @@ public class ScheduleServiceImpl implements IScheduleService {
                 .dayOfWeek(slot.getDayOfWeek())
                 .startTime(slot.getStartTime())
                 .endTime(slot.getEndTime())
-                .subjectName(slot.getSubjectName())
+                .subjectName(sanitizeSubjectName(slot.getSubjectName()))
                 .teacherName(slot.getTeacherName())
                 .room(slot.getRoom())
                 .scheduleType(slot.getScheduleType())
@@ -228,13 +258,14 @@ public class ScheduleServiceImpl implements IScheduleService {
         slot.setDayOfWeek(request.getDayOfWeek());
         slot.setStartTime(request.getStartTime());
         slot.setEndTime(request.getEndTime());
-        slot.setSubjectName(request.getSubjectName());
+        slot.setSubjectName(sanitizeSubjectName(request.getSubjectName()));
         slot.setTeacherName(request.getTeacherName());
         slot.setRoom(request.getRoom());
         slot.setScheduleType(request.getScheduleType());
         
         ScheduleSlot saved = scheduleSlotRepository.save(slot);
         request.setId(saved.getId());
+        request.setSubjectName(saved.getSubjectName());
         return request;
     }
 
@@ -267,13 +298,14 @@ public class ScheduleServiceImpl implements IScheduleService {
         slot.setDayOfWeek(request.getDayOfWeek());
         slot.setStartTime(request.getStartTime());
         slot.setEndTime(request.getEndTime());
-        slot.setSubjectName(request.getSubjectName());
+        slot.setSubjectName(sanitizeSubjectName(request.getSubjectName()));
         slot.setTeacherName(request.getTeacherName());
         slot.setRoom(request.getRoom());
         slot.setScheduleType(request.getScheduleType());
 
         ScheduleSlot saved = scheduleSlotRepository.save(slot);
         request.setId(saved.getId());
+        request.setSubjectName(saved.getSubjectName());
         return request;
     }
 
@@ -350,6 +382,17 @@ public class ScheduleServiceImpl implements IScheduleService {
             log.error("Cấu trúc trả về từ AI không đúng chuẩn.");
             throw new ResourceBadRequestException("Lỗi xử lý phản hồi từ AI Vision.");
         }
+    }
+
+    private String sanitizeSubjectName(String raw) {
+        if (raw == null) return "";
+        String name = raw.trim();
+        name = name.replaceAll("(?i)^(?:môn\\s+)?(?:\\(?\\s*(?:T\\.?\\s*cường|Tăng\\s*cường|TC\\.?|T\\.C\\.?|Phụ\\s*đạo|Bồi\\s*dưỡng)\\s*\\)?)[\\s\\-_:]*", "").trim();
+        name = name.replaceAll("(?i)[\\s\\-_:]*(?:\\(?\\s*(?:T\\.?\\s*cường|Tăng\\s*cường|TC\\.?|T\\.C\\.?|Phụ\\s*đạo|Bồi\\s*dưỡng)\\s*\\)?)$", "").trim();
+        if (!name.isEmpty()) {
+            name = Character.toUpperCase(name.charAt(0)) + name.substring(1);
+        }
+        return name;
     }
 
     private ScheduleResponse mapToResponse(Schedule schedule, List<ScheduleSlotDto> slots) {

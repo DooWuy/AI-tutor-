@@ -10,8 +10,12 @@ import { ImportBatchQueue } from './components/ImportBatchQueue';
 import { BookListSection } from './components/BookListSection';
 import { TocScanModal } from './components/TocScanModal';
 import { BookStructureDrawer } from './components/BookStructureDrawer';
+import { useAlert } from '../../../context/AlertContext';
+import { useToast } from '../../../context/ToastContext';
 
 export default function TeachingMaterialsPage() {
+  const { showConfirm } = useAlert();
+  const { toast } = useToast();
   // Existing Books State
   const [books, setBooks] = useState<BookItem[]>([]);
   const [isLoadingBooks, setIsLoadingBooks] = useState(true);
@@ -29,7 +33,6 @@ export default function TeachingMaterialsPage() {
   const [isStructureDrawerOpen, setIsStructureDrawerOpen] = useState(false);
 
   // Feedback State
-  const [successToast, setSuccessToast] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch list of books
@@ -55,10 +58,10 @@ export default function TeachingMaterialsPage() {
   // Handlers for Queue
   const handleFilesAdded = (newBooks: PendingUploadBook[]) => {
     setPendingBooks((prev) => [...prev, ...newBooks]);
-    setSuccessToast(
-      `Đã nạp thành công ${newBooks.length} file sách vào hàng đợi! Hãy kiểm tra thông tin và sẵn sàng quét mục lục AI.`
+    toast.success(
+      `Đã nạp thành công ${newBooks.length} file sách vào hàng đợi! Hãy kiểm tra thông tin và sẵn sàng quét mục lục AI.`,
+      { duration: 5000 }
     );
-    setTimeout(() => setSuccessToast(null), 5000);
   };
 
   const handleUpdatePendingBook = (id: string, updates: Partial<PendingUploadBook>) => {
@@ -73,9 +76,15 @@ export default function TeachingMaterialsPage() {
 
   const handleClearQueue = () => {
     if (pendingBooks.length === 0) return;
-    if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ hàng đợi nhập sách?')) {
-      setPendingBooks([]);
-    }
+    showConfirm({
+      title: 'Xóa hàng đợi nhập sách',
+      description: 'Bạn có chắc chắn muốn xóa toàn bộ hàng đợi nhập sách không? Thao tác này sẽ hủy các tệp đang chờ xử lý.',
+      confirmText: 'Xóa luôn',
+      cancelText: 'Hủy',
+      onConfirm: () => {
+        setPendingBooks([]);
+      },
+    });
   };
 
   // Helper to ensure a single pending book is persisted to DB
@@ -143,8 +152,7 @@ export default function TeachingMaterialsPage() {
     fetchBooks();
 
     if (savedCount > 0) {
-      setSuccessToast(`Đã lưu thành công ${savedCount} cuốn sách vào CSDL! Bạn có thể bắt đầu Quét Mục Lục AI ngay.`);
-      setTimeout(() => setSuccessToast(null), 5000);
+      toast.success(`Đã lưu thành công ${savedCount} cuốn sách vào CSDL! Bạn có thể bắt đầu Quét Mục Lục AI ngay.`, { duration: 5000 });
     }
 
     if (errors.length > 0) {
@@ -183,8 +191,7 @@ export default function TeachingMaterialsPage() {
   const handleDeleteBook = async (book: BookItem) => {
     try {
       await curriculumApi.deleteBook(book.id);
-      setSuccessToast(`Đã xóa sách "${book.title}" thành công.`);
-      setTimeout(() => setSuccessToast(null), 4000);
+      toast.success(`Đã xóa sách "${book.title}" thành công.`);
       fetchBooks();
     } catch (err) {
       setErrorMessage(
@@ -210,21 +217,6 @@ export default function TeachingMaterialsPage() {
 
   return (
     <div className={styles.container}>
-      {/* Toast Feedbacks */}
-      {successToast && (
-        <div className={styles.alertSuccess}>
-          <span className="material-symbols-outlined text-[18px]">check_circle</span>
-          <span className="flex-1 whitespace-pre-line">{successToast}</span>
-          <button
-            type="button"
-            onClick={() => setSuccessToast(null)}
-            className="hover:opacity-75 font-bold cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
       {errorMessage && (
         <div className={styles.alertError}>
           <span className="material-symbols-outlined text-[18px]">error</span>
@@ -380,8 +372,7 @@ export default function TeachingMaterialsPage() {
             setScanningPdfFile(undefined);
           }}
           onSuccess={(msg) => {
-            setSuccessToast(msg);
-            setTimeout(() => setSuccessToast(null), 6000);
+            toast.success(msg, { duration: 6000 });
             fetchBooks();
           }}
           onEnsureBookSaved={handleEnsureBookSaved}

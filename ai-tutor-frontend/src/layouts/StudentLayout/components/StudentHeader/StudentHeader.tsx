@@ -2,74 +2,43 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Bot } from 'lucide-react';
 import { styles } from './StudentHeader.styles';
-import { logout, getStoredSession } from '../../../../services/authApi';
-import { useWebSocket } from '../../../../hooks/useWebSocket';
+import { useAuth } from '../../../../context/AuthContext';
+import { useNotification } from '../../../../context/NotificationContext';
+import { ThemeToggle } from '../../../../components/common/ThemeToggle';
 import type { Notification as AppNotification } from '../../../../services/notificationApi';
-import { 
-  getMyNotifications, 
-  markNotificationAsRead, 
-  markAllNotificationsAsRead 
-} from '../../../../services/notificationApi';
 import { getMyStudentProfile } from '../../../../services/studentProfileApi';
 import type { StudentProfile } from '../../../../types/studentProfile';
 
 export const StudentHeader: React.FC = () => {
+  const { user, logout } = useAuth();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotification();
   const navigate = useNavigate();
   const location = useLocation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
-  const session = getStoredSession();
-  const user = session ? session.user : null;
-  const token = session ? session.accessToken : null;
   const fullName = studentProfile?.fullName || user?.fullName || 'Người dùng';
   const avatarUrl = studentProfile?.avatarUrl || user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=0A5EB0&color=fff`;
 
-  // Request browser notification permission
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  // Fetch initial notifications and profile
+  // Fetch student profile
   useEffect(() => {
     if (user) {
-      getMyNotifications().then(setNotifications).catch(console.error);
       getMyStudentProfile().then(setStudentProfile).catch(console.error);
     }
   }, [user?.userId]);
 
-  // WebSocket hook
+  // Listen to profile update event
   useEffect(() => {
     const refresh = () => { getMyStudentProfile().then(setStudentProfile).catch(console.error); };
     window.addEventListener('student-profile-updated', refresh);
     return () => window.removeEventListener('student-profile-updated', refresh);
   }, []);
-
-  // WebSocket hook
-  const { lastMessage } = useWebSocket(token);
-
-  useEffect(() => {
-    if (lastMessage) {
-      setNotifications(prev => [lastMessage, ...prev]);
-      
-      // Trigger Browser Push Notification if page is hidden
-      if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-        new window.Notification(lastMessage.title, {
-          body: lastMessage.message,
-          icon: '/favicon.ico'
-        });
-      }
-    }
-  }, [lastMessage]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -94,12 +63,7 @@ export const StudentHeader: React.FC = () => {
 
   const handleNotificationClick = async (notification: AppNotification) => {
     if (!notification.isRead) {
-      try {
-        await markNotificationAsRead(notification.id);
-        setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
-      } catch (err) {
-        console.error("Failed to mark as read", err);
-      }
+      await markAsRead(notification.id);
     }
     setIsNotificationOpen(false);
     if (notification.link) {
@@ -108,19 +72,12 @@ export const StudentHeader: React.FC = () => {
   };
 
   const handleMarkAllAsRead = async () => {
-    try {
-      await markAllNotificationsAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    } catch (err) {
-      console.error("Failed to mark all as read", err);
-    }
+    await markAllAsRead();
   };
 
   const getNavLinkClass = (path: string) => {
     return location.pathname.includes(path) ? styles.navLinkActive : styles.navLink;
   };
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <header className={styles.header} ref={mobileMenuRef}>
@@ -143,7 +100,7 @@ export const StudentHeader: React.FC = () => {
               </span>
             </div>
             <div className="min-w-0 flex flex-col justify-center hidden sm:flex">
-              <span className="block truncate text-base font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
+              <span className="block truncate text-base font-bold tracking-tight text-on-surface flex items-center gap-1.5">
                 AI Tutor <span className="text-[#005cb8]">Học sinh</span>
               </span>
               <span className="block text-[10px] font-extrabold uppercase tracking-widest leading-none text-[#005cb8] mt-0.5">
@@ -185,6 +142,9 @@ export const StudentHeader: React.FC = () => {
             <span className="">{studentProfile?.totalXp?.toLocaleString() || 0} XP</span>
           </div>
           
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
           {/* Notification Bell */}
           <div className="relative" ref={notifRef}>
             <button 
