@@ -2,6 +2,7 @@ package com.vn.aitutor.security.config;
 
 import com.vn.aitutor.exception.AccessDeniedException;
 import com.vn.aitutor.exception.JwtAuthenticationEntryPoint;
+import com.vn.aitutor.security.filter.MaintenanceFilter;
 import com.vn.aitutor.security.filter.RateLimitingFilter;
 import com.vn.aitutor.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RateLimitingFilter rateLimitingFilter;
+    private final MaintenanceFilter maintenanceFilter;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -66,6 +68,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(maintenanceFilter, JwtAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint()))
                 .exceptionHandling(exception -> exception.accessDeniedHandler(accessDeniedHandler()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

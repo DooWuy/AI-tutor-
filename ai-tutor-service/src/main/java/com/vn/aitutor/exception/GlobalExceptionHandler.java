@@ -22,6 +22,16 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.vn.aitutor.service.ISystemLogService systemLogService;
+
+    public GlobalExceptionHandler() {
+    }
+
+    public GlobalExceptionHandler(com.vn.aitutor.service.ISystemLogService systemLogService) {
+        this.systemLogService = systemLogService;
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<String>> handleNotFound(ResourceNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -189,7 +199,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<String>> handleGeneralException(Exception ex) {
-        ex.printStackTrace(); // TODO: Use a logger in production
+        log.error("Unhandled exception caught in GlobalExceptionHandler", ex);
+        if (systemLogService != null) {
+            try {
+                systemLogService.log("ERROR", ex.getMessage() != null ? ex.getMessage() : ex.toString(), ex.getClass().getSimpleName(), ex);
+            } catch (Exception ignored) {
+                // Avoid failing exception handler if logging fails
+            }
+        }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.<String>builder()
                         .success(false)
