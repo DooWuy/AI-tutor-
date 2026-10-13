@@ -23,10 +23,20 @@ import type { MaintenanceStatus, SystemSettingItem } from '../../../types/system
 type ActiveTab = 'gamification' | 'ai' | 'cache_db';
 
 const MODEL_OPTIONS = [
-  { label: 'Google Gemini 1.5 Flash (Khuyên dùng - Nhanh & Tối ưu chi phí)', value: 'gemini-1.5-flash' },
-  { label: 'Google Gemini 1.5 Pro (Nâng cao - Phân tích sâu)', value: 'gemini-1.5-pro' },
-  { label: 'OpenAI GPT-4o Mini (Phản hồi nhanh)', value: 'gpt-4o-mini' },
-  { label: 'OpenAI GPT-4o (Toàn diện)', value: 'gpt-4o' },
+  // Google Gemini Models (Đã kiểm tra thực tế trên API Google)
+  { label: 'Gemini Flash-Lite Latest (Khuyên dùng - Ổn định, Nhanh & Tiết kiệm chi phí)', value: 'gemini-flash-lite-latest' },
+  { label: 'Gemini 3.5 Flash-Lite (Phản hồi tức thì, tối ưu bài học)', value: 'gemini-3.5-flash-lite' },
+  { label: 'Gemini 3.8 Flash (Mô hình flagship mới nhất của Google)', value: 'gemini-3.8-flash' },
+  { label: 'Gemini 3.1 Flash-Lite (Phiên bản ổn định)', value: 'gemini-3.1-flash-lite' },
+  { label: 'Gemini Flash Latest (Bản Flash tự động cập nhật)', value: 'gemini-flash-latest' },
+
+  // OpenAI Models (Đã kiểm tra trên endpoint modelapi.vn)
+  { label: 'OpenAI GPT-5.4 (Mô hình tiêu chuẩn qua ModelAPI)', value: 'gpt-5.4' },
+  { label: 'OpenAI GPT-5.5 (Nâng cao, suy luận chuyên sâu)', value: 'gpt-5.5' },
+
+  // Local / On-premise Models (Chạy qua Docker Ollama)
+  { label: 'Ollama Qwen 3.5 4B (Chạy Offline qua Ollama nội bộ)', value: 'ollama:qwen3.5:4b' },
+  { label: 'Ollama Gemma 4 12B (Chạy Offline qua Ollama nội bộ)', value: 'ollama:gemma4:12b' },
 ];
 
 export function SystemSettingsPage() {
