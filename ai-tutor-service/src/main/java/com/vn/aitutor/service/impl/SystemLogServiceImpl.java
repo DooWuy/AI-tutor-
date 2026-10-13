@@ -79,11 +79,14 @@ public class SystemLogServiceImpl implements ISystemLogService {
         }
 
         PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by(sortDirection, "createdAt"));
+        Instant effectiveFrom = fromDate != null ? fromDate : Instant.EPOCH;
+        Instant effectiveTo = toDate != null ? toDate : Instant.now().plus(365, ChronoUnit.DAYS);
+
         Page<SystemLog> paged = systemLogRepository.searchLogs(
                 (level == null || level.isBlank()) ? null : level.trim().toUpperCase(),
                 (keyword == null || keyword.isBlank()) ? null : keyword.trim(),
-                fromDate,
-                toDate,
+                effectiveFrom,
+                effectiveTo,
                 pageRequest
         );
 

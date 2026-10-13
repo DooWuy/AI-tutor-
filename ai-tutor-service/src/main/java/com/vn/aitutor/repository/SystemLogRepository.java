@@ -16,8 +16,8 @@ public interface SystemLogRepository extends JpaRepository<SystemLog, UUID> {
             SELECT l FROM SystemLog l
             WHERE (:level IS NULL OR :level = '' OR l.level = :level)
               AND (:keyword IS NULL OR :keyword = '' OR LOWER(l.message) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(l.source) LIKE LOWER(CONCAT('%', :keyword, '%')))
-              AND (:fromDate IS NULL OR l.createdAt >= :fromDate)
-              AND (:toDate IS NULL OR l.createdAt <= :toDate)
+              AND l.createdAt >= :fromDate
+              AND l.createdAt <= :toDate
             """)
     Page<SystemLog> searchLogs(
             @Param("level") String level,
