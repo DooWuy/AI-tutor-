@@ -358,7 +358,7 @@ export function SystemSettingsPage() {
                   Mô hình AI mặc định (Default AI Model)
                 </label>
                 <select
-                  value={settings['ai.default_model'] || 'gemini-1.5-flash'}
+                  value={settings['ai.default_model'] || 'gemini-flash-lite-latest'}
                   onChange={(e) => handleFieldChange('ai.default_model', e.target.value)}
                   className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
                 >

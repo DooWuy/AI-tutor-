@@ -4,6 +4,7 @@ import com.vn.aitutor.agent.QuestionGeneratorAgent;
 import com.vn.aitutor.dto.request.QuestionBankCreateRequest;
 import com.vn.aitutor.dto.response.QuestionBankListResponse;
 import com.vn.aitutor.entity.enums.QuestionType;
+import com.vn.aitutor.service.ISystemSettingsService;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,12 +27,18 @@ public class GeminiQuestionGeneratorAgent implements QuestionGeneratorAgent {
 
     private final String geminiApiKey;
     private final String geminiApiUrl;
+    private final ISystemSettingsService systemSettingsService;
     private final RestTemplate restTemplate;
     private final JsonMapper objectMapper;
 
     public GeminiQuestionGeneratorAgent(String geminiApiKey, String geminiApiUrl) {
+        this(geminiApiKey, geminiApiUrl, null);
+    }
+
+    public GeminiQuestionGeneratorAgent(String geminiApiKey, String geminiApiUrl, ISystemSettingsService systemSettingsService) {
         this.geminiApiKey = geminiApiKey;
         this.geminiApiUrl = geminiApiUrl;
+        this.systemSettingsService = systemSettingsService;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(10000);
         factory.setReadTimeout(120000);
@@ -39,10 +46,15 @@ public class GeminiQuestionGeneratorAgent implements QuestionGeneratorAgent {
         this.objectMapper = JsonMapper.builder().build();
     }
 
+    private String getEffectiveApiKey() {
+        return AiModelResolver.resolveApiKey(systemSettingsService, geminiApiKey);
+    }
+
     @Override
     public QuestionBankListResponse generateQuestions(
             String subject, String gradeLevel, String skill, int difficulty, int count) {
-        if (geminiApiKey == null || geminiApiKey.isBlank()) {
+        String effectiveKey = getEffectiveApiKey();
+        if (effectiveKey == null || effectiveKey.isBlank()) {
             throw new IllegalStateException("GEMINI_API_KEY is not configured");
         }
         try {
@@ -54,14 +66,19 @@ public class GeminiQuestionGeneratorAgent implements QuestionGeneratorAgent {
     }
 
     private String callGemini(String prompt) {
+        String effectiveModel = AiModelResolver.resolveModel(systemSettingsService, "gemini-flash-lite-latest");
+        double effectiveTemp = AiModelResolver.resolveTemperature(systemSettingsService, 0.3);
+        String effectiveKey = getEffectiveApiKey();
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         Map<String, Object> body = Map.of(
                 "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
                 "generationConfig", Map.of(
-                        "temperature", 0.3,
+                        "temperature", effectiveTemp,
                         "responseMimeType", "application/json"));
-        String url = geminiApiUrl + "?key=" + java.net.URLEncoder.encode(geminiApiKey, StandardCharsets.UTF_8);
+        String url = String.format("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
+                effectiveModel, java.net.URLEncoder.encode(effectiveKey, StandardCharsets.UTF_8));
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                 url, HttpMethod.POST, new HttpEntity<>(body, headers), new ParameterizedTypeReference<>() {});
         return extractText(response.getBody());
