@@ -19,11 +19,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class MaintenanceFilter extends OncePerRequestFilter {
 
     private final ISystemSettingsService systemSettingsService;
     private final ObjectMapper objectMapper;
+
+    public MaintenanceFilter(ISystemSettingsService systemSettingsService) {
+        this.systemSettingsService = systemSettingsService;
+        this.objectMapper = new ObjectMapper();
+    }
 
     @Override
     protected void doFilterInternal(
