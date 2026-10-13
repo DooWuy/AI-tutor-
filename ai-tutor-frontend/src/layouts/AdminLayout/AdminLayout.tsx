@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { getStoredSession } from '../../services/authApi';
+import { useAuth } from '../../context/AuthContext';
 import { styles } from './AdminLayout.styles';
 import { AdminHeader } from './components/AdminHeader';
 import { AdminSidebar } from './components/AdminSidebar';
@@ -12,7 +12,7 @@ function roleHome(role: string) {
 }
 
 export function AdminLayout() {
-  const session = getStoredSession();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -30,12 +30,13 @@ export function AdminLayout() {
     };
   }, [mobileMenuOpen]);
 
-  if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  if (session.user.role !== 'ADMIN') return <Navigate to={roleHome(session.user.role)} replace />;
+  if (isLoading) return null;
+  if (!isAuthenticated || !user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (user.role !== 'ADMIN') return <Navigate to={roleHome(user.role)} replace />;
 
   return (
     <div className={styles.layout}>
-      <AdminHeader user={session.user} onOpenMenu={() => setMobileMenuOpen(true)} />
+      <AdminHeader user={user} onOpenMenu={() => setMobileMenuOpen(true)} />
       <div className={styles.body}>
         <AdminSidebar />
         <main className={styles.main}>

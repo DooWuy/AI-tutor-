@@ -75,4 +75,28 @@ public class MailServiceImpl implements IMailService {
         mailSender.send(message);
         log.info("Đã gửi cảnh báo phụ huynh đến: {}", toEmail);
     }
+
+    @Override
+    @Async
+    public void sendClassReminderEmail(String toEmail, String fullName, String subjectName, String startTime, String room) {
+        if (toEmail == null || toEmail.isBlank()) return;
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(toEmail);
+            message.setSubject("⏰ [AI Tutor] Nhắc nhở tiết học: " + subjectName);
+            
+            String roomText = (room != null && !room.isBlank()) ? (" tại phòng " + room) : "";
+            message.setText("Xin chào " + fullName + ",\n\n" +
+                    "Hệ thống AI Tutor thông báo bạn có tiết học môn " + subjectName + " sắp bắt đầu vào lúc " + startTime + roomText + " (sau 15 phút nữa).\n\n" +
+                    "Hãy chuẩn bị đầy đủ sách giáo khoa, vở ghi và đồ dùng học tập để sẵn sàng vào lớp nhé!\n\n" +
+                    "Chúc bạn có một buổi học hiệu quả và đạt nhiều kết quả tốt.\n\n" +
+                    "Trân trọng,\nĐội ngũ AI Tutor");
+            
+            mailSender.send(message);
+            log.info("Đã gửi email nhắc nhở tiết học {} đến: {}", subjectName, toEmail);
+        } catch (Exception e) {
+            log.error("Lỗi khi gửi email nhắc học đến {}: {}", toEmail, e.getMessage());
+        }
+    }
 }

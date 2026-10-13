@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, BrainCircuit, Loader2 } from 'lucide-react';
 import { studentQuizApi } from '../../../../services/studentQuizApi';
+import { useAlert } from '../../../../context/AlertContext';
 
 interface CreateQuizModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface CreateQuizModalProps {
 }
 
 export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClose, subjectId, onSuccess }) => {
+  const { showError } = useAlert();
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState<number>(3);
   const [count, setCount] = useState<number>(10);
@@ -19,7 +21,11 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClos
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
-      alert("Vui lòng nhập chủ đề!");
+      showError({
+        title: 'Chưa nhập chủ đề ôn tập',
+        description: 'Vui lòng nhập chủ đề ôn tập để AI có thể tạo bộ câu hỏi phù hợp nhất cho bạn.',
+        confirmText: 'Đã hiểu',
+      });
       return;
     }
     
@@ -37,7 +43,11 @@ export const CreateQuizModal: React.FC<CreateQuizModalProps> = ({ isOpen, onClos
       setTopic('');
     } catch (error) {
       console.error('Failed to generate quiz:', error);
-      alert('Đã có lỗi xảy ra khi tạo đề. Vui lòng thử lại sau.');
+      showError({
+        title: 'Lỗi tạo đề thi',
+        description: 'Đã có lỗi xảy ra khi tạo đề bằng AI. Vui lòng thử lại sau.',
+        confirmText: 'Đóng',
+      });
     } finally {
       setIsGenerating(false);
     }

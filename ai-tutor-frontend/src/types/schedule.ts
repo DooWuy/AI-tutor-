@@ -15,7 +15,7 @@ export interface ScheduleCreateRequest {
 }
 
 export interface ScheduleResponse {
-  id: string;
+  id?: string;
   name: string;
   isActive: boolean;
   slots: ScheduleSlotDto[];

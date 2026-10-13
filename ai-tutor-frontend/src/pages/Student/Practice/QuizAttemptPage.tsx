@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Clock, CheckCircle2, ArrowLeft, ArrowRight, Cloud } from 'lucide-react';
 import { studentQuizApi, QuizApiError, type QuizContent, type QuizDraft, type QuizAnswer } from '../../../services/studentQuizApi';
 import { getStoredSession } from '../../../services/authApi';
+import { MathMarkdown } from '../../../components/common/MathMarkdown';
 import './Quiz.css';
 
 const valuesOf = (values: Record<string, string>): QuizAnswer[] => Object.entries(values).map(([questionId, value]) => ({ questionId, value }));
@@ -166,7 +167,7 @@ function QuizAttemptSession({ quizId }: { quizId: string }) {
     <div className="quiz-workspace"><section className="quiz-card">
       <div className="quiz-progress"><span>Câu {index + 1}/{quiz.questions.length}</span><span><CheckCircle2 size={16} /> {answered} câu đã trả lời</span></div>
       <progress value={answered} max={quiz.questions.length} aria-label="Tiến trình trả lời" />
-      <h2 className="quiz-question">{question.questionText}</h2>
+      <h2 className="quiz-question"><MathMarkdown content={question.questionText} prose={false} /></h2>
       <fieldset disabled={locked} className="quiz-options"><legend className="sr-only">Đáp án câu {index + 1}</legend>
         {question.type === 'MULTI_SELECT' ? <>
           <p>Chọn mọi đáp án đúng.</p>
@@ -177,9 +178,9 @@ function QuizAttemptSession({ quizId }: { quizId: string }) {
               const next = new Set(selected);
               if (checked) next.delete(option.key); else next.add(option.key);
               change(question.id, question.options.map(item => item.key).filter(key => next.has(key)).join(','));
-            }} /><strong>{option.key}</strong><span>{option.content}</span></label>;
+            }} /><strong>{option.key}</strong><span className="quiz-option-text"><MathMarkdown content={option.content} inline prose={false} /></span></label>;
           })}
-        </> : question.type === 'MULTIPLE_CHOICE' || question.type === 'TRUE_FALSE' ? question.options.map(option => <label key={option.key} className={`quiz-option ${values[question.id] === option.key ? 'quiz-selected' : ''}`}><input type="radio" name={question.id} value={option.key} checked={values[question.id] === option.key} onChange={() => change(question.id, option.key)} /><strong>{option.key}</strong><span>{option.content}</span></label>)
+        </> : question.type === 'MULTIPLE_CHOICE' || question.type === 'TRUE_FALSE' ? question.options.map(option => <label key={option.key} className={`quiz-option ${values[question.id] === option.key ? 'quiz-selected' : ''}`}><input type="radio" name={question.id} value={option.key} checked={values[question.id] === option.key} onChange={() => change(question.id, option.key)} /><strong>{option.key}</strong><span className="quiz-option-text"><MathMarkdown content={option.content} inline prose={false} /></span></label>)
           : <><label htmlFor="quiz-answer">{question.type === 'FILL_IN_BLANK' ? 'Điền câu trả lời' : 'Câu trả lời ngắn'}</label><textarea id="quiz-answer" rows={4} maxLength={200} value={values[question.id] || ''} onChange={event => change(question.id, event.target.value)} placeholder="Nhập câu trả lời…" /><small>{(values[question.id] || '').length}/200 ký tự · Chấm theo đáp án chuẩn, không phân biệt hoa thường.</small></>}
       </fieldset>
       <footer className="quiz-navigation"><button disabled={index === 0} onClick={() => setIndex(n => n - 1)}><ArrowLeft size={18} /> Quay lại</button>{index < quiz.questions.length - 1 ? <button onClick={() => setIndex(n => n + 1)}>Tiếp theo <ArrowRight size={18} /></button> : <button className="quiz-primary" disabled={locked} onClick={() => setConfirm(true)}>Nộp bài</button>}</footer>

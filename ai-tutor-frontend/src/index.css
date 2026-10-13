@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary-fixed: #d6e3ff;
   --color-surface-container-highest: #e0e2eb;
@@ -76,6 +78,59 @@
   --text-label-sm--font-weight: 500;
 }
 
+/* Material 3 Dark Theme Palette */
+:root.dark,
+html.dark,
+[data-theme="dark"] {
+  --color-primary-fixed: #0c4a6e;
+  --color-surface-container-highest: #334155;
+  --color-surface-variant: #1e293b;
+  --color-inverse-primary: #005cb8;
+  --color-surface: #0b0f17;
+  --color-secondary-fixed-dim: #1e293b;
+  --color-on-error: #450a0a;
+  --color-error: #f87171;
+  --color-tertiary-container: #c2410c;
+  --color-inverse-on-surface: #0b0f17;
+  --color-surface-container-high: #242f4c;
+  --color-secondary-container: #1e293b;
+  --color-on-secondary-container: #cbd5e1;
+  --color-error-container: #7f1d1d;
+  --color-outline: #64748b;
+  --color-tertiary-fixed-dim: #7c2d12;
+  --color-tertiary: #fb923c;
+  --color-on-tertiary: #431407;
+  --color-on-secondary: #0b0f17;
+  --color-surface-container-lowest: #111827;
+  --color-on-tertiary-fixed: #ffedd5;
+  --color-on-error-container: #fecaca;
+  --color-on-surface-variant: #94a3b8;
+  --color-surface-container: #161f33;
+  --color-on-secondary-fixed: #e2e8f0;
+  --color-outline-variant: #28334e;
+  --color-surface-dim: #070a10;
+  --color-on-surface: #f1f5f9;
+  --color-background: #0b0f17;
+  --color-on-primary-fixed: #e0f2fe;
+  --color-secondary-fixed: #1e293b;
+  --color-on-tertiary-container: #ffedd5;
+  --color-primary-fixed-dim: #0369a1;
+  --color-tertiary-fixed: #7c2d12;
+  --color-on-primary-fixed-variant: #38bdf8;
+  --color-surface-bright: #1e293b;
+  --color-on-secondary-fixed-variant: #cbd5e1;
+  --color-secondary: #94a3b8;
+  --color-inverse-surface: #f1f5f9;
+  --color-on-tertiary-fixed-variant: #fdba74;
+  --color-on-primary-container: #f0f9ff;
+  --color-surface-tint: #38bdf8;
+  --color-primary-container: #1d4ed8;
+  --color-surface-container-low: #131b2e;
+  --color-on-primary: #082f49;
+  --color-primary: #38bdf8;
+  --color-on-background: #f1f5f9;
+}
+
 @layer base {
 
   html,
@@ -85,7 +140,10 @@
   }
 
   body {
+    background-color: var(--color-background);
+    color: var(--color-on-background);
     overscroll-behavior: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   main> :first-child {

@@ -56,16 +56,27 @@ export async function createSchedule(request: ScheduleCreateRequest): Promise<Sc
 }
 
 export async function getActiveSchedule(): Promise<ScheduleResponse> {
+  const emptySchedule: ScheduleResponse = {
+    id: '',
+    name: 'Thời khóa biểu',
+    isActive: false,
+    slots: []
+  };
+
   const response = await fetch(`${API_BASE_URL}/schedules/active`, {
     method: 'GET',
     credentials: 'include'
   });
 
+  if (response.status === 404) {
+    return emptySchedule;
+  }
+
   const payload = await parseJson<ScheduleResponse>(response);
-  if (!response.ok || !payload?.success || !payload.data) {
+  if (!response.ok || !payload?.success) {
     throw new Error(resolveErrorMessage(payload, response.status));
   }
-  return payload.data;
+  return payload.data || emptySchedule;
 }
 
 export async function updateScheduleSlot(slotId: string, data: any): Promise<any> {

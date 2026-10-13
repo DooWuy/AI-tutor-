@@ -19,8 +19,10 @@ import { AtRiskStudentsModal } from './components/AtRiskStudentsModal';
 import { SendParentAlertModal } from './components/SendParentAlertModal';
 import { AlertSettingsModal } from './components/AlertSettingsModal';
 import { styles } from './AnalyticsPage.styles';
+import { useToast } from '../../../context/ToastContext';
 
 export default function AnalyticsPage() {
+  const { toast } = useToast();
   // Filter States
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
@@ -38,7 +40,6 @@ export default function AnalyticsPage() {
   // UI Flow States
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // Modal Control States
   const [isAtRiskModalOpen, setIsAtRiskModalOpen] = useState(false);
@@ -127,27 +128,11 @@ export default function AnalyticsPage() {
         });
       }
     }
-    setSuccessToast('Cấu hình cảnh báo học tập thành công! Danh sách học sinh nguy cơ đã được cập nhật.');
-    setTimeout(() => setSuccessToast(null), 5000);
+    toast.success('Cấu hình cảnh báo học tập thành công! Danh sách học sinh nguy cơ đã được cập nhật.', { duration: 5000 });
   };
 
   return (
     <div className={styles.container}>
-      {/* Toast Feedback */}
-      {successToast && (
-        <div className={styles.alertSuccess}>
-          <span className="material-symbols-outlined text-[18px]">check_circle</span>
-          <span className="flex-1">{successToast}</span>
-          <button
-            type="button"
-            onClick={() => setSuccessToast(null)}
-            className="hover:opacity-75 font-bold cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
       {errorMessage && (
         <div className={styles.alertError}>
           <span className="material-symbols-outlined text-[18px]">error</span>
@@ -268,8 +253,7 @@ export default function AnalyticsPage() {
         subject={selectedSubject}
         period={selectedPeriod}
         onSendSuccess={(msg) => {
-          setSuccessToast(msg);
-          setTimeout(() => setSuccessToast(null), 5000);
+          toast.success(msg, { duration: 5000 });
         }}
       />
 

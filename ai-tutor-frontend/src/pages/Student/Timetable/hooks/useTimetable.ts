@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ScheduleSlotDto } from '../../../../types/schedule';
 import { getActiveSchedule, createSchedule, deleteScheduleSlot, updateScheduleSlot, addScheduleSlot } from '../../../../services/scheduleApi';
-import { getMyStudentProfile } from '../../../../services/studentProfileApi';
+import { getMyStudentProfile, updateMyStudentProfile } from '../../../../services/studentProfileApi';
+import { useAlert } from '../../../../context/AlertContext';
+import type { AlertModalConfig } from '../components/AlertModal';
+import { isAcademicSlot, getSlotIndex, formatSubjectName, generatePeriodsFromConfig } from '../../../../utils/timetableUtils';
+import { SUBJECT_COLORS_STORAGE_KEY } from '../../../../utils/subjectColorUtils';
 
 export const DEFAULT_PERIODS_FALLBACK = [
   { startTime: '07:00:00', endTime: '07:45:00' },
@@ -9,17 +13,19 @@ export const DEFAULT_PERIODS_FALLBACK = [
   { startTime: '08:50:00', endTime: '09:35:00' },
   { startTime: '09:40:00', endTime: '10:25:00' },
   { startTime: '10:30:00', endTime: '11:15:00' },
-  { startTime: '13:30:00', endTime: '14:15:00' },
-  { startTime: '14:20:00', endTime: '15:05:00' },
-  { startTime: '15:25:00', endTime: '16:10:00' },
+  { startTime: '14:00:00', endTime: '14:45:00' },
+  { startTime: '14:50:00', endTime: '15:35:00' },
+  { startTime: '15:50:00', endTime: '16:35:00' },
 ];
 
-export const useTimetable = () => {
+export const useTimetable = (customShowAlert?: (config: Omit<AlertModalConfig, 'isOpen'>) => void) => {
+  const { showAlert: contextShowAlert } = useAlert();
+  const showAlert = customShowAlert || contextShowAlert;
   const [slots, setSlots] = useState<ScheduleSlotDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [defaultPeriods, setDefaultPeriods] = useState(DEFAULT_PERIODS_FALLBACK);
   const [currentPreferences, setCurrentPreferences] = useState<Record<string, unknown>>({});
-  
+
   const [selectedSlot, setSelectedSlot] = useState<ScheduleSlotDto | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -33,13 +39,43 @@ export const useTimetable = () => {
       ]);
 
       if (profileRes && profileRes.studyPreferences) {
-        setCurrentPreferences(profileRes.studyPreferences);
-        if (profileRes.studyPreferences.timetable_default_periods) {
+        let prefs = { ...profileRes.studyPreferences };
+        if (!prefs.timetable_subject_colors && typeof window !== 'undefined') {
+          const cached = localStorage.getItem(SUBJECT_COLORS_STORAGE_KEY);
+          if (cached) {
+            try {
+              prefs.timetable_subject_colors = JSON.parse(cached);
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        } else if (prefs.timetable_subject_colors && typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(SUBJECT_COLORS_STORAGE_KEY, JSON.stringify(prefs.timetable_subject_colors));
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        setCurrentPreferences(prefs);
+        if (profileRes.studyPreferences.timetable_config) {
+          try {
+            const generated = generatePeriodsFromConfig(profileRes.studyPreferences.timetable_config as any);
+            setDefaultPeriods(generated);
+          } catch (e) {
+            if (profileRes.studyPreferences.timetable_default_periods) {
+              setDefaultPeriods(profileRes.studyPreferences.timetable_default_periods as any);
+            }
+          }
+        } else if (profileRes.studyPreferences.timetable_default_periods) {
           setDefaultPeriods(profileRes.studyPreferences.timetable_default_periods as any);
         }
       }
-      
-      setSlots(scheduleRes.slots || []);
+
+      const rawSlots = scheduleRes.slots || [];
+      setSlots(rawSlots.filter(isAcademicSlot).map(s => ({
+        ...s,
+        subjectName: formatSubjectName(s.subjectName, true)
+      })));
     } catch (err) {
       console.error(err);
     } finally {
@@ -50,7 +86,11 @@ export const useTimetable = () => {
   const loadActiveSchedule = useCallback(async () => {
     try {
       const res = await getActiveSchedule();
-      setSlots(res.slots || []);
+      const rawSlots = res.slots || [];
+      setSlots(rawSlots.filter(isAcademicSlot).map(s => ({
+        ...s,
+        subjectName: formatSubjectName(s.subjectName, true)
+      })));
     } catch (err) {
       console.error(err);
     }
@@ -63,10 +103,29 @@ export const useTimetable = () => {
   const handleSaveSchedule = async (newSlots: ScheduleSlotDto[] = slots) => {
     try {
       setIsLoading(true);
-      await createSchedule({ name: 'Thời khóa biểu AI', slots: newSlots });
-      alert('Đã lưu TKB thành công!');
+      const cleanSlots = newSlots
+        .filter(isAcademicSlot)
+        .map(s => ({
+          ...s,
+          subjectName: formatSubjectName(s.subjectName, true)
+        }));
+      await createSchedule({ name: 'Thời khóa biểu AI', slots: cleanSlots });
+      await loadActiveSchedule();
+      showAlert({
+        type: 'success',
+        category: 'SUCCESS ALERT',
+        title: 'Lưu thay đổi thành công!',
+        description: 'Tất cả dữ liệu thời khóa biểu của bạn đã được đồng bộ an toàn lên Cloud Server.',
+        confirmText: 'Tuyệt vời',
+      });
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi lưu');
+      showAlert({
+        type: 'error',
+        category: 'SYSTEM ERROR',
+        title: 'Lỗi khi lưu thời khóa biểu',
+        description: err.message || 'Không thể lưu thời khóa biểu. Vui lòng kiểm tra lại đường truyền internet.',
+        confirmText: 'Đóng',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -74,38 +133,83 @@ export const useTimetable = () => {
 
   const handleDeleteSlot = async (slotId?: string) => {
     if (!slotId) return;
-    if (!window.confirm('Bạn có chắc muốn xóa tiết học này? Việc này đồng thời sẽ hủy các nhắc nhở liên quan.')) return;
-    
-    try {
-      setIsLoading(true);
-      await deleteScheduleSlot(slotId);
-      alert('Đã xóa tiết học thành công.');
-      setIsEditModalOpen(false);
-      await loadActiveSchedule();
-    } catch (err: any) {
-      alert(err.message || 'Lỗi khi xóa tiết học');
-    } finally {
-      setIsLoading(false);
-    }
+
+    const doDelete = async () => {
+      try {
+        setIsLoading(true);
+        await deleteScheduleSlot(slotId);
+        showAlert({
+          type: 'success',
+          category: 'SUCCESS ALERT',
+          title: 'Xóa tiết học thành công!',
+          description: 'Tiết học và các nhắc nhở liên quan đã được xóa khỏi hệ thống.',
+          confirmText: 'Tuyệt vời',
+        });
+        setIsEditModalOpen(false);
+        await loadActiveSchedule();
+      } catch (err: any) {
+        showAlert({
+          type: 'error',
+          category: 'SYSTEM ERROR',
+          title: 'Lỗi khi xóa tiết học',
+          description: err.message || 'Không thể xóa tiết học. Vui lòng thử lại sau.',
+          confirmText: 'Đóng',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    showAlert({
+      type: 'warning',
+      category: 'CONFIRM PROMPT',
+      title: 'Xác nhận xóa tiết học?',
+      description: 'Hệ thống nhận thấy bạn đang yêu cầu xóa tiết học này. Việc này đồng thời sẽ hủy các nhắc nhở bài học liên quan.',
+      confirmText: 'Xóa luôn',
+      cancelText: 'Làm tiếp',
+      onConfirm: doDelete,
+    });
   };
 
   const handleSaveSlot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSlot) return;
-    
+
     try {
       setIsLoading(true);
-      if (selectedSlot.id) {
-        await updateScheduleSlot(selectedSlot.id, selectedSlot);
-        alert('Đã cập nhật tiết học thành công.');
+      const slotToSave: ScheduleSlotDto = {
+        ...selectedSlot,
+        subjectName: formatSubjectName(selectedSlot.subjectName, true)
+      };
+      if (slotToSave.id) {
+        await updateScheduleSlot(slotToSave.id, slotToSave);
+        showAlert({
+          type: 'success',
+          category: 'SUCCESS ALERT',
+          title: 'Cập nhật tiết học thành công!',
+          description: 'Thông tin tiết học đã được cập nhật an toàn vào thời khóa biểu.',
+          confirmText: 'Tuyệt vời',
+        });
       } else {
-        await addScheduleSlot(selectedSlot);
-        alert('Đã thêm tiết học thành công.');
+        await addScheduleSlot(slotToSave);
+        showAlert({
+          type: 'success',
+          category: 'SUCCESS ALERT',
+          title: 'Thêm tiết học thành công!',
+          description: 'Tiết học mới đã được bổ sung thành công vào thời khóa biểu.',
+          confirmText: 'Tuyệt vời',
+        });
       }
       setIsEditModalOpen(false);
       await loadActiveSchedule();
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi lưu tiết học');
+      showAlert({
+        type: 'error',
+        category: 'SYSTEM ERROR',
+        title: 'Lỗi khi lưu tiết học',
+        description: err.message || 'Không thể lưu tiết học. Vui lòng kiểm tra lại dữ liệu.',
+        confirmText: 'Đóng',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -123,13 +227,16 @@ export const useTimetable = () => {
 
   const handleSlotClick = (slot: ScheduleSlotDto) => {
     if (!slot.id) return;
-    setSelectedSlot(slot);
+    setSelectedSlot({
+      ...slot,
+      subjectName: formatSubjectName(slot.subjectName, true)
+    });
     setIsEditModalOpen(true);
   };
 
   // Drag and drop logic
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, sourceDay: number, sourceIndex: number) => {
-    e.dataTransfer.setData('application/json', JSON.stringify({ sourceDay, sourceIndex }));
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, sourceDay: number, sourceIndex: number, slotId?: string) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({ sourceDay, sourceIndex, slotId }));
     e.dataTransfer.effectAllowed = 'move';
     e.currentTarget.style.opacity = '0.4';
   };
@@ -147,20 +254,23 @@ export const useTimetable = () => {
     e.preventDefault();
     const data = e.dataTransfer.getData('application/json');
     if (!data) return;
-    
-    const { sourceDay, sourceIndex } = JSON.parse(data);
+
+    const { sourceDay, sourceIndex, slotId } = JSON.parse(data);
     if (sourceDay === targetDay && sourceIndex === targetIndex) return;
 
     setSlots(prevSlots => {
       const newSlots = [...prevSlots];
-      
-      const sourceDaySlots = newSlots.filter(s => s.dayOfWeek === sourceDay).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
-      const targetDaySlots = newSlots.filter(s => s.dayOfWeek === targetDay).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
-      
-      const sourceSlot = sourceDaySlots[sourceIndex];
-      const targetSlot = targetDaySlots[targetIndex];
+
+      const sourceSlot = slotId
+        ? newSlots.find(s => s.id === slotId)
+        : newSlots.find(s => s.dayOfWeek === sourceDay);
 
       if (!sourceSlot) return prevSlots;
+
+      // Find target slot at the target period if any
+      const targetSlot = newSlots.find(s => {
+        return s.dayOfWeek === targetDay && getSlotIndex(s, defaultPeriods) === targetIndex;
+      });
 
       if (targetSlot) {
         // Swap slots
@@ -183,6 +293,38 @@ export const useTimetable = () => {
       }
       return newSlots;
     });
+  };
+
+  const handleSaveSubjectColors = async (newColors: Record<string, string>) => {
+    try {
+      setIsLoading(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(SUBJECT_COLORS_STORAGE_KEY, JSON.stringify(newColors));
+      }
+      const updatedPrefs = {
+        ...currentPreferences,
+        timetable_subject_colors: newColors,
+      };
+      await updateMyStudentProfile({ studyPreferences: updatedPrefs });
+      setCurrentPreferences(updatedPrefs);
+      showAlert({
+        type: 'success',
+        category: 'SUCCESS ALERT',
+        title: 'Cập nhật bảng mã màu thành công!',
+        description: 'Màu sắc môn học đã được lưu và đồng bộ an toàn lên hệ thống.',
+        confirmText: 'Tuyệt vời',
+      });
+    } catch (err: any) {
+      showAlert({
+        type: 'error',
+        category: 'SYSTEM ERROR',
+        title: 'Lỗi khi lưu bảng mã màu',
+        description: err.message || 'Không thể lưu cấu hình màu sắc lên máy chủ. Đã lưu tạm thời trên trình duyệt của bạn.',
+        confirmText: 'Đóng',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return {
@@ -208,6 +350,7 @@ export const useTimetable = () => {
     handleDragStart,
     handleDragEnd,
     handleDragOver,
-    handleDrop
+    handleDrop,
+    handleSaveSubjectColors
   };
 };

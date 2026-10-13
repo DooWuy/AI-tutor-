@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { studentQuizApi, type QuizResult } from '../../../services/studentQuizApi';
 import { getStoredSession } from '../../../services/authApi';
+import { MathMarkdown } from '../../../components/common/MathMarkdown';
 import './Quiz.css';
 
 export function QuizResultPage() {
@@ -41,7 +42,16 @@ export function QuizResultPage() {
         const parts = key.split(/[,;]/).map(part => part.trim()).filter(Boolean);
         return parts.map(part => answer.options.find(option => option.key === part)?.content || part).join(', ');
       };
-      return <section className={`quiz-card quiz-review ${correct ? 'quiz-review-correct' : 'quiz-review-wrong'}`} key={answer.questionId}><p className="quiz-eyebrow">Câu {index + 1} · {correct ? 'Đúng' : 'Sai / Chưa trả lời'}</p><h2 className="quiz-question">{answer.questionText}</h2><p>Đáp án của bạn: <strong>{text(answer.selectedOptionKey)}</strong></p><p className="quiz-correct-text">Đáp án đúng: <strong>{text(answer.correctOptionKey)}</strong></p><div className="quiz-explanation"><h3>Lời giải chi tiết</h3><p>{answer.explanation}</p></div></section>;
+      return <section className={`quiz-card quiz-review ${correct ? 'quiz-review-correct' : 'quiz-review-wrong'}`} key={answer.questionId}>
+        <p className="quiz-eyebrow">Câu {index + 1} · {correct ? 'Đúng' : 'Sai / Chưa trả lời'}</p>
+        <h2 className="quiz-question"><MathMarkdown content={answer.questionText} prose={false} /></h2>
+        <div className="quiz-answer-line"><span>Đáp án của bạn:</span> <strong><MathMarkdown content={text(answer.selectedOptionKey)} inline prose={false} /></strong></div>
+        <div className="quiz-answer-line quiz-correct-text"><span>Đáp án đúng:</span> <strong><MathMarkdown content={text(answer.correctOptionKey)} inline prose={false} /></strong></div>
+        <div className="quiz-explanation">
+          <h3>Lời giải chi tiết</h3>
+          <div className="quiz-explanation-text"><MathMarkdown content={answer.explanation} /></div>
+        </div>
+      </section>;
     })}
     <div className="quiz-navigation"><Link to="/student/practice">Hoàn thành</Link><button className="quiz-primary" disabled={loading} onClick={() => void retake()}>{loading ? 'Đang mở bài…' : 'Làm lại đề'}</button></div>
   </div>;

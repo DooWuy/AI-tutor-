@@ -69,14 +69,14 @@ export function TeachingMaterialsPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto w-full">
       <div className="mb-6 flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-slate-800">Tài liệu giảng dạy</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-2xl font-bold text-on-surface">Tài liệu giảng dạy</h1>
+        <p className="text-sm text-on-surface-variant">
           Quản lý giáo trình và sách giáo khoa. Tải lên file PDF để hệ thống AI tự động trích xuất mục lục và số hóa.
         </p>
       </div>
       
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <h2 className="text-lg font-semibold text-slate-800 mb-6 flex items-center gap-2">
+      <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant">
+        <h2 className="text-lg font-semibold text-on-surface mb-6 flex items-center gap-2">
           <span className="material-symbols-outlined text-primary">upload_file</span>
           Tải lên sách giáo khoa (PDF)
         </h2>
@@ -84,24 +84,24 @@ export function TeachingMaterialsPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-slate-700">Môn học <span className="text-red-500">*</span></label>
+              <label className="text-sm font-medium text-on-surface">Môn học <span className="text-error">*</span></label>
               <input 
                 type="text" 
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm"
+                className="w-full bg-surface-container-low text-on-surface border border-outline-variant rounded-lg p-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm placeholder:text-on-surface-variant/60"
                 placeholder="VD: Toán học"
                 required
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-slate-700">Khối lớp <span className="text-red-500">*</span></label>
+              <label className="text-sm font-medium text-on-surface">Khối lớp <span className="text-error">*</span></label>
               <input 
                 type="text" 
                 value={gradeLevel}
                 onChange={(e) => setGradeLevel(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm"
+                className="w-full bg-surface-container-low text-on-surface border border-outline-variant rounded-lg p-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-sm placeholder:text-on-surface-variant/60"
                 placeholder="VD: Lớp 5"
                 required
               />
@@ -109,18 +109,18 @@ export function TeachingMaterialsPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">File PDF <span className="text-red-500">*</span></label>
+            <label className="text-sm font-medium text-on-surface">File PDF <span className="text-error">*</span></label>
             <div className="relative">
               <input 
                 type="file" 
                 accept=".pdf,application/pdf"
                 onChange={handleFileChange}
                 ref={fileInputRef}
-                className="w-full border border-slate-300 rounded-lg p-2.5 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all cursor-pointer outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full bg-surface-container-low text-on-surface border border-outline-variant rounded-lg p-2.5 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all cursor-pointer outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 required
               />
             </div>
-            <p className="text-xs text-slate-500 mt-1">Dung lượng tối đa 50MB.</p>
+            <p className="text-xs text-on-surface-variant mt-1">Dung lượng tối đa 50MB.</p>
           </div>
 
           {message && (

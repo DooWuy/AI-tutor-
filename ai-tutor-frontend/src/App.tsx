@@ -21,6 +21,12 @@ import { AdminLayout } from './layouts/AdminLayout/AdminLayout';
 import { AdminDashboardPage } from './pages/Admin/AdminDashboardPage';
 import { AdminStudentDetailShell } from './pages/Admin/Students/AdminStudentDetailShell';
 import { StudentManagementPage } from './pages/Admin/Students/StudentManagementPage';
+import { AlertProvider } from './context/AlertContext';
+import { ToastProvider } from './context/ToastContext';
+import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { GlobalErrorBoundary } from './components/common/GlobalErrorBoundary';
 import QuestionBankPage from './pages/Assessment/QuestionBankPage';
 import SubjectSkillsPage from './pages/Assessment/SubjectSkillsPage';
 import SkillQuestionsPage from './pages/Assessment/SkillQuestionsPage';
@@ -35,8 +41,14 @@ function QuizStatisticsRedirect() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <GlobalErrorBoundary>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <AlertProvider>
+              <ToastProvider>
+                <NotificationProvider>
+                  <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -86,7 +98,13 @@ function App() {
           <Route path="quizzes/:quizId" element={<QuizEditorPage />} />
         </Route>
       </Routes>
+                  </NotificationProvider>
+                </ToastProvider>
+      </AlertProvider>
+      </AuthProvider>
     </BrowserRouter>
+    </ThemeProvider>
+    </GlobalErrorBoundary>
   );
 }
 
