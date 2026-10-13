@@ -52,12 +52,17 @@ export function AnalyticsFilterBar({
             value={selectedClassId}
             onChange={(e) => onSelectClass(e.target.value)}
             className={styles.filterSelect}
+            disabled={classes.length === 0}
           >
-            {classes.map((cls) => (
-              <option key={cls.id} value={cls.id}>
-                {cls.name} {cls.isHomeroom ? '(Chủ nhiệm)' : ''}
-              </option>
-            ))}
+            {classes.length === 0 ? (
+              <option value="">Chưa có lớp phụ trách</option>
+            ) : (
+              classes.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name} {cls.isHomeroom ? '(Chủ nhiệm)' : ''}
+                </option>
+              ))
+            )}
           </select>
         </div>
 

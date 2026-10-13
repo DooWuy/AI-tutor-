@@ -82,9 +82,11 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
         try {
             if (userRepository.existsByEmail(DEMO_TEACHER_EMAIL)) {
                 seedKnowledgeGapsIfMissing();
+                assignTeacher01IfPresent();
                 return;
             }
             seed();
+            assignTeacher01IfPresent();
             log.info(
                     "Seeded analytics demo teacher {} / {} (class 12A1, 40 students, 80 quiz attempts totaling 640)",
                     DEMO_TEACHER_EMAIL,
@@ -92,6 +94,26 @@ public class AnalyticsDemoDataSeeder implements ApplicationRunner {
         } finally {
             disableHistoryMaintenance();
         }
+    }
+
+    private void assignTeacher01IfPresent() {
+        userRepository.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue("teacher01@aitutor.vn").ifPresent(user -> {
+            teacherRepository.findByUserId(user.getId()).ifPresent(teacher -> {
+                schoolClassRepository.findFirstByNameOrderByCreatedAtDesc("12A1").ifPresent(class12A1 -> {
+                    if (!assignmentRepository.existsByTeacher_IdAndSchoolClass_Id(teacher.getId(), class12A1.getId())) {
+                        persistAssignment(teacher, class12A1, null, true);
+                        persistAssignment(teacher, class12A1, SubjectCode.TOAN.name(), false);
+                        log.info("Assigned teacher01@aitutor.vn to class 12A1 (homeroom + TOAN)");
+                    }
+                });
+                schoolClassRepository.findFirstByNameOrderByCreatedAtDesc("12A2").ifPresent(class12A2 -> {
+                    if (!assignmentRepository.existsByTeacher_IdAndSchoolClass_Id(teacher.getId(), class12A2.getId())) {
+                        persistAssignment(teacher, class12A2, SubjectCode.TOAN.name(), false);
+                        log.info("Assigned teacher01@aitutor.vn to class 12A2 (TOAN)");
+                    }
+                });
+            });
+        });
     }
 
     private void enableHistoryMaintenance() {
