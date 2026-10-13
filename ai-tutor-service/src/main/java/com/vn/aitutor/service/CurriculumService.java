@@ -18,6 +18,7 @@ import com.vn.aitutor.repository.BookRepository;
 import com.vn.aitutor.repository.ChapterRepository;
 import com.vn.aitutor.repository.DocumentRepository;
 import com.vn.aitutor.repository.LessonRepository;
+import com.vn.aitutor.repository.QuestionBankRepository;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class CurriculumService {
     private final ChapterRepository chapterRepository;
     private final LessonRepository lessonRepository;
     private final DocumentRepository documentRepository;
+    private final QuestionBankRepository questionBankRepository;
 
     @Transactional
     public BookResponse createBook(BookUpsertRequest request) {
@@ -190,6 +192,10 @@ public class CurriculumService {
         if (documentRepository.existsByLessonId(lesson.getId())) {
             throw new ResourceBadRequestException(
                     "Không thể xóa bài học vì vẫn còn tài liệu liên kết. Hãy xóa các tài liệu trước.");
+        }
+        if (questionBankRepository.existsByLessonId(lesson.getId())) {
+            throw new ResourceBadRequestException(
+                    "Không thể xóa bài học vì vẫn còn câu hỏi trong ngân hàng. Hãy xóa các câu hỏi trước.");
         }
         lessonRepository.delete(lesson);
     }

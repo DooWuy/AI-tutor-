@@ -1,3 +1,5 @@
+ALTER TABLE quiz_attempts ADD COLUMN is_visible BOOLEAN NOT NULL DEFAULT TRUE;
+
 CREATE TABLE quiz_attempt_drafts (
     id UUID PRIMARY KEY,
     quiz_id UUID NOT NULL REFERENCES quizzes(id),

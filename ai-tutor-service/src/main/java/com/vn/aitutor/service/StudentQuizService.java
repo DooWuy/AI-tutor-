@@ -111,7 +111,7 @@ public class StudentQuizService {
             if (!q.isActive()) continue;
             if (q.getGradeLevel() != null && !q.getGradeLevel().isBlank() && !q.getGradeLevel().equals(student.getGradeLevel())
                     && (student.getClassEntity() == null || !q.getGradeLevel().equals(student.getClassEntity().getGradeLevel()))) continue;
-            int qCount = quizQuestionRepository.countByQuizId(q.getId());
+            int qCount = (int) quizQuestionRepository.countByQuizId(q.getId());
             result.add(StudentQuizDto.builder()
                     .id(q.getId())
                     .title(q.getTitle())

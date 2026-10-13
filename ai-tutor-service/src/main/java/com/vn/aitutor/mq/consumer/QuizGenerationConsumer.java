@@ -5,7 +5,8 @@ import com.vn.aitutor.config.RabbitMQConfig;
 import com.vn.aitutor.dto.request.QuestionBankCreateRequest;
 import com.vn.aitutor.dto.request.QuizGenerationMessage;
 import com.vn.aitutor.dto.response.QuestionBankListResponse;
-import com.vn.aitutor.entity.QuestionBank;
+import com.vn.aitutor.entity.QuestionBankItem;
+import com.vn.aitutor.entity.QuestionChoice;
 import com.vn.aitutor.entity.Quiz;
 import com.vn.aitutor.entity.QuizQuestion;
 import com.vn.aitutor.entity.enums.QuestionType;
@@ -44,26 +45,26 @@ public class QuizGenerationConsumer {
             Quiz quiz = quizRepository.findById(message.getQuizId()).orElseThrow();
             if ("READY".equals(quiz.getGenerationStatus())) return;
             
-            // Strategy 1: Find existing questions in QuestionBank (fallback)
-            List<QuestionBank> existingQuestions = questionBankRepository.findRandomByTopicAndDifficulty(
-                    message.getTopic(), message.getDifficulty(), message.getCount());
-            
-            int existingCount = existingQuestions.size();
+            List<QuestionBankItem> existingQuestions = List.of();
+            if (message.getTopic() != null && !message.getTopic().isBlank()) {
+                existingQuestions = questionBankRepository.findActiveByStemAndDifficulty(
+                        message.getTopic(), message.getDifficulty());
+                if (existingQuestions.size() > message.getCount()) {
+                    existingQuestions = existingQuestions.subList(0, message.getCount());
+                }
+            }
+
+            int existingCount = 0;
+            List<QuestionBankCreateRequest> allQuestions = new ArrayList<>();
+            for (QuestionBankItem item : existingQuestions) {
+                QuestionBankCreateRequest req = toRequest(item);
+                if (req != null) {
+                    allQuestions.add(req);
+                    existingCount++;
+                }
+            }
             int remainingCount = message.getCount() - existingCount;
             log.info("Found {} existing questions. Need to generate {} more.", existingCount, remainingCount);
-
-            List<QuestionBankCreateRequest> allQuestions = new ArrayList<>();
-
-            // Map existing to the request DTO format
-            for (QuestionBank qb : existingQuestions) {
-                QuestionBankCreateRequest req = new QuestionBankCreateRequest();
-                req.setStem(qb.getStem());
-                req.setType(qb.getType());
-                req.setExplanation(qb.getExplanation());
-                req.setCorrectAnswer(qb.getCorrectAnswer());
-                req.setChoices(qb.getChoices());
-                allQuestions.add(req);
-            }
 
             // Strategy 2: Chunking & Parallel Generation
             if (remainingCount > 0) {
@@ -167,5 +168,36 @@ public class QuizGenerationConsumer {
                 if (!"READY".equals(q.getGenerationStatus())) { q.setGenerationStatus("FAILED"); quizRepository.save(q); }
             });
         }
+    }
+
+    private QuestionBankCreateRequest toRequest(QuestionBankItem item) {
+        if (item.getQuestionType() == QuestionType.MULTI_SELECT
+                || item.getStem() == null || item.getStem().isBlank()
+                || item.getExplanation() == null || item.getExplanation().isBlank()) {
+            return null;
+        }
+        List<String> choices = new ArrayList<>();
+        String correct = item.getCorrectText();
+        if (item.getChoices() != null) {
+            for (QuestionChoice choice : item.getChoices()) {
+                if (choice.getChoiceText() == null || choice.getChoiceText().isBlank()) {
+                    continue;
+                }
+                choices.add(choice.getChoiceText());
+                if (choice.isCorrect()) {
+                    correct = choice.getChoiceText();
+                }
+            }
+        }
+        if (correct == null || correct.isBlank()) {
+            return null;
+        }
+        QuestionBankCreateRequest request = new QuestionBankCreateRequest();
+        request.setStem(item.getStem());
+        request.setType(item.getQuestionType());
+        request.setExplanation(item.getExplanation());
+        request.setChoices(choices);
+        request.setCorrectAnswer(correct);
+        return request;
     }
 }

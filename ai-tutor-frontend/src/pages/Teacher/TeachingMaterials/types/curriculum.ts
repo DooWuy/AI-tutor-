@@ -123,26 +123,33 @@ export const CURRICULUM_OPTIONS = [
   'Chương trình chuẩn Bộ GD&ĐT',
 ] as const;
 
-export function normalizeSubjectForBackend(raw: string): string {
-  const trimmed = (raw || '').trim();
-  if (trimmed.toLowerCase().includes('toán')) return 'Toán';
-  if (
-    trimmed.toLowerCase().includes('vật lý') ||
-    trimmed.toLowerCase().includes('vật lí') ||
-    trimmed.toLowerCase() === 'lí' ||
-    trimmed.toLowerCase() === 'lý'
-  ) {
-    return 'Vật lý';
-  }
-  if (trimmed.toLowerCase().includes('hóa')) return 'Hóa học';
-  if (trimmed.toLowerCase().includes('sinh')) return 'Sinh học';
-  if (trimmed.toLowerCase().includes('anh')) return 'Tiếng Anh';
-  if (trimmed.toLowerCase().includes('văn')) return 'Ngữ văn';
-  if (trimmed.toLowerCase().includes('sử')) return 'Lịch sử';
-  if (trimmed.toLowerCase().includes('địa')) return 'Địa lý';
-  if (trimmed.toLowerCase().includes('công dân') || trimmed.toUpperCase() === 'GDCD') return 'GDCD';
-  if (trimmed.toLowerCase().includes('tin')) return 'Tin học';
+function foldVi(value: string) {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase();
+}
+
+export function guessSubject(raw: string): string {
+  const folded = foldVi(raw);
+  const tokens = new Set(folded.split(/[^a-z0-9]+/).filter(Boolean));
+  if (tokens.has('hoa') || tokens.has('hoahoc')) return 'Hóa học';
+  if (tokens.has('sinh') || tokens.has('sinhhoc')) return 'Sinh học';
+  if (tokens.has('anh') || tokens.has('tienganh')) return 'Tiếng Anh';
+  if (tokens.has('van') || tokens.has('nguvan')) return 'Ngữ văn';
+  if (tokens.has('su') || tokens.has('lichsu')) return 'Lịch sử';
+  if (tokens.has('dia') || tokens.has('dialy')) return 'Địa lý';
+  if (tokens.has('ly') || tokens.has('vatly')) return 'Vật lý';
+  if (tokens.has('gdcd') || folded.includes('cong dan')) return 'GDCD';
+  if (tokens.has('tin') || tokens.has('tinhoc')) return 'Tin học';
+  if (tokens.has('toan')) return 'Toán';
   return 'Toán';
+}
+
+export function normalizeSubjectForBackend(raw: string): string {
+  return guessSubject(raw);
 }
 
 export function normalizeGradeForBackend(raw: string): string {

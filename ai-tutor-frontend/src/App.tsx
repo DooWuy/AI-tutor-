@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/Login/LoginPage';
 import RegisterPage from './pages/Register/RegisterPage';
@@ -27,6 +27,17 @@ import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { GlobalErrorBoundary } from './components/common/GlobalErrorBoundary';
+import QuestionBankPage from './pages/Assessment/QuestionBankPage';
+import SubjectSkillsPage from './pages/Assessment/SubjectSkillsPage';
+import SkillQuestionsPage from './pages/Assessment/SkillQuestionsPage';
+import QuizListPage from './pages/Assessment/QuizListPage';
+import QuizEditorPage from './pages/Assessment/QuizEditorPage';
+import QuizStatisticsPage from './pages/Assessment/QuizStatisticsPage';
+
+function QuizStatisticsRedirect() {
+  const { quizId } = useParams<{ quizId: string }>();
+  return <Navigate to={`/teacher/quizzes/${quizId}/statistics`} replace />;
+}
 
 function App() {
   return (
@@ -41,6 +52,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/quizzes/:quizId/statistics" element={<QuizStatisticsRedirect />} />
         
         {/* Student Routes */}
         <Route path="/student" element={<StudentLayout />}>
@@ -59,6 +71,13 @@ function App() {
           <Route index element={<Navigate to="/teacher/analytics" replace />} />
           <Route path="dashboard" element={<Navigate to="/teacher/analytics" replace />} />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="question-bank" element={<QuestionBankPage />} />
+          <Route path="question-bank/:subject/:grade" element={<SubjectSkillsPage />} />
+          <Route path="question-bank/:skillId" element={<SkillQuestionsPage />} />
+          <Route path="quizzes" element={<QuizListPage />} />
+          <Route path="quizzes/new" element={<QuizEditorPage />} />
+          <Route path="quizzes/:quizId/statistics" element={<QuizStatisticsPage />} />
+          <Route path="quizzes/:quizId" element={<QuizEditorPage />} />
           <Route path="documents" element={<TeachingMaterialsPage />} />
           <Route path="materials" element={<Navigate to="/teacher/documents" replace />} />
           <Route path="curriculum" element={<Navigate to="/teacher/documents" replace />} />
@@ -70,6 +89,13 @@ function App() {
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="students" element={<StudentManagementPage />} />
           <Route path="students/:studentId" element={<AdminStudentDetailShell />} />
+          <Route path="question-bank" element={<QuestionBankPage />} />
+          <Route path="question-bank/:subject/:grade" element={<SubjectSkillsPage />} />
+          <Route path="question-bank/:skillId" element={<SkillQuestionsPage />} />
+          <Route path="quizzes" element={<QuizListPage />} />
+          <Route path="quizzes/new" element={<QuizEditorPage />} />
+          <Route path="quizzes/:quizId/statistics" element={<QuizStatisticsPage />} />
+          <Route path="quizzes/:quizId" element={<QuizEditorPage />} />
         </Route>
       </Routes>
                   </NotificationProvider>
