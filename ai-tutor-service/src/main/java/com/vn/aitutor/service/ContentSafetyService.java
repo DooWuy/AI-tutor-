@@ -23,9 +23,18 @@ public class ContentSafetyService {
         
         String lowerCaseMessage = message.toLowerCase();
         for (String keyword : BLOCKED_KEYWORDS) {
-            if (lowerCaseMessage.contains(keyword)) {
-                log.warn("Content safety violation detected. Keyword: '{}'", keyword);
-                return false;
+            if (keyword.contains(" ")) {
+                if (lowerCaseMessage.contains(keyword)) {
+                    log.warn("Content safety violation detected. Keyword: '{}'", keyword);
+                    return false;
+                }
+            } else {
+                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                        "(?i)(?:^|[\\s,.;:!?()/-])" + java.util.regex.Pattern.quote(keyword) + "(?:$|[\\s,.;:!?()/-])");
+                if (pattern.matcher(lowerCaseMessage).find()) {
+                    log.warn("Content safety violation detected. Keyword: '{}'", keyword);
+                    return false;
+                }
             }
         }
         return true;

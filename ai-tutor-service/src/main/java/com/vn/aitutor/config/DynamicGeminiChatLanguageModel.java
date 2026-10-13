@@ -60,14 +60,47 @@ public class DynamicGeminiChatLanguageModel implements ChatLanguageModel {
         }
     }
 
+    private boolean isTransientOverload(Throwable t) {
+        if (t == null || t.getMessage() == null) return false;
+        String m = t.getMessage().toLowerCase();
+        return m.contains("503") || m.contains("unavailable") || m.contains("demand") || m.contains("overloaded");
+    }
+
+    private ChatLanguageModel createFallbackModel() {
+        return GoogleAiGeminiChatModel.builder()
+                .apiKey(cachedKey)
+                .modelName(AiModelResolver.DEFAULT_GEMINI_MODEL)
+                .temperature(cachedTemp)
+                .timeout(Duration.ofMinutes(2))
+                .build();
+    }
+
     @Override
     public Response<AiMessage> generate(List<ChatMessage> messages) {
-        return getDelegate().generate(messages);
+        try {
+            return getDelegate().generate(messages);
+        } catch (RuntimeException ex) {
+            if (isTransientOverload(ex) && !AiModelResolver.DEFAULT_GEMINI_MODEL.equals(cachedModel)) {
+                log.warn("Model '{}' is temporarily unavailable. Falling back to '{}'.",
+                        cachedModel, AiModelResolver.DEFAULT_GEMINI_MODEL);
+                return createFallbackModel().generate(messages);
+            }
+            throw ex;
+        }
     }
 
     @Override
     public Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
-        return getDelegate().generate(messages, toolSpecifications);
+        try {
+            return getDelegate().generate(messages, toolSpecifications);
+        } catch (RuntimeException ex) {
+            if (isTransientOverload(ex) && !AiModelResolver.DEFAULT_GEMINI_MODEL.equals(cachedModel)) {
+                log.warn("Model '{}' is temporarily unavailable. Falling back to '{}'.",
+                        cachedModel, AiModelResolver.DEFAULT_GEMINI_MODEL);
+                return createFallbackModel().generate(messages, toolSpecifications);
+            }
+            throw ex;
+        }
     }
 
     @Override
