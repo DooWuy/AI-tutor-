@@ -16,7 +16,7 @@ export interface StudentQuizDto {
   status: string;
 }
 
-export type QuestionType = 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'SHORT_ANSWER';
+export type QuestionType = 'MULTIPLE_CHOICE' | 'MULTI_SELECT' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'SHORT_ANSWER';
 export interface QuizQuestion { id: string; questionText: string; type: QuestionType; options: { key: string; content: string }[]; orderIndex: number }
 export interface QuizContent { id: string; title: string; subject: string; duration: number; questions: QuizQuestion[] }
 export interface QuizAnswer { questionId: string; value: string | null }

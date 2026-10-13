@@ -37,7 +37,11 @@ export function QuizResultPage() {
     <p className="quiz-notice">XP chỉ được thưởng ở lần hoàn tất đầu tiên của mỗi đề. Bạn vẫn có thể làm lại để luyện tập.</p>
     {result.answers.map((answer, index) => {
       const correct = answer.isCorrect ?? answer.correct ?? false;
-      const text = (key: string | null) => key ? (answer.options.find(option => option.key === key)?.content || key) : 'Chưa trả lời';
+      const text = (key: string | null) => {
+        if (!key) return 'Chưa trả lời';
+        const parts = key.split(/[,;]/).map(part => part.trim()).filter(Boolean);
+        return parts.map(part => answer.options.find(option => option.key === part)?.content || part).join(', ');
+      };
       return <section className={`quiz-card quiz-review ${correct ? 'quiz-review-correct' : 'quiz-review-wrong'}`} key={answer.questionId}>
         <p className="quiz-eyebrow">Câu {index + 1} · {correct ? 'Đúng' : 'Sai / Chưa trả lời'}</p>
         <h2 className="quiz-question"><MathMarkdown content={answer.questionText} prose={false} /></h2>

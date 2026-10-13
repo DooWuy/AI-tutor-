@@ -32,7 +32,10 @@ public class QuizSubmissionService {
         return new QuizContentResponse(quiz.getId(), quiz.getTitle(), quiz.getSubject(), quiz.getTimeLimit() == null ? 0 : quiz.getTimeLimit(),
                 access.readyQuestions(quizId).stream().map(q -> new QuizContentResponse.Question(q.getId(), q.getQuestionText(),
                         q.getType() == null ? com.vn.aitutor.entity.enums.QuestionType.MULTIPLE_CHOICE : q.getType(),
-                        q.getOptions().stream().map(o -> Map.<String,Object>of("key", o.get("key"), "content", o.get("content"))).toList(), q.getOrderIndex())).toList());
+                        q.getOptions().stream().map(o -> {
+                            Object body = o.get("content") != null ? o.get("content") : o.get("text");
+                            return Map.<String,Object>of("key", o.get("key"), "content", body == null ? "" : body);
+                        }).toList(), q.getOrderIndex())).toList());
     }
 
     @Transactional
@@ -122,10 +125,21 @@ public class QuizSubmissionService {
             if (question == null || !seen.add(value.questionId()) || (value.value() != null && value.value().length() > 200))
                 throw new ResourceBadRequestException("Invalid or duplicate quiz answer");
             String text = value.value();
-            if (text != null && !text.isBlank() && question.getType() != com.vn.aitutor.entity.enums.QuestionType.FILL_IN_BLANK
-                    && question.getType() != com.vn.aitutor.entity.enums.QuestionType.SHORT_ANSWER
-                    && question.getOptions().stream().noneMatch(o -> text.equals(o.get("key"))))
-                throw new ResourceBadRequestException("Unknown option key");
+            com.vn.aitutor.entity.enums.QuestionType type = question.getType();
+            if (text != null && !text.isBlank() && type != com.vn.aitutor.entity.enums.QuestionType.FILL_BLANK) {
+                if (type == com.vn.aitutor.entity.enums.QuestionType.MULTI_SELECT) {
+                    Set<String> selected = QuizGradingService.choiceKeys(text);
+                    Set<String> optionKeys = question.getOptions().stream()
+                            .map(option -> option.get("key"))
+                            .filter(String.class::isInstance)
+                            .map(key -> ((String) key).toUpperCase(Locale.ROOT))
+                            .collect(Collectors.toSet());
+                    if (selected.isEmpty() || !optionKeys.containsAll(selected))
+                        throw new ResourceBadRequestException("Unknown option key");
+                } else if (question.getOptions().stream().noneMatch(option -> text.equals(option.get("key")))) {
+                    throw new ResourceBadRequestException("Unknown option key");
+                }
+            }
             QuizAttemptDraftAnswer answer = stored.getOrDefault(value.questionId(), new QuizAttemptDraftAnswer());
             answer.setDraft(draft); answer.setQuestion(question); answer.setAnswerValue(text); answer.setUpdatedAt(Instant.now());
             draftAnswers.save(answer);

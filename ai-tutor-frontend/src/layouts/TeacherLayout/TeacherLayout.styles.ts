@@ -3,7 +3,7 @@ export const styles = {
   
   // Header
   header: 'sticky top-0 z-40 w-full bg-surface-container-lowest/90 backdrop-blur-md border-b border-outline-variant transition-all',
-  headerContainer: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4',
+  headerContainer: 'max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4',
   headerBrand: 'flex items-center gap-3 select-none',
   headerLogoIcon: 'w-9 h-9 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-xs',
   headerBrandText: 'flex flex-col',
@@ -18,7 +18,7 @@ export const styles = {
   headerLogoutBtn: 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-variant bg-surface hover:bg-surface-container text-xs font-semibold text-on-surface transition-all active:scale-95 cursor-pointer',
   
   // Body Layout (Sidebar + Main)
-  bodyWrapper: 'flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6 items-start',
+  bodyWrapper: 'flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6 items-start',
   
   // Sidebar
   sidebar: 'w-full md:w-64 bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 shadow-xs shrink-0 space-y-4',
@@ -31,5 +31,5 @@ export const styles = {
   sidebarNoticeTitle: 'font-bold text-on-surface flex items-center gap-1.5 text-xs',
   
   // Main Content
-  mainContent: 'flex-1 w-full min-w-0',
+  mainContent: 'flex-1 w-full min-w-0 overflow-visible',
 };
