@@ -62,4 +62,10 @@ public interface QuestionBankRepository extends JpaRepository<QuestionBankItem, 
             """)
     List<QuestionBankItem> findActiveByStemAndDifficulty(
             @Param("topic") String topic, @Param("difficulty") int difficulty);
+
+    @Query("""
+            select count(q) from QuestionBankItem q
+            where q.lesson.id in (select ls.lesson.id from LessonSkill ls where ls.skill.id = :skillId)
+            """)
+    long countQuestionsBySkillId(@Param("skillId") UUID skillId);
 }

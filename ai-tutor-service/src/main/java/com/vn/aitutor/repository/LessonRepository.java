@@ -59,4 +59,12 @@ public interface LessonRepository extends JpaRepository<Lesson, UUID> {
             nativeQuery = true)
     List<SkillSummaryRow> findSkills(
             @Param("subject") String subject, @Param("gradeLevel") String gradeLevel);
+
+    @Query("""
+            select l from Lesson l
+            join fetch l.chapter c
+            join fetch c.book b
+            order by b.gradeLevel asc, b.subject asc, c.displayOrder asc, l.displayOrder asc
+            """)
+    List<Lesson> findAllWithChapterAndBook();
 }

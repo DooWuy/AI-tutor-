@@ -2,11 +2,13 @@ package com.vn.aitutor.service.ai;
 
 import com.vn.aitutor.analytics.KnowledgeGapCalculator;
 import com.vn.aitutor.analytics.TopicText;
+import com.vn.aitutor.service.ISystemSettingsService;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -33,13 +35,16 @@ public class GeminiPedagogyAdvisor implements PedagogyAdvisor {
     private final JsonMapper objectMapper;
     private final String geminiApiKey;
     private final String geminiApiUrl;
+    private final ISystemSettingsService systemSettingsService;
 
     public GeminiPedagogyAdvisor(
             TemplatePedagogyAdvisor template,
+            @Autowired(required = false) ISystemSettingsService systemSettingsService,
             @Value("${gemini.api.key:}") String geminiApiKey,
             @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent}")
                     String geminiApiUrl) {
         this.template = template;
+        this.systemSettingsService = systemSettingsService;
         this.geminiApiKey = geminiApiKey;
         this.geminiApiUrl = geminiApiUrl;
         this.objectMapper = JsonMapper.builder()
@@ -79,21 +84,31 @@ public class GeminiPedagogyAdvisor implements PedagogyAdvisor {
         }
     }
 
+    private String getEffectiveApiKey() {
+        return AiModelResolver.resolveApiKey(systemSettingsService, geminiApiKey);
+    }
+
     private boolean canCall() {
-        return geminiApiKey != null
-                && !geminiApiKey.isBlank()
-                && !"default_key_placeholder".equals(geminiApiKey);
+        String effectiveKey = getEffectiveApiKey();
+        return effectiveKey != null
+                && !effectiveKey.isBlank()
+                && !"default_key_placeholder".equals(effectiveKey);
     }
 
     private Map<String, String> call(List<GapAdviceRequest> gaps) {
+        String effectiveModel = AiModelResolver.resolveModel(systemSettingsService, "gemini-flash-lite-latest");
+        double effectiveTemp = AiModelResolver.resolveTemperature(systemSettingsService, 0.2);
+        String effectiveKey = getEffectiveApiKey();
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         Map<String, Object> body = Map.of(
                 "contents",
                 List.of(Map.of("parts", List.of(Map.of("text", prompt(gaps))))),
                 "generationConfig",
-                Map.of("temperature", 0.2));
-        String url = geminiApiUrl + "?key=" + java.net.URLEncoder.encode(geminiApiKey, StandardCharsets.UTF_8);
+                Map.of("temperature", effectiveTemp));
+        String url = String.format("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
+                effectiveModel, java.net.URLEncoder.encode(effectiveKey, StandardCharsets.UTF_8));
         try {
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     url,

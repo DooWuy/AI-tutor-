@@ -16,6 +16,9 @@ import org.springframework.web.client.RestTemplate;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import com.vn.aitutor.service.ISystemSettingsService;
+import org.springframework.beans.factory.annotation.Autowired;
+
 @Slf4j
 @Component
 public class GeminiQuestionClient {
@@ -25,14 +28,18 @@ public class GeminiQuestionClient {
 
     private final RestTemplate restTemplate;
     private final JsonMapper objectMapper;
-    private final String apiKey;
-    private final String model;
+    private final String defaultApiKey;
+    private final String defaultModel;
+    private final ISystemSettingsService systemSettingsService;
 
+    @Autowired
     public GeminiQuestionClient(
             @Value("${gemini.api.key:}") String apiKey,
-            @Value("${gemini.question.model:gemini-3.5-flash-lite}") String model) {
-        this.apiKey = apiKey == null ? "" : apiKey.trim();
-        this.model = model;
+            @Value("${gemini.question.model:gemini-3.5-flash-lite}") String model,
+            @Autowired(required = false) ISystemSettingsService systemSettingsService) {
+        this.defaultApiKey = apiKey == null ? "" : apiKey.trim();
+        this.defaultModel = (model == null || model.isBlank()) ? "gemini-3.5-flash-lite" : model.trim();
+        this.systemSettingsService = systemSettingsService;
         this.objectMapper = JsonMapper.builder().build();
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(10_000);
@@ -41,21 +48,28 @@ public class GeminiQuestionClient {
     }
 
     public String complete(String prompt) {
-        if (apiKey.isBlank() || "dummy".equals(apiKey) || "default_key_placeholder".equals(apiKey)) {
+        String effectiveApiKey = com.vn.aitutor.service.ai.AiModelResolver.resolveApiKey(systemSettingsService, defaultApiKey);
+
+        if (effectiveApiKey.isBlank() || "dummy".equals(effectiveApiKey) || "default_key_placeholder".equals(effectiveApiKey)) {
             throw new ServiceUnavailableException("Chưa cấu hình Gemini API key");
         }
+
+        String effectiveModel = com.vn.aitutor.service.ai.AiModelResolver.resolveModel(systemSettingsService, defaultModel);
+        double effectiveTemp = com.vn.aitutor.service.ai.AiModelResolver.resolveTemperature(systemSettingsService, 0.3);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("x-goog-api-key", apiKey);
+        headers.set("x-goog-api-key", effectiveApiKey);
         Map<String, Object> body = Map.of(
                 "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
                 "generationConfig", Map.of(
-                        "temperature", 0.3,
+                        "temperature", effectiveTemp,
                         "maxOutputTokens", 8192,
                         "responseMimeType", "application/json"));
         try {
+            log.info("Generating questions using Gemini model: {}, temperature: {}", effectiveModel, effectiveTemp);
             ResponseEntity<String> response = restTemplate.exchange(
-                    ENDPOINT.formatted(model),
+                    ENDPOINT.formatted(effectiveModel),
                     HttpMethod.POST,
                     new HttpEntity<>(body, headers),
                     String.class);

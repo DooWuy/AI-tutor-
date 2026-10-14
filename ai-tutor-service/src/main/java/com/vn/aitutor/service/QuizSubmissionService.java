@@ -24,6 +24,7 @@ public class QuizSubmissionService {
     private final QuizQuestionRepository questions;
     private final QuizGradingService grading;
     private final IStudentQuizAttemptService results;
+    private final ISystemSettingsService systemSettingsService;
     private final jakarta.persistence.EntityManager entityManager;
 
     @Transactional(readOnly = true)
@@ -152,7 +153,18 @@ public class QuizSubmissionService {
         Map<UUID, String> saved = new HashMap<>();
         draftAnswers.findByDraftId(draft.getId()).forEach(a -> saved.put(a.getQuestion().getId(), a.getAnswerValue()));
         int correct = (int) quizQuestions.stream().filter(q -> grading.correct(q, saved.get(q.getId()))).count();
-        int xp = attempts.existsByStudentIdAndQuizId(student.getId(), draft.getQuiz().getId()) ? 0 : correct * 10;
+        int rawXp = attempts.existsByStudentIdAndQuizId(student.getId(), draft.getQuiz().getId()) ? 0 : correct * 10;
+        int xp = rawXp;
+        if (rawXp > 0) {
+            int dailyCap = systemSettingsService.getInt("gamification.daily_xp_cap", 500);
+            Instant startOfDay = LocalDate.now(ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant();
+            int todayEarned = attempts.sumDailyXpForStudent(student.getId(), startOfDay);
+            if (todayEarned >= dailyCap) {
+                xp = 0;
+            } else {
+                xp = Math.min(rawXp, dailyCap - todayEarned);
+            }
+        }
         Instant now = Instant.now();
         Instant submitted = now.isBefore(draft.getExpiresAt()) ? now : draft.getExpiresAt();
         QuizAttempt attempt = new QuizAttempt();

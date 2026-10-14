@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Bot } from 'lucide-react';
+import { ThemeToggle } from '../common/ThemeToggle';
 
 export const LandingHeader: React.FC = () => {
   return (
@@ -23,7 +24,8 @@ export const LandingHeader: React.FC = () => {
           <a href="#features" className="text-on-surface-variant hover:text-on-surface transition-colors">Tính năng</a>
           <a href="#pricing" className="text-on-surface-variant hover:text-on-surface transition-colors">Bảng giá</a>
         </nav>
-        <div className="flex items-center gap-space-md">
+        <div className="flex items-center gap-space-sm sm:gap-space-md">
+          <ThemeToggle className="hover:bg-surface-variant/40" />
           <Link to="/login" className="text-sm font-medium text-on-surface-variant hover:text-on-surface px-space-md py-space-sm rounded transition-colors">
             Đăng nhập
           </Link>

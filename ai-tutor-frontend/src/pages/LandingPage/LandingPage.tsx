@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { LandingHeader } from '../../components/layout/LandingHeader';
 import { LandingFooter } from '../../components/layout/LandingFooter';
 import { HeroSection } from './components/HeroSection';
@@ -8,13 +8,6 @@ import { TestimonialsSection } from './components/TestimonialsSection';
 import { CtaSection } from './components/CtaSection';
 
 export const LandingPage: React.FC = () => {
-  useEffect(() => {
-    document.documentElement.classList.add('dark');
-    return () => {
-      document.documentElement.classList.remove('dark');
-    };
-  }, []);
-
   return (
     <div className="bg-surface font-body-md text-on-surface antialiased min-h-screen selection:bg-secondary-container selection:text-on-secondary-container">
       <LandingHeader />

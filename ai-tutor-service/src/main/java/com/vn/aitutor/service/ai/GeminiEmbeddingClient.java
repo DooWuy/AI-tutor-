@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.vn.aitutor.service.ISystemSettingsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -30,11 +32,14 @@ public class GeminiEmbeddingClient {
     private final String apiKey;
     private final String model;
     private final String url;
+    private final ISystemSettingsService systemSettingsService;
 
     public GeminiEmbeddingClient(
+            @Autowired(required = false) ISystemSettingsService systemSettingsService,
             @Value("${gemini.api.key:${GEMINI_API_KEY:}}") String apiKey,
             @Value("${gemini.api.embedding-model:models/gemini-embedding-001}") String model,
             @Value("${gemini.api.embedding-url:https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents}") String url) {
+        this.systemSettingsService = systemSettingsService;
         this.apiKey = apiKey;
         this.model = model;
         this.url = url;
@@ -44,17 +49,22 @@ public class GeminiEmbeddingClient {
         this.restTemplate = new RestTemplate(factory);
     }
 
+    private String getEffectiveApiKey() {
+        return AiModelResolver.resolveApiKey(systemSettingsService, apiKey);
+    }
+
     public float[][] embed(List<String> inputs) {
         if (inputs == null || inputs.isEmpty()) {
             return new float[0][];
         }
-        if (apiKey == null || apiKey.isBlank()) {
+        String effectiveKey = getEffectiveApiKey();
+        if (effectiveKey == null || effectiveKey.isBlank()) {
             throw new IngestionException("Thiếu GEMINI_API_KEY");
         }
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         try {
-            String requestUrl = url + "?key=" + apiKey;
+            String requestUrl = url + "?key=" + effectiveKey;
             ResponseEntity<String> response = restTemplate.exchange(
                     requestUrl,
                     HttpMethod.POST,

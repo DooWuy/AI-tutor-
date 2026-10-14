@@ -21,6 +21,10 @@ import { AdminLayout } from './layouts/AdminLayout/AdminLayout';
 import { AdminDashboardPage } from './pages/Admin/AdminDashboardPage';
 import { AdminStudentDetailShell } from './pages/Admin/Students/AdminStudentDetailShell';
 import { StudentManagementPage } from './pages/Admin/Students/StudentManagementPage';
+import { SkillsManagementPage } from './pages/Admin/Skills/SkillsManagementPage';
+import { SystemSettingsPage } from './pages/Admin/Settings/SystemSettingsPage';
+import { SystemLogsPage } from './pages/Admin/Logs/SystemLogsPage';
+import { MaintenanceOverlay } from './components/common/MaintenanceOverlay';
 import { AlertProvider } from './context/AlertContext';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
@@ -48,6 +52,7 @@ function App() {
             <AlertProvider>
               <ToastProvider>
                 <NotificationProvider>
+                  <MaintenanceOverlay />
                   <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -89,6 +94,9 @@ function App() {
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="students" element={<StudentManagementPage />} />
           <Route path="students/:studentId" element={<AdminStudentDetailShell />} />
+          <Route path="skills" element={<SkillsManagementPage />} />
+          <Route path="settings" element={<SystemSettingsPage />} />
+          <Route path="logs" element={<SystemLogsPage />} />
           <Route path="question-bank" element={<QuestionBankPage />} />
           <Route path="question-bank/:subject/:grade" element={<SubjectSkillsPage />} />
           <Route path="question-bank/:skillId" element={<SkillQuestionsPage />} />

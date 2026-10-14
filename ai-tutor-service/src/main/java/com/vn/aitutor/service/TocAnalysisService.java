@@ -52,6 +52,7 @@ public class TocAnalysisService {
     private final CurriculumService curriculumService;
     private final LearningMaterialValidator learningMaterialValidator;
     private final ILlamaParseService llamaParseService;
+    private final ISystemSettingsService systemSettingsService;
 
     @Value("${gemini.api.key:}")
     private String geminiApiKey;
@@ -98,7 +99,9 @@ public class TocAnalysisService {
     }
 
     private String readWithGemini(List<MultipartFile> images) {
-        if (geminiApiKey == null || geminiApiKey.isBlank()) {
+        String effectiveApiKey = com.vn.aitutor.service.ai.AiModelResolver.resolveApiKey(systemSettingsService, geminiApiKey);
+
+        if (effectiveApiKey == null || effectiveApiKey.isBlank()) {
             throw new ServiceUnavailableException("Chưa cấu hình Gemini API key");
         }
         try {
@@ -111,22 +114,26 @@ public class TocAnalysisService {
                                 "mime_type", imageMime(image),
                                 "data", Base64.getEncoder().encodeToString(image.getBytes()))));
             }
+            double effectiveTemp = com.vn.aitutor.service.ai.AiModelResolver.resolveTemperature(systemSettingsService, 0.1);
             Map<String, Object> body = Map.of(
                     "contents", List.of(Map.of("parts", parts)),
-                    "generationConfig", Map.of("temperature", 0.1));
+                    "generationConfig", Map.of("temperature", effectiveTemp));
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             List<String> candidateUrls = new ArrayList<>();
-            if (geminiApiUrl != null && !geminiApiUrl.isBlank()) {
+            String configuredModel = com.vn.aitutor.service.ai.AiModelResolver.resolveModel(systemSettingsService, null);
+            if (configuredModel != null && !configuredModel.isBlank()) {
+                candidateUrls.add("https://generativelanguage.googleapis.com/v1beta/models/" + configuredModel.trim() + ":generateContent");
+            }
+            if (geminiApiUrl != null && !geminiApiUrl.isBlank() && !candidateUrls.contains(geminiApiUrl)) {
                 candidateUrls.add(geminiApiUrl);
             }
             List<String> fallbackModels = List.of(
                     "gemini-flash-lite-latest",
                     "gemini-3.5-flash-lite",
                     "gemini-3.1-flash-lite",
-                    "gemini-3.8-flash",
-                    "gemini-3.5-flash"
+                    "gemini-3.8-flash"
             );
             for (String model : fallbackModels) {
                 String candidate = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
@@ -138,7 +145,7 @@ public class TocAnalysisService {
             Exception lastException = null;
             for (String candidateUrl : candidateUrls) {
                 try {
-                    String url = candidateUrl + "?key=" + java.net.URLEncoder.encode(geminiApiKey, java.nio.charset.StandardCharsets.UTF_8);
+                    String url = candidateUrl + "?key=" + java.net.URLEncoder.encode(effectiveApiKey, java.nio.charset.StandardCharsets.UTF_8);
                     log.info("Attempting TOC analysis using Gemini model: {}", candidateUrl);
                     ResponseEntity<String> response = restTemplate.exchange(
                             url, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);

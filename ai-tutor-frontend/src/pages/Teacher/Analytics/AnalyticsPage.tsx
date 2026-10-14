@@ -54,12 +54,15 @@ export default function AnalyticsPage() {
       .getFilters()
       .then((res) => {
         if (isCancelled) return;
-        setClasses(res.classes || []);
+        const availableClasses = res.classes || [];
+        setClasses(availableClasses);
         setSubjects(res.subjects || []);
         if (res.defaultClassId) {
           setSelectedClassId(res.defaultClassId);
-        } else if (res.classes && res.classes.length > 0) {
-          setSelectedClassId(res.classes[0].id);
+        } else if (availableClasses.length > 0) {
+          setSelectedClassId(availableClasses[0].id);
+        } else {
+          setIsLoading(false);
         }
         if (res.defaultPeriod) {
           setSelectedPeriod(res.defaultPeriod);
@@ -68,6 +71,7 @@ export default function AnalyticsPage() {
       .catch((err) => {
         if (!isCancelled) {
           setErrorMessage(err instanceof Error ? err.message : 'Không thể tải danh sách bộ lọc.');
+          setIsLoading(false);
         }
       });
 
@@ -78,7 +82,10 @@ export default function AnalyticsPage() {
 
   // 2. Fetch Dashboard Data whenever filters change
   const fetchDashboardData = useCallback(async () => {
-    if (!selectedClassId) return;
+    if (!selectedClassId) {
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     setErrorMessage(null);
@@ -207,6 +214,16 @@ export default function AnalyticsPage() {
           <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs text-outline font-medium">
             AI Analytics Engine đang tổng hợp báo cáo học tập...
+          </p>
+        </div>
+      ) : classes.length === 0 ? (
+        <div className="py-16 text-center space-y-3 bg-card rounded-2xl border border-outline/20 p-8 my-6">
+          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-xl">
+            🏫
+          </div>
+          <h3 className="text-base font-semibold text-textPrimary">Chưa có lớp học phụ trách</h3>
+          <p className="text-sm text-outline max-w-md mx-auto">
+            Tài khoản giáo viên của bạn hiện chưa được phân công lớp học nào. Vui lòng liên hệ Quản trị viên để được gán lớp phụ trách.
           </p>
         </div>
       ) : (

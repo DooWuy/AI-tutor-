@@ -31,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import com.vn.aitutor.service.ISystemSettingsService;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Duration;
 import java.util.*;
@@ -45,6 +47,7 @@ public class ScheduleServiceImpl implements IScheduleService {
     private final StudentRepository studentRepository;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
+    private final ISystemSettingsService systemSettingsService;
 
     @Value("${gemini.api.key:default_key_placeholder}")
     private String geminiApiKey;
@@ -58,10 +61,12 @@ public class ScheduleServiceImpl implements IScheduleService {
 
     public ScheduleServiceImpl(ScheduleRepository scheduleRepository, 
                                ScheduleSlotRepository scheduleSlotRepository, 
-                               StudentRepository studentRepository) {
+                               StudentRepository studentRepository,
+                               @Autowired(required = false) ISystemSettingsService systemSettingsService) {
         this.scheduleRepository = scheduleRepository;
         this.scheduleSlotRepository = scheduleSlotRepository;
         this.studentRepository = studentRepository;
+        this.systemSettingsService = systemSettingsService;
         
         // [Security Fix] Cấu hình ObjectMapper bỏ qua trường lạ từ AI
         this.objectMapper = JsonMapper.builder()
@@ -102,7 +107,10 @@ public class ScheduleServiceImpl implements IScheduleService {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
         try {
-            String url = geminiApiUrl + "?key=" + geminiApiKey;
+            String effectiveModel = com.vn.aitutor.service.ai.AiModelResolver.resolveModel(systemSettingsService, "gemini-flash-lite-latest");
+            String effectiveApiKey = com.vn.aitutor.service.ai.AiModelResolver.resolveApiKey(systemSettingsService, geminiApiKey);
+
+            String url = String.format("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", effectiveModel, effectiveApiKey);
             ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
             
             String extractedJsonText = extractTextFromGeminiResponse(response.getBody());
