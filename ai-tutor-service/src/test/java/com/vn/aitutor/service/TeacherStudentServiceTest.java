@@ -28,6 +28,7 @@ class TeacherStudentServiceTest {
     @Mock private TeacherClassAssignmentRepository assignmentRepository;
     @Mock private StudentRepository studentRepository;
     @Mock private IAdminStudentService adminStudentService;
+    @org.mockito.Spy private StreakService streaks = new StreakService(java.time.Clock.systemUTC(), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
     @InjectMocks private TeacherStudentServiceImpl service;
 
     @Test

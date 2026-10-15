@@ -1,5 +1,6 @@
 package com.vn.aitutor.dto.response;
 
+import com.vn.aitutor.entity.enums.XpAwardStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -15,6 +16,9 @@ public class QuizAttemptDetailResponse {
     private boolean isAiGenerated;
     private Double score;
     private int xpEarned;
+    private XpAwardStatus xpAwardStatus;
+    private Integer dailyXpEarned;
+    private Integer dailyXpCap;
     private int correctCount;
     private int totalQuestions;
     private int totalXp;

@@ -12,9 +12,11 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class QuizGradingService {
+    private static final int MAX_XP_PER_LEVEL = 1_000_000;
     private final int xpPerLevel;
     public QuizGradingService(@Value("${app.quiz.xp-per-level:100}") int xpPerLevel) {
-        if (xpPerLevel <= 0) throw new IllegalArgumentException("XP per level must be positive");
+        if (xpPerLevel <= 0 || xpPerLevel > MAX_XP_PER_LEVEL)
+            throw new IllegalArgumentException("XP per level must be between 1 and " + MAX_XP_PER_LEVEL);
         this.xpPerLevel = xpPerLevel;
     }
     public boolean correct(QuizQuestion question, String value) {
@@ -44,5 +46,10 @@ public class QuizGradingService {
         if (total <= 0) throw new IllegalArgumentException("Quiz must have questions");
         return BigDecimal.valueOf(correct * 10L).divide(BigDecimal.valueOf(total), 1, RoundingMode.HALF_UP).doubleValue();
     }
-    public int level(int totalXp) { return totalXp / xpPerLevel + 1; }
+    public int xpPerLevel() { return xpPerLevel; }
+
+    public int level(int totalXp) {
+        if (totalXp < 0) throw new IllegalArgumentException("Total XP must not be negative");
+        return Math.addExact(totalXp / xpPerLevel, 1);
+    }
 }

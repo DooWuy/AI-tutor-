@@ -1,7 +1,10 @@
 package com.vn.aitutor.entity;
 
+import com.vn.aitutor.entity.enums.XpAwardStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -40,6 +43,16 @@ public class QuizAttempt {
 
     @Column(name = "xp_earned", nullable = false)
     private int xpEarned;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "xp_award_status", nullable = false, length = 32)
+    private XpAwardStatus xpAwardStatus = XpAwardStatus.LEGACY_UNKNOWN;
+
+    @Column(name = "daily_xp_earned")
+    private Integer dailyXpEarned;
+
+    @Column(name = "daily_xp_cap")
+    private Integer dailyXpCap;
 
     @Column(name = "source_draft_id", unique = true)
     private UUID sourceDraftId;

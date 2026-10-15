@@ -31,6 +31,7 @@ public class StudentProfileServiceImpl implements IStudentProfileService {
     private final StudentRepository studentRepository;
     private final AvatarUploadValidator avatarUploadValidator;
     private final ICloudinaryService cloudinaryService;
+    private final com.vn.aitutor.service.StreakService streaks;
 
     @Override
     @Transactional(readOnly = true)
@@ -108,7 +109,7 @@ public class StudentProfileServiceImpl implements IStudentProfileService {
                 .studyPreferences(student.getStudyPreferences())
                 .totalXp(student.getTotalXp())
                 .currentLevel(student.getCurrentLevel())
-                .currentStreak(student.getCurrentStreak())
+                .currentStreak(streaks.effectiveCurrentStreak(student))
                 .build();
     }
 

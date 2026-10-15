@@ -23,8 +23,10 @@ public class QuizSubmissionService {
     private final QuizAttemptAnswerRepository answers;
     private final QuizQuestionRepository questions;
     private final QuizGradingService grading;
+    private final XpAwardService xpAwards;
+    private final StreakService streaks;
+    private final Clock learningClock;
     private final IStudentQuizAttemptService results;
-    private final ISystemSettingsService systemSettingsService;
     private final jakarta.persistence.EntityManager entityManager;
 
     @Transactional(readOnly = true)
@@ -55,14 +57,14 @@ public class QuizSubmissionService {
                     throw new ResourceConflictException("Quiz must have a positive time limit");
                 draft = new QuizAttemptDraft();
                 draft.setQuiz(quiz); draft.setStudent(student);
-                draft.setStartedAt(Instant.now());
+                draft.setStartedAt(learningClock.instant());
                 draft.setExpiresAt(draft.getStartedAt().plusSeconds(quiz.getTimeLimit() * 60L));
                 draft.setUpdatedAt(draft.getStartedAt());
                 drafts.saveAndFlush(draft);
             } else draft = ownedDraft(draft.getId(), student);
         }
         if (draft.getCompletedAt() != null) throw new ResourceConflictException("Draft has been submitted");
-        if (!Instant.now().isBefore(draft.getExpiresAt())) {
+        if (!learningClock.instant().isBefore(draft.getExpiresAt())) {
             if (!request.answers().isEmpty()) throw new ResourceConflictException("Quiz time has expired");
             // Starting/resuming an expired draft resolves it instead of resetting its timer.
             finish(draft, student);
@@ -86,7 +88,7 @@ public class QuizSubmissionService {
         Optional<QuizAttempt> existing = attempts.findBySourceDraftId(draft.getId());
         if (existing.isPresent()) return results.getAttemptDetail(existing.get().getId());
         // Expired requests cannot introduce answers after the server deadline.
-        if (Instant.now().isBefore(draft.getExpiresAt()))
+        if (learningClock.instant().isBefore(draft.getExpiresAt()))
             upsert(draft, request.answers(), questions.findByQuizIdOrderByOrderIndexAsc(draft.getQuiz().getId()));
         QuizAttempt attempt = finish(draft, student);
         return results.getAttemptDetail(attempt.getId());
@@ -98,7 +100,7 @@ public class QuizSubmissionService {
         if (studentId == null) return;
         Student student = lockStudent(studentId);
         QuizAttemptDraft draft = drafts.lockById(id).orElseThrow();
-        if (draft.getCompletedAt() == null && !Instant.now().isBefore(draft.getExpiresAt())) finish(draft, student);
+        if (draft.getCompletedAt() == null && !learningClock.instant().isBefore(draft.getExpiresAt())) finish(draft, student);
     }
 
     private Student lockStudent(UUID id) {
@@ -142,10 +144,10 @@ public class QuizSubmissionService {
                 }
             }
             QuizAttemptDraftAnswer answer = stored.getOrDefault(value.questionId(), new QuizAttemptDraftAnswer());
-            answer.setDraft(draft); answer.setQuestion(question); answer.setAnswerValue(text); answer.setUpdatedAt(Instant.now());
+            answer.setDraft(draft); answer.setQuestion(question); answer.setAnswerValue(text); answer.setUpdatedAt(learningClock.instant());
             draftAnswers.save(answer);
         }
-        draft.setUpdatedAt(Instant.now());
+        draft.setUpdatedAt(learningClock.instant());
     }
     private QuizAttempt finish(QuizAttemptDraft draft, Student student) {
         List<QuizQuestion> quizQuestions = questions.findByQuizIdOrderByOrderIndexAsc(draft.getQuiz().getId());
@@ -153,40 +155,35 @@ public class QuizSubmissionService {
         Map<UUID, String> saved = new HashMap<>();
         draftAnswers.findByDraftId(draft.getId()).forEach(a -> saved.put(a.getQuestion().getId(), a.getAnswerValue()));
         int correct = (int) quizQuestions.stream().filter(q -> grading.correct(q, saved.get(q.getId()))).count();
-        int rawXp = attempts.existsByStudentIdAndQuizId(student.getId(), draft.getQuiz().getId()) ? 0 : correct * 10;
-        int xp = rawXp;
-        if (rawXp > 0) {
-            int dailyCap = systemSettingsService.getInt("gamification.daily_xp_cap", 500);
-            Instant startOfDay = LocalDate.now(ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant();
-            int todayEarned = attempts.sumDailyXpForStudent(student.getId(), startOfDay);
-            if (todayEarned >= dailyCap) {
-                xp = 0;
-            } else {
-                xp = Math.min(rawXp, dailyCap - todayEarned);
-            }
-        }
-        Instant now = Instant.now();
+        int rawXp = Math.multiplyExact(correct, 10);
+        boolean previouslyCompleted = attempts.existsByStudentIdAndQuizId(student.getId(), draft.getQuiz().getId());
+        Instant now = learningClock.instant();
         Instant submitted = now.isBefore(draft.getExpiresAt()) ? now : draft.getExpiresAt();
         QuizAttempt attempt = new QuizAttempt();
         attempt.setQuiz(draft.getQuiz()); attempt.setStudent(student); attempt.setSourceDraftId(draft.getId());
         attempt.setScore(grading.score(correct, quizQuestions.size())); attempt.setCorrectCount(correct);
-        attempt.setXpEarned(xp); attempt.setSubmittedAt(submitted);
+        attempt.setXpEarned(0); attempt.setSubmittedAt(submitted);
         attempt.setDurationSeconds(Math.toIntExact(Duration.between(draft.getStartedAt(), submitted).getSeconds()));
-        attempts.saveAndFlush(attempt);
+        xpAwards.awardQuizCompletion(
+                student,
+                draft.getQuiz().getId(),
+                attempt,
+                rawXp,
+                previouslyCompleted,
+                submitted);
+        streaks.recordCompletion(student, submitted);
         for (QuizQuestion question : quizQuestions) {
             QuizAttemptAnswer answer = new QuizAttemptAnswer();
             answer.setAttempt(attempt); answer.setQuestion(question); answer.setSelectedOptionKey(saved.get(question.getId()));
             answer.setCorrect(grading.correct(question, saved.get(question.getId()))); answers.save(answer);
         }
-        student.setTotalXp(Math.addExact(student.getTotalXp(), xp));
-        student.setCurrentLevel(grading.level(student.getTotalXp()));
         draft.setCompletedAt(submitted); draft.setUpdatedAt(now);
         return attempt;
     }
     private QuizDraftResponse response(QuizAttemptDraft draft) {
         List<QuizAnswerRequest> values = draftAnswers.findByDraftId(draft.getId()).stream()
                 .map(a -> new QuizAnswerRequest(a.getQuestion().getId(), a.getAnswerValue())).toList();
-        return new QuizDraftResponse(draft.getId(), draft.getQuiz().getId(), draft.getStartedAt(), draft.getExpiresAt(), Instant.now(),
+        return new QuizDraftResponse(draft.getId(), draft.getQuiz().getId(), draft.getStartedAt(), draft.getExpiresAt(), learningClock.instant(),
                 values.stream().filter(a -> a.value() != null && !a.value().isBlank()).count(), values,
                 attempts.findBySourceDraftId(draft.getId()).map(QuizAttempt::getId).orElse(null));
     }

@@ -42,6 +42,7 @@ class AdminStudentServiceTest {
     @Mock private QuizAttemptRepository quizAttemptRepository;
     @Mock private ChatSessionRepository chatSessionRepository;
     @Mock private ScheduleRepository scheduleRepository;
+    @org.mockito.Spy private StreakService streaks = new StreakService(java.time.Clock.systemUTC(), java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
     @InjectMocks private AdminStudentServiceImpl service;
 
     @Test

@@ -33,6 +33,7 @@ public class TeacherStudentServiceImpl implements ITeacherStudentService {
     private final TeacherClassAssignmentRepository assignmentRepository;
     private final StudentRepository studentRepository;
     private final IAdminStudentService adminStudentService;
+    private final com.vn.aitutor.service.StreakService streaks;
 
     @Override
     public PageResponseDTO<StudentAdminListItemResponse> searchStudents(UUID teacherUserId, String search, PageRequest pageRequest) {
@@ -86,7 +87,7 @@ public class TeacherStudentServiceImpl implements ITeacherStudentService {
                 .schoolName(student.getSchoolName()).gradeLevel(student.getGradeLevel())
                 .classId(student.getClassEntity() == null ? null : student.getClassEntity().getId())
                 .className(student.getClassName()).totalXp(student.getTotalXp()).currentLevel(student.getCurrentLevel())
-                .currentStreak(student.getCurrentStreak()).lastActivityDate(student.getLastActivityDate())
+                .currentStreak(streaks.effectiveCurrentStreak(student)).lastActivityDate(student.getLastActivityDate())
                 .active(user.isActive()).createdAt(user.getCreatedAt()).updatedAt(user.getUpdatedAt()).build();
     }
 
