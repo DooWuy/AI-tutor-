@@ -88,9 +88,7 @@ export const MathMarkdown: React.FC<MathMarkdownProps> = ({
   inline = false,
   prose,
 }) => {
-  if (!content) return null;
-
-  const normalized = useMemo(() => normalizeMathContent(content), [content]);
+  const normalized = useMemo(() => normalizeMathContent(content || ''), [content]);
   const useProse = prose !== undefined ? prose : !inline;
 
   const components = useMemo(() => {
@@ -111,6 +109,8 @@ export const MathMarkdown: React.FC<MathMarkdownProps> = ({
     () => [[rehypeKatex, { throwOnError: false, strict: false }]] as any,
     []
   );
+
+  if (!content) return null;
 
   if (inline) {
     return (

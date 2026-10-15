@@ -8,6 +8,6 @@ import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 
 public interface ITeacherStudentService {
-    PageResponseDTO<StudentAdminListItemResponse> searchStudents(UUID teacherUserId, String search, PageRequest pageRequest);
+    PageResponseDTO<StudentAdminListItemResponse> searchStudents(UUID actorUserId, UUID classId, String search, PageRequest pageRequest);
     ApiResponse<StudentAdminDetailResponse> getStudentDetail(UUID teacherUserId, UUID studentId);
 }

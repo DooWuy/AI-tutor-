@@ -27,4 +27,5 @@ public class QuizResponse {
     private String createdByName;
     private Instant createdAt;
     private List<QuizQuestionResponse> questions;
+    private List<QuizClassRef> classes;
 }

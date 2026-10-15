@@ -3,33 +3,46 @@ package com.vn.aitutor.service;
 import com.vn.aitutor.curriculum.GradeLevels;
 import com.vn.aitutor.dto.request.QuizGenerateRequest;
 import com.vn.aitutor.dto.request.QuizUpsertRequest;
+import com.vn.aitutor.dto.response.QuizClassRef;
 import com.vn.aitutor.dto.response.QuizQuestionResponse;
 import com.vn.aitutor.dto.response.QuizResponse;
 import com.vn.aitutor.entity.Lesson;
 import com.vn.aitutor.entity.QuestionBankItem;
 import com.vn.aitutor.entity.QuestionChoice;
 import com.vn.aitutor.entity.Quiz;
+import com.vn.aitutor.entity.QuizClassAssignment;
 import com.vn.aitutor.entity.QuizQuestion;
+import com.vn.aitutor.entity.SchoolClass;
+import com.vn.aitutor.entity.Teacher;
+import com.vn.aitutor.entity.User;
 import com.vn.aitutor.entity.enums.QuestionType;
 import com.vn.aitutor.entity.enums.QuizDifficulty;
 import com.vn.aitutor.entity.enums.QuizStatus;
 import com.vn.aitutor.entity.enums.ReviewStatus;
+import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.entity.enums.SubjectCode;
 import com.vn.aitutor.exception.ResourceBadRequestException;
+import com.vn.aitutor.exception.ResourceForbiddenException;
 import com.vn.aitutor.exception.ResourceNotFoundException;
 import com.vn.aitutor.quiz.NormalizedQuestion;
 import com.vn.aitutor.quiz.QuestionContentRules;
 import com.vn.aitutor.repository.LessonRepository;
 import com.vn.aitutor.repository.QuestionBankRepository;
 import com.vn.aitutor.repository.QuizAttemptRepository;
+import com.vn.aitutor.repository.QuizClassAssignmentRepository;
 import com.vn.aitutor.repository.QuizQuestionRepository;
 import com.vn.aitutor.repository.QuizRepository;
+import com.vn.aitutor.repository.SchoolClassRepository;
+import com.vn.aitutor.repository.TeacherClassAssignmentRepository;
+import com.vn.aitutor.repository.TeacherRepository;
 import com.vn.aitutor.repository.UserRepository;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.QuestionComposer.ComposeRequest;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -51,6 +64,10 @@ public class QuizManagementService {
     private final QuestionBankService questionBankService;
     private final QuestionComposer questionComposer;
     private final QuizAccess quizAccess;
+    private final SchoolClassRepository schoolClassRepository;
+    private final TeacherRepository teacherRepository;
+    private final TeacherClassAssignmentRepository assignmentRepository;
+    private final QuizClassAssignmentRepository quizClassAssignmentRepository;
 
     @Transactional(readOnly = true)
     public List<QuizResponse> list(String subject, String gradeLevel, String status, UserPrincipal principal) {
@@ -61,9 +78,10 @@ public class QuizManagementService {
         List<UUID> ids = idsOf(quizzes);
         Map<UUID, Long> questions = ids.isEmpty() ? Map.of() : counts(quizQuestionRepository.countGrouped(ids));
         Map<UUID, Long> attempts = ids.isEmpty() ? Map.of() : counts(quizAttemptRepository.countGrouped(ids));
+        Map<UUID, List<QuizClassRef>> classes = classesOf(ids);
         return quizzes.stream()
                 .map(quiz -> toResponse(quiz, questions.getOrDefault(quiz.getId(), 0L).intValue(),
-                        attempts.getOrDefault(quiz.getId(), 0L), null))
+                        attempts.getOrDefault(quiz.getId(), 0L), null, classes.getOrDefault(quiz.getId(), List.of())))
                 .toList();
     }
 
@@ -92,11 +110,13 @@ public class QuizManagementService {
     }
 
     @Transactional
-    public QuizResponse publish(UUID quizId, UserPrincipal principal) {
+    public QuizResponse publish(UUID quizId, List<UUID> classIds, UserPrincipal principal) {
         Quiz quiz = quizAccess.require(quizId, principal);
         if (quizQuestionRepository.countByQuizId(quizId) == 0) {
             throw new ResourceBadRequestException("Đề thi cần ít nhất một câu hỏi trước khi phát hành");
         }
+        List<SchoolClass> targets = resolveClasses(quiz, classIds, principal);
+        replaceAssignments(quiz, targets, principal.getUsers());
         return changeStatus(quiz, QuizStatus.PUBLISHED);
     }
 
@@ -362,14 +382,92 @@ public class QuizManagementService {
         return detail(quizRepository.save(quiz));
     }
 
+    private List<SchoolClass> resolveClasses(Quiz quiz, List<UUID> classIds, UserPrincipal principal) {
+        if (classIds == null || classIds.isEmpty()) {
+            throw new ResourceBadRequestException("Chọn ít nhất một lớp để phát hành");
+        }
+        LinkedHashSet<UUID> distinct = new LinkedHashSet<>();
+        for (UUID classId : classIds) {
+            if (classId != null) {
+                distinct.add(classId);
+            }
+        }
+        if (distinct.isEmpty()) {
+            throw new ResourceBadRequestException("Chọn ít nhất một lớp để phát hành");
+        }
+        User user = principal.getUsers();
+        Teacher teacher = null;
+        if (user.getRole() == Role.TEACHER) {
+            teacher = teacherRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new ResourceForbiddenException("Tài khoản không gắn với hồ sơ giáo viên"));
+        } else if (user.getRole() != Role.ADMIN) {
+            throw new ResourceForbiddenException("Bạn không có quyền phát hành đề thi");
+        }
+        String quizGrade = GradeLevels.normalize(quiz.getGradeLevel());
+        List<SchoolClass> targets = new ArrayList<>();
+        for (UUID classId : distinct) {
+            SchoolClass schoolClass = schoolClassRepository.findById(classId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp học"));
+            if (teacher != null && !assignmentRepository.existsByTeacher_IdAndSchoolClass_Id(teacher.getId(), classId)) {
+                throw new ResourceForbiddenException("Giáo viên không được phân công lớp này");
+            }
+            if (!quizGrade.equals(GradeLevels.normalize(schoolClass.getGradeLevel()))) {
+                throw new ResourceBadRequestException("Lớp không cùng khối với đề thi");
+            }
+            targets.add(schoolClass);
+        }
+        return targets;
+    }
+
+    private void replaceAssignments(Quiz quiz, List<SchoolClass> targets, User actor) {
+        quizClassAssignmentRepository.deleteByQuizId(quiz.getId());
+        User assignedBy = userRepository.getReferenceById(actor.getId());
+        for (SchoolClass schoolClass : targets) {
+            QuizClassAssignment row = new QuizClassAssignment();
+            row.setQuiz(quiz);
+            row.setSchoolClass(schoolClass);
+            row.setAssignedBy(assignedBy);
+            quizClassAssignmentRepository.save(row);
+        }
+    }
+
     private QuizResponse detail(Quiz quiz) {
         List<QuizQuestionResponse> questions = quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId()).stream()
                 .map(this::toQuestion)
                 .toList();
-        return toResponse(quiz, questions.size(), quizAttemptRepository.countByQuizId(quiz.getId()), questions);
+        List<QuizClassRef> classes = classesOf(List.of(quiz.getId())).getOrDefault(quiz.getId(), List.of());
+        return toResponse(quiz, questions.size(), quizAttemptRepository.countByQuizId(quiz.getId()), questions, classes);
     }
 
-    private QuizResponse toResponse(Quiz quiz, int questionCount, long attemptCount, List<QuizQuestionResponse> questions) {
+    private Map<UUID, List<QuizClassRef>> classesOf(Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        List<QuizClassAssignment> rows = quizClassAssignmentRepository.findByQuizIdIn(ids);
+        if (rows == null || rows.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, List<QuizClassRef>> map = new LinkedHashMap<>();
+        for (QuizClassAssignment row : rows) {
+            if (row.getQuiz() == null || row.getSchoolClass() == null) {
+                continue;
+            }
+            map.computeIfAbsent(row.getQuiz().getId(), ignored -> new ArrayList<>())
+                    .add(QuizClassRef.builder()
+                            .id(row.getSchoolClass().getId())
+                            .name(row.getSchoolClass().getName())
+                            .gradeLevel(row.getSchoolClass().getGradeLevel())
+                            .build());
+        }
+        return map;
+    }
+
+    private QuizResponse toResponse(
+            Quiz quiz,
+            int questionCount,
+            long attemptCount,
+            List<QuizQuestionResponse> questions,
+            List<QuizClassRef> classes) {
         return QuizResponse.builder()
                 .id(quiz.getId())
                 .title(quiz.getTitle())
@@ -388,6 +486,7 @@ public class QuizManagementService {
                 .createdByName(quiz.getCreatedBy() == null ? null : quiz.getCreatedBy().getFullName())
                 .createdAt(quiz.getCreatedAt())
                 .questions(questions)
+                .classes(classes == null ? List.of() : classes)
                 .build();
     }
 

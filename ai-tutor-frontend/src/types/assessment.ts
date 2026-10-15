@@ -64,6 +64,12 @@ export interface QuestionDraft {
   correctText?: string;
 }
 
+export interface QuizClassRef {
+  id: string;
+  name: string;
+  gradeLevel: string;
+}
+
 export interface QuizItem {
   id: string;
   title: string;
@@ -82,6 +88,7 @@ export interface QuizItem {
   createdByName?: string | null;
   createdAt?: string | null;
   questions?: QuizQuestionItem[] | null;
+  classes?: QuizClassRef[] | null;
 }
 
 export interface QuizQuestionItem {

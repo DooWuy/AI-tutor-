@@ -30,12 +30,13 @@ public class TeacherStudentController {
     public ResponseEntity<PageResponseDTO<StudentAdminListItemResponse>> search(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) UUID classId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "desc") String direction) {
         Sort.Direction d = "asc".equalsIgnoreCase(direction) ? Sort.Direction.ASC : Sort.Direction.DESC;
-        return ResponseEntity.ok(teacherStudentService.searchStudents(principal.getUsers().getId(), search,
+        return ResponseEntity.ok(teacherStudentService.searchStudents(principal.getUsers().getId(), classId, search,
                 PageRequest.of(Math.max(0, page - 1), Math.min(Math.max(1, size), 50), Sort.by(d, sort))));
     }
 

@@ -8,14 +8,18 @@ import com.vn.aitutor.entity.Student;
 import com.vn.aitutor.entity.Teacher;
 import com.vn.aitutor.entity.User;
 import com.vn.aitutor.entity.TeacherClassAssignment;
+import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.exception.ResourceForbiddenException;
+import com.vn.aitutor.repository.SchoolClassRepository;
 import com.vn.aitutor.repository.StudentRepository;
 import com.vn.aitutor.repository.TeacherClassAssignmentRepository;
 import com.vn.aitutor.repository.TeacherRepository;
+import com.vn.aitutor.repository.UserRepository;
 import com.vn.aitutor.service.impl.TeacherStudentServiceImpl;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,6 +32,8 @@ class TeacherStudentServiceTest {
     @Mock private TeacherClassAssignmentRepository assignmentRepository;
     @Mock private StudentRepository studentRepository;
     @Mock private IAdminStudentService adminStudentService;
+    @Mock private UserRepository userRepository;
+    @Mock private SchoolClassRepository schoolClassRepository;
     @InjectMocks private TeacherStudentServiceImpl service;
 
     @Test
@@ -54,5 +60,28 @@ class TeacherStudentServiceTest {
 
         assertThrows(ResourceForbiddenException.class,
                 () -> service.getStudentDetail(teacherUserId, studentId));
+    }
+
+    @Test
+    void teacherCannotSearchStudentOutsideAssignedClass() {
+        UUID teacherUserId = UUID.randomUUID();
+        UUID teacherId = UUID.randomUUID();
+        UUID assignedClassId = UUID.randomUUID();
+        UUID otherClassId = UUID.randomUUID();
+        User user = new User();
+        user.setId(teacherUserId);
+        user.setRole(Role.TEACHER);
+        Teacher teacher = new Teacher();
+        teacher.setId(teacherId);
+        SchoolClass assigned = new SchoolClass();
+        assigned.setId(assignedClassId);
+        TeacherClassAssignment assignment = new TeacherClassAssignment();
+        assignment.setSchoolClass(assigned);
+        when(userRepository.findById(teacherUserId)).thenReturn(Optional.of(user));
+        when(teacherRepository.findByUserId(teacherUserId)).thenReturn(Optional.of(teacher));
+        when(assignmentRepository.findByTeacherIdWithClass(teacherId)).thenReturn(List.of(assignment));
+
+        assertThrows(ResourceForbiddenException.class,
+                () -> service.searchStudents(teacherUserId, otherClassId, null, PageRequest.of(0, 20)));
     }
 }

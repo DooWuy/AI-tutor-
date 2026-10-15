@@ -43,8 +43,11 @@ public class StudentQuizService {
 
     @Transactional(readOnly = true)
     public List<StudentQuizDto> getAssignedQuizzes(String subject) {
-        // Find assigned quizzes (not AI generated) for the subject
-        List<Quiz> quizzes = quizRepository.findBySubjectAndAiGeneratedFalseOrderByCreatedAtDesc(subject);
+        Student student = access.currentStudent();
+        if (student.getClassEntity() == null) {
+            return List.of();
+        }
+        List<Quiz> quizzes = quizRepository.findOfficialForClass(subject, student.getClassEntity().getId());
         return mapToDtoList(quizzes);
     }
 

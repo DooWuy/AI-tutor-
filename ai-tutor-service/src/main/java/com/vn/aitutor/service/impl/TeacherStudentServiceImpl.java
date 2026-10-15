@@ -6,11 +6,14 @@ import com.vn.aitutor.dto.response.StudentAdminDetailResponse;
 import com.vn.aitutor.dto.response.StudentAdminListItemResponse;
 import com.vn.aitutor.entity.Student;
 import com.vn.aitutor.entity.User;
+import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.exception.ResourceForbiddenException;
 import com.vn.aitutor.exception.ResourceNotFoundException;
+import com.vn.aitutor.repository.SchoolClassRepository;
 import com.vn.aitutor.repository.StudentRepository;
 import com.vn.aitutor.repository.TeacherClassAssignmentRepository;
 import com.vn.aitutor.repository.TeacherRepository;
+import com.vn.aitutor.repository.UserRepository;
 import com.vn.aitutor.service.IAdminStudentService;
 import com.vn.aitutor.service.ITeacherStudentService;
 import java.util.List;
@@ -33,13 +36,14 @@ public class TeacherStudentServiceImpl implements ITeacherStudentService {
     private final TeacherClassAssignmentRepository assignmentRepository;
     private final StudentRepository studentRepository;
     private final IAdminStudentService adminStudentService;
+    private final UserRepository userRepository;
+    private final SchoolClassRepository schoolClassRepository;
 
     @Override
-    public PageResponseDTO<StudentAdminListItemResponse> searchStudents(UUID teacherUserId, String search, PageRequest pageRequest) {
-        UUID teacherId = teacherRepository.findByUserId(teacherUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ giáo viên")).getId();
-        Set<UUID> classIds = assignmentRepository.findByTeacherIdWithClass(teacherId).stream()
-                .map(a -> a.getSchoolClass().getId()).collect(Collectors.toSet());
+    public PageResponseDTO<StudentAdminListItemResponse> searchStudents(UUID actorUserId, UUID classId, String search, PageRequest pageRequest) {
+        User actor = userRepository.findById(actorUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+        Set<UUID> classIds = readableClassIds(actor, classId);
         if (classIds.isEmpty()) {
             return PageResponseDTO.<StudentAdminListItemResponse>builder().content(List.of())
                     .page(pageRequest.getPageNumber() + 1).size(pageRequest.getPageSize())
@@ -62,6 +66,29 @@ public class TeacherStudentServiceImpl implements ITeacherStudentService {
                 .anyMatch(a -> student.getClassEntity() != null && a.getSchoolClass().getId().equals(student.getClassEntity().getId()));
         if (!allowed) throw new ResourceForbiddenException("Học sinh không thuộc lớp giáo viên được phân công");
         return adminStudentService.getStudentDetail(studentId);
+    }
+
+    private Set<UUID> readableClassIds(User actor, UUID classId) {
+        if (actor.getRole() == Role.ADMIN) {
+            if (classId == null) {
+                return schoolClassRepository.findAllOrdered().stream().map(c -> c.getId()).collect(Collectors.toSet());
+            }
+            if (!schoolClassRepository.existsById(classId)) {
+                throw new ResourceNotFoundException("Không tìm thấy lớp học");
+            }
+            return Set.of(classId);
+        }
+        UUID teacherId = teacherRepository.findByUserId(actor.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ giáo viên")).getId();
+        Set<UUID> assigned = assignmentRepository.findByTeacherIdWithClass(teacherId).stream()
+                .map(a -> a.getSchoolClass().getId()).collect(Collectors.toSet());
+        if (classId == null) {
+            return assigned;
+        }
+        if (!assigned.contains(classId)) {
+            throw new ResourceForbiddenException("Giáo viên không được phân quyền xem lớp học này");
+        }
+        return Set.of(classId);
     }
 
     private PageRequest bounded(PageRequest request) {
