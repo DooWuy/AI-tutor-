@@ -51,8 +51,9 @@ public class DynamicGeminiChatLanguageModel implements ChatLanguageModel {
             this.cachedModel = effectiveModel;
             this.cachedTemp = effectiveTemp;
             this.cachedKey = effectiveKey;
+            String keyToUse = (effectiveKey == null || effectiveKey.isBlank()) ? "DUMMY_KEY_NOT_CONFIGURED" : effectiveKey;
             this.delegate = GoogleAiGeminiChatModel.builder()
-                    .apiKey(effectiveKey)
+                    .apiKey(keyToUse)
                     .modelName(effectiveModel)
                     .temperature(effectiveTemp)
                     .timeout(Duration.ofMinutes(2))
@@ -67,8 +68,9 @@ public class DynamicGeminiChatLanguageModel implements ChatLanguageModel {
     }
 
     private ChatLanguageModel createFallbackModel() {
+        String keyToUse = (cachedKey == null || cachedKey.isBlank()) ? "DUMMY_KEY_NOT_CONFIGURED" : cachedKey;
         return GoogleAiGeminiChatModel.builder()
-                .apiKey(cachedKey)
+                .apiKey(keyToUse)
                 .modelName(AiModelResolver.DEFAULT_GEMINI_MODEL)
                 .temperature(cachedTemp)
                 .timeout(Duration.ofMinutes(2))

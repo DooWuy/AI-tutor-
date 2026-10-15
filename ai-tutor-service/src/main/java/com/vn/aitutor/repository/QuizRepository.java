@@ -37,4 +37,31 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID> {
     List<Quiz> findBySubjectAndAiGeneratedAndCreatedByIdOrderByCreatedAtDesc(String subject, boolean aiGenerated, UUID createdById);
 
     List<Quiz> findBySubjectAndAiGeneratedFalseOrderByCreatedAtDesc(String subject);
+
+    @Query("""
+            select q from Quiz q
+            where q.subject = :subject
+              and q.active = true
+              and q.status = com.vn.aitutor.entity.enums.QuizStatus.PUBLISHED
+              and q.generationStatus = 'READY'
+              and exists (
+                select 1 from QuizClassAssignment a
+                where a.quiz = q and a.schoolClass.id = :classId
+              )
+            order by q.createdAt desc
+            """)
+    List<Quiz> findOfficialForClass(@Param("subject") String subject, @Param("classId") UUID classId);
+
+    @Query("""
+            select distinct q from Quiz q
+            join fetch q.createdBy
+            where q.status = com.vn.aitutor.entity.enums.QuizStatus.PUBLISHED
+              and (:ownerId is null or q.createdBy.id = :ownerId)
+              and exists (
+                select 1 from QuizClassAssignment a
+                where a.quiz = q and a.schoolClass.id = :classId
+              )
+            order by q.createdAt desc
+            """)
+    List<Quiz> findPublishedAssignedToClass(@Param("classId") UUID classId, @Param("ownerId") UUID ownerId);
 }
