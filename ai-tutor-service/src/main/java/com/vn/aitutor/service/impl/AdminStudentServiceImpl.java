@@ -52,6 +52,7 @@ public class AdminStudentServiceImpl implements IAdminStudentService {
     private final QuizAttemptRepository quizAttemptRepository;
     private final ChatSessionRepository chatSessionRepository;
     private final ScheduleRepository scheduleRepository;
+    private final com.vn.aitutor.service.StreakService streaks;
 
     @Override
     @Transactional(readOnly = true)
@@ -183,7 +184,7 @@ public class AdminStudentServiceImpl implements IAdminStudentService {
                 .schoolName(student.getSchoolName()).gradeLevel(student.getGradeLevel())
                 .classId(student.getClassEntity() == null ? null : student.getClassEntity().getId())
                 .className(student.getClassName()).totalXp(student.getTotalXp()).currentLevel(student.getCurrentLevel())
-                .currentStreak(student.getCurrentStreak()).lastActivityDate(student.getLastActivityDate())
+                .currentStreak(streaks.effectiveCurrentStreak(student)).lastActivityDate(student.getLastActivityDate())
                 .active(user.isActive()).createdAt(user.getCreatedAt()).updatedAt(user.getUpdatedAt()).build();
     }
 

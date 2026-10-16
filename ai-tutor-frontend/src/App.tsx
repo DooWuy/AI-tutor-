@@ -5,6 +5,7 @@ import RegisterPage from './pages/Register/RegisterPage';
 
 import { StudentLayout } from './layouts/StudentLayout/StudentLayout';
 import { DashboardPage } from './pages/Student/Dashboard/DashboardPage';
+import { ProgressPage } from './pages/Student/Progress/ProgressPage';
 import { TimetablePage } from './pages/Student/Timetable/TimetablePage';
 import { ProfilePage } from './pages/Student/Profile/ProfilePage';
 import { AIChatPage } from './pages/Student/AIChat/AIChatPage';
@@ -65,6 +66,7 @@ function App() {
         {/* Student Routes */}
         <Route path="/student" element={<StudentLayout />}>
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="progress" element={<ProgressPage />} />
           <Route path="timetable" element={<TimetablePage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="chat" element={<AIChatPage />} />

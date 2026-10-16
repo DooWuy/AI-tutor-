@@ -98,7 +98,6 @@ function QuizAttemptSession({ quizId }: { quizId: string }) {
     try {
       await inFlight.current.catch(() => undefined);
       const result = await studentQuizApi.submit(current.draftId, valuesOf(latest.current));
-      window.dispatchEvent(new Event('student-profile-updated'));
       sessionStorage.removeItem(`quiz-answers:${current.draftId}`);
       navigate(`/student/quiz-results/${result.id}`, { replace: true });
     } catch (ex) {

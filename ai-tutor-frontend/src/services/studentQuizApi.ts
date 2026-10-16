@@ -1,4 +1,5 @@
 import type { ApiResponse } from '../types/auth';
+import type { XpAwardStatus } from '../types/gamification';
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8088/api/v1').replace(/\/$/, '');
 
 export interface StudentQuizGenerateRequest {
@@ -23,7 +24,7 @@ export interface QuizAnswer { questionId: string; value: string | null }
 export interface QuizDraft { draftId: string; quizId: string; startedAt: string; expiresAt: string; serverTime: string; answeredCount: number; answers: QuizAnswer[]; attemptId: string | null }
 export interface QuizResultAnswer { questionId: string; questionText: string; type: QuestionType; options: { key: string; content: string }[]; selectedOptionKey: string | null; correctOptionKey: string; explanation: string; isCorrect?: boolean; correct?: boolean; orderIndex: number }
 export interface QuizHistory { id: string; quizId: string; quizTitle: string; isAiGenerated: boolean; score: number; xpEarned: number; durationSeconds: number; submittedAt: string }
-export interface QuizResult extends QuizHistory { correctCount: number; totalQuestions: number; totalXp: number; currentLevel: number; answers: QuizResultAnswer[] }
+export interface QuizResult extends QuizHistory { correctCount: number; totalQuestions: number; totalXp: number; currentLevel: number; xpAwardStatus: XpAwardStatus; dailyXpEarned: number | null; dailyXpCap: number | null; answers: QuizResultAnswer[] }
 export class QuizApiError extends Error {
   status: number;
   constructor(message: string, status: number) { super(message); this.status = status; }
@@ -41,7 +42,11 @@ export const studentQuizApi = {
   getQuiz: (id: string) => request<QuizContent>(`/student/quizzes/${id}`),
   saveDraft: (quizId: string, answers: QuizAnswer[], draftId?: string) => request<QuizDraft>('/student/quiz-attempts/draft', { quizId, draftId, answers }),
   getDraft: (id: string) => request<QuizDraft>(`/student/quiz-attempts/draft/${id}`),
-  submit: (draftId: string, answers: QuizAnswer[]) => request<QuizResult>('/student/quiz-attempts/submit', { draftId, answers }),
+  submit: async (draftId: string, answers: QuizAnswer[]) => {
+    const result = await request<QuizResult>('/student/quiz-attempts/submit', { draftId, answers });
+    window.dispatchEvent(new Event('student-learning-updated'));
+    return result;
+  },
   getResult: (id: string) => request<QuizResult>(`/student/quiz-attempts/${id}`),
   getHistory: () => request<QuizHistory[]>('/student/quiz-attempts/history'),
   hide: (id: string) => request<void>(`/student/quiz-attempts/${id}/hide`, undefined, 'PATCH'),

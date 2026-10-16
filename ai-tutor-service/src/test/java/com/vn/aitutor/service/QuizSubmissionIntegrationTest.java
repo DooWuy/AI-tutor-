@@ -36,6 +36,7 @@ class QuizSubmissionIntegrationTest {
     @Autowired StudentRepository students;
     @Autowired QuizRepository quizzes;
     @Autowired QuizQuestionRepository questions;
+    @Autowired XpTransactionRepository xpTransactions;
     @Autowired JdbcTemplate jdbc;
     @Autowired JwtProvider tokens;
     @LocalServerPort int port;
@@ -51,8 +52,13 @@ class QuizSubmissionIntegrationTest {
         user.setActive(true); user = users.saveAndFlush(user);
         student = new Student(); student.setUser(user); student.setStudentCode("TEST-" + UUID.randomUUID());
         student.setGradeLevel("10"); student.setTotalXp(90); student = students.saveAndFlush(student);
+        XpTransaction openingBalance = new XpTransaction();
+        openingBalance.setStudent(student); openingBalance.setSourceType(XpSourceType.LEGACY_QUIZ_ATTEMPT);
+        openingBalance.setSourceId(student.getId()); openingBalance.setAmount(90); openingBalance.setBalanceAfter(90);
+        openingBalance.setOccurredAt(Instant.now().minusSeconds(172800));
+        xpTransactions.saveAndFlush(openingBalance);
         assertNotEquals(user.getId(), student.getId());
-        quiz = new Quiz(); quiz.setTitle("Quiz integration"); quiz.setCreatedBy(user); quiz.setAiGenerated(true);
+        quiz = new Quiz(); quiz.setTitle("Quiz integration"); quiz.setCreatedBy(user); quiz.setAiGenerated(true); quiz.setActive(true);
         quiz.setSubject("Toán"); quiz.setDifficulty(QuizDifficulty.MEDIUM); quiz.setTimeLimit(1); quiz.setGradeLevel("10");
         quiz = quizzes.saveAndFlush(quiz);
         quizQuestions = new ArrayList<>();
@@ -81,11 +87,16 @@ class QuizSubmissionIntegrationTest {
         assertEquals(4, jdbc.queryForObject("SELECT count(*) FROM quiz_attempt_draft_answers WHERE draft_id=?", Integer.class, draft.draftId()));
         QuizAttemptDetailResponse result = submissions.submit(new QuizSubmitRequest(draft.draftId(), correctAnswers()));
         assertEquals(10.0, result.getScore()); assertEquals(40, result.getXpEarned()); assertEquals(130, result.getTotalXp()); assertEquals(2, result.getCurrentLevel());
+        assertEquals(XpAwardStatus.AWARDED, result.getXpAwardStatus());
+        assertEquals(40, result.getDailyXpEarned()); assertEquals(500, result.getDailyXpCap());
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM xp_transactions WHERE student_id=?", Integer.class, student.getId()));
         assertEquals(result.getId(), submissions.submit(new QuizSubmitRequest(draft.draftId(), List.of())).getId());
         assertEquals(1, history.getMyHistory().size()); assertEquals(4, result.getAnswers().size());
         QuizDraftResponse retake = draft(); assertNotEquals(draft.draftId(), retake.draftId());
         QuizAttemptDetailResponse second = submissions.submit(new QuizSubmitRequest(retake.draftId(), correctAnswers()));
         assertEquals(0, second.getXpEarned()); assertEquals(130, second.getTotalXp());
+        assertEquals(XpAwardStatus.ALREADY_REWARDED, second.getXpAwardStatus());
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM xp_transactions WHERE student_id=?", Integer.class, student.getId()));
         history.hideAttempt(result.getId()); history.hideAttempt(result.getId());
         assertEquals(1, history.getMyHistory().size()); assertEquals(130, students.findById(student.getId()).orElseThrow().getTotalXp());
         assertThrows(org.springframework.dao.DataAccessException.class, () -> jdbc.update("UPDATE quiz_attempts SET score=0 WHERE id=?", result.getId()));
@@ -119,19 +130,23 @@ class QuizSubmissionIntegrationTest {
             Set<UUID> attemptIds = new HashSet<>();
             for (Future<QuizAttemptDetailResponse> future : executor.invokeAll(submitCalls)) attemptIds.add(future.get().getId());
             assertEquals(1, attemptIds.size()); assertEquals(130, students.findById(student.getId()).orElseThrow().getTotalXp());
+            assertEquals(1, students.findById(student.getId()).orElseThrow().getCurrentStreak());
+            assertEquals(1, students.findById(student.getId()).orElseThrow().getLongestStreak());
         } finally { executor.shutdownNow(); }
     }
 
     @Test void zeroFirstAttemptPreventsRewardOnRetake() {
         QuizAttemptDetailResponse first = submissions.submit(new QuizSubmitRequest(draft().draftId(), List.of()));
         assertEquals(0, first.getXpEarned()); assertEquals(0.0, first.getScore());
+        assertEquals(XpAwardStatus.NO_XP_EARNED, first.getXpAwardStatus());
         QuizAttemptDetailResponse second = submissions.submit(new QuizSubmitRequest(draft().draftId(), correctAnswers()));
         assertEquals(0, second.getXpEarned()); assertEquals(90, second.getTotalXp());
+        assertEquals(XpAwardStatus.ALREADY_REWARDED, second.getXpAwardStatus());
     }
 
     @Test void concurrentDifferentQuizzesDoNotLoseXp() throws Exception {
         Quiz secondQuiz = new Quiz(); secondQuiz.setTitle("Second concurrent quiz"); secondQuiz.setCreatedBy(user);
-        secondQuiz.setAiGenerated(true); secondQuiz.setDifficulty(QuizDifficulty.MEDIUM); secondQuiz.setTimeLimit(1);
+        secondQuiz.setAiGenerated(true); secondQuiz.setActive(true); secondQuiz.setDifficulty(QuizDifficulty.MEDIUM); secondQuiz.setTimeLimit(1);
         secondQuiz = quizzes.saveAndFlush(secondQuiz);
         QuizQuestion question = new QuizQuestion(); question.setQuiz(secondQuiz); question.setQuestionText("2+2?");
         question.setType(QuestionType.MULTIPLE_CHOICE); question.setOptions(quizQuestions.get(0).getOptions());
@@ -146,7 +161,41 @@ class QuizSubmissionIntegrationTest {
             assertEquals(40, first.get(10, TimeUnit.SECONDS).getXpEarned());
             assertEquals(10, second.get(10, TimeUnit.SECONDS).getXpEarned());
             assertEquals(140, students.findById(student.getId()).orElseThrow().getTotalXp());
+            assertEquals(1, students.findById(student.getId()).orElseThrow().getCurrentStreak());
         } finally { executor.shutdownNow(); }
+    }
+
+    @Test void ledgerFailureRollsBackAttemptSummaryAndDraftButPreservesAudit() {
+        UUID draftId = draft().draftId();
+        jdbc.execute("ALTER TABLE xp_transactions ADD CONSTRAINT test_xp_rejection CHECK (source_id <> '" + quiz.getId() + "'::uuid) NOT VALID");
+        try {
+            assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                    () -> submissions.submit(new QuizSubmitRequest(draftId, correctAnswers())));
+            assertEquals(90, students.findById(student.getId()).orElseThrow().getTotalXp());
+            assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM quiz_attempts WHERE source_draft_id=?", Integer.class, draftId));
+            assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM xp_transactions WHERE student_id=?", Integer.class, student.getId()));
+            assertNull(jdbc.queryForObject("SELECT completed_at FROM quiz_attempt_drafts WHERE id=?", java.sql.Timestamp.class, draftId));
+            assertTrue(jdbc.queryForObject("SELECT count(*) FROM audit_logs WHERE action='XP_LEDGER_INTEGRITY_VIOLATION' AND details='reason=ledger-database-constraint'", Integer.class) > 0);
+        } finally {
+            jdbc.execute("ALTER TABLE xp_transactions DROP CONSTRAINT test_xp_rejection");
+        }
+        assertEquals(40, submissions.submit(new QuizSubmitRequest(draftId, correctAnswers())).getXpEarned());
+    }
+
+    @Test void dailyCapUsesLedgerAndPersistsSnapshotOnRetry() {
+        XpTransaction prior = new XpTransaction(); prior.setStudent(student);
+        prior.setSourceType(XpSourceType.LEGACY_QUIZ_ATTEMPT); prior.setSourceId(UUID.randomUUID());
+        prior.setAmount(485); prior.setBalanceAfter(575); prior.setOccurredAt(Instant.now());
+        xpTransactions.saveAndFlush(prior);
+        jdbc.update("UPDATE students SET total_xp=575,current_level=6 WHERE id=?", student.getId());
+        UUID draftId = draft().draftId();
+        QuizAttemptDetailResponse result = submissions.submit(new QuizSubmitRequest(draftId, correctAnswers()));
+        assertEquals(15, result.getXpEarned()); assertEquals(XpAwardStatus.PARTIALLY_CAPPED, result.getXpAwardStatus());
+        assertEquals(500, result.getDailyXpEarned()); assertEquals(590, result.getTotalXp());
+        QuizAttemptDetailResponse retry = submissions.submit(new QuizSubmitRequest(draftId, List.of()));
+        assertEquals(result.getXpAwardStatus(), retry.getXpAwardStatus());
+        assertEquals(result.getDailyXpEarned(), retry.getDailyXpEarned());
+        assertEquals(590L, jdbc.queryForObject("SELECT sum(amount) FROM xp_transactions WHERE student_id=?", Long.class, student.getId()));
     }
 
     @Test void rejectsForeignDataAndIncompleteQuiz() {
@@ -180,6 +229,9 @@ class QuizSubmissionIntegrationTest {
                 .header("Authorization", "Bearer " + token).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(forged)).build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode());
         QuizAttemptDetailResponse result = submissions.submit(new QuizSubmitRequest(draft.draftId(), List.of()));
+        assertTrue(response.body().contains("\"xpAwardStatus\":\"NO_XP_EARNED\""));
+        assertTrue(response.body().contains("\"dailyXpEarned\":0"));
+        assertTrue(response.body().contains("\"dailyXpCap\":500"));
         assertEquals(0.0, result.getScore()); assertEquals(0, result.getXpEarned());
         for (String method : List.of("PUT", "PATCH", "DELETE")) {
             response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/student/quiz-attempts/" + result.getId()))

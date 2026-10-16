@@ -22,14 +22,6 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
     java.util.Optional<QuizAttempt> findBySourceDraftId(UUID sourceDraftId);
     boolean existsByStudentIdAndQuizId(UUID studentId, UUID quizId);
 
-    @Query("""
-            SELECT COALESCE(SUM(qa.xpEarned), 0)
-            FROM QuizAttempt qa
-            WHERE qa.student.id = :studentId
-              AND qa.submittedAt >= :startOfDay
-            """)
-    int sumDailyXpForStudent(@Param("studentId") UUID studentId, @Param("startOfDay") Instant startOfDay);
-
     @Query(value = """
             SELECT COUNT(qa.id) AS quizAttemptCount,
                    AVG(qa.score) AS averageScore,

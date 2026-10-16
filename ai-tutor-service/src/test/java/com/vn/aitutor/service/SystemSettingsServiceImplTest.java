@@ -1,6 +1,7 @@
 package com.vn.aitutor.service;
 
 import com.vn.aitutor.entity.SystemSetting;
+import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.repository.SystemSettingRepository;
 import com.vn.aitutor.service.impl.SystemSettingsServiceImpl;
 import java.util.Map;
@@ -70,5 +71,16 @@ class SystemSettingsServiceImplTest {
 
         verify(systemSettingRepository).saveAll(anyList());
         assertEquals(700, settingsService.getInt("gamification.daily_xp_cap", 0));
+    }
+
+    @Test
+    void updateSettings_rejectsInvalidDailyXpCapWithoutSavingOrCaching() {
+        assertThrows(ResourceBadRequestException.class,
+                () -> settingsService.updateSettings(Map.of("gamification.daily_xp_cap", "0")));
+        assertThrows(ResourceBadRequestException.class,
+                () -> settingsService.updateSettings(Map.of("gamification.daily_xp_cap", "not-a-number")));
+
+        verify(systemSettingRepository, never()).saveAll(anyList());
+        assertEquals(500, settingsService.getInt("gamification.daily_xp_cap", 500));
     }
 }

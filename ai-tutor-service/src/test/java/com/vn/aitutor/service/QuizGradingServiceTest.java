@@ -37,5 +37,8 @@ class QuizGradingServiceTest {
         assertEquals(1, grading.level(99)); assertEquals(2, grading.level(100));
         assertEquals(2, grading.level(199)); assertEquals(3, grading.level(200));
         assertThrows(IllegalArgumentException.class, () -> grading.score(0, 0));
+        assertThrows(IllegalArgumentException.class, () -> grading.level(-1));
+        assertThrows(IllegalArgumentException.class, () -> new QuizGradingService(0));
+        assertThrows(IllegalArgumentException.class, () -> new QuizGradingService(1_000_001));
     }
 }

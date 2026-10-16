@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent 
 import { Link } from 'react-router-dom'
 import {
   changePassword,
-  getMyStudentProfile,
   updateMyStudentProfile,
   uploadMyAvatar,
 } from '../../../services/studentProfileApi'
 import type { Gender, StudentProfile } from '../../../types/studentProfile'
 import { styles } from './ProfilePage.styles'
+import { useStudentLearning } from '../../../context/StudentLearningContext'
 import { StudentStudyAnalyticsChart } from './components/StudentStudyAnalyticsChart'
 
 const emptyProfile: StudentProfile = {
@@ -48,6 +48,7 @@ function preferencesOf(profile: StudentProfile) {
 }
 
 export const ProfilePage = () => {
+  const { profile: sharedProfile } = useStudentLearning()
   const [profile, setProfile] = useState<StudentProfile>(emptyProfile)
   const [draft, setDraft] = useState<StudentProfile>(emptyProfile)
   const [isEditing, setIsEditing] = useState(false)
@@ -68,16 +69,13 @@ export const ProfilePage = () => {
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    getMyStudentProfile()
-      .then((data) => {
-        setProfile(data)
-        setDraft(data)
-      })
-      .catch((error: unknown) => {
-        setPageError(error instanceof Error ? error.message : 'Không thể tải hồ sơ.')
-      })
-      .finally(() => setLoading(false))
-  }, [])
+    if (sharedProfile.data) {
+      setProfile(sharedProfile.data)
+      if (!isEditing) setDraft(sharedProfile.data)
+    }
+    setLoading(sharedProfile.loading && !sharedProfile.data)
+    setPageError(sharedProfile.error?.message || null)
+  }, [sharedProfile, isEditing])
 
   const preferences = useMemo(() => preferencesOf(profile), [profile])
   const draftPreferences = useMemo(() => preferencesOf({ ...profile, ...draft }), [draft, profile])
@@ -155,6 +153,7 @@ export const ProfilePage = () => {
         studyPreferences: draft.studyPreferences || {},
       })
       setProfile(data)
+      window.dispatchEvent(new Event('student-profile-updated'))
       setDraft(data)
       setIsEditing(false)
       setNotice('Hồ sơ đã được cập nhật thành công.')
@@ -175,6 +174,7 @@ export const ProfilePage = () => {
     try {
       const updated = await uploadMyAvatar(file)
       setProfile(updated)
+      window.dispatchEvent(new Event('student-profile-updated'))
       setDraft(updated)
       setNotice('Ảnh đại diện đã được cập nhật thành công.')
     } catch (error: unknown) {
@@ -313,7 +313,7 @@ export const ProfilePage = () => {
               </div>
 
               <p className="mt-1.5 text-sm text-on-surface-variant">
-                {profile.schoolName || 'Trường THPT Chuyên'} {profile.className ? `• Lớp ${profile.className}` : ''}
+                {profile.schoolName || 'Chưa cập nhật trường'} {profile.className ? `• Lớp ${profile.className}` : ''}
               </p>
 
               <div className={styles.metaRow}>
@@ -370,7 +370,7 @@ export const ProfilePage = () => {
             <p className={styles.metricValue}>{profile.totalXp.toLocaleString('vi-VN')} XP</p>
             <div className={`${styles.metricFooter} text-blue-600 dark:text-blue-400`}>
               <span className="material-symbols-outlined text-[14px]">trending_up</span>
-              <span>Tích lũy từ bài tập & câu hỏi</span>
+              <span>Tích lũy từ quiz đã hoàn tất</span>
             </div>
           </div>
         </div>
@@ -432,11 +432,7 @@ export const ProfilePage = () => {
         {/* Left Column: Chart & Study Preferences */}
         <div className={styles.leftCol}>
           {/* Study Analytics Chart */}
-          <StudentStudyAnalyticsChart
-            dailyGoalMinutes={preferences.dailyGoalMinutes}
-            totalXp={profile.totalXp}
-            currentStreak={profile.currentStreak}
-          />
+          <StudentStudyAnalyticsChart />
 
           {/* Study Preferences Display Card */}
           <section className={styles.card}>

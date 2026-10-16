@@ -2,6 +2,7 @@ package com.vn.aitutor.service.impl;
 
 import com.vn.aitutor.dto.response.SystemSettingResponse;
 import com.vn.aitutor.entity.SystemSetting;
+import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.repository.SystemSettingRepository;
 import com.vn.aitutor.service.ISystemSettingsService;
 import jakarta.annotation.PostConstruct;
@@ -115,6 +116,7 @@ public class SystemSettingsServiceImpl implements ISystemSettingsService {
         for (Map.Entry<String, String> entry : newSettings.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue() != null ? entry.getValue() : "";
+            validateSetting(key, value);
 
             SystemSetting setting = systemSettingRepository.findById(key)
                     .orElseGet(() -> SystemSetting.builder()
@@ -126,11 +128,25 @@ public class SystemSettingsServiceImpl implements ISystemSettingsService {
             setting.setValue(value);
             setting.setUpdatedAt(now);
             updatedEntities.add(setting);
-            cache.put(key, value);
         }
 
         systemSettingRepository.saveAll(updatedEntities);
+        updatedEntities.forEach(setting -> cache.put(setting.getKey(), setting.getValue()));
         log.info("Updated {} system settings successfully", updatedEntities.size());
+    }
+
+    private void validateSetting(String key, String value) {
+        if ("gamification.daily_xp_cap".equals(key)) {
+            final int parsed;
+            try {
+                parsed = Integer.parseInt(value.trim());
+            } catch (RuntimeException exception) {
+                throw new ResourceBadRequestException("Hạn mức XP hằng ngày phải là số nguyên");
+            }
+            if (parsed < 1 || parsed > 1_000_000) {
+                throw new ResourceBadRequestException("Hạn mức XP hằng ngày phải từ 1 đến 1000000");
+            }
+        }
     }
 
     private String inferGroupName(String key) {
