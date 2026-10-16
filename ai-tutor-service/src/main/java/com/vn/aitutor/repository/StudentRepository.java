@@ -96,6 +96,17 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
             nativeQuery = true)
     long countActiveByClassId(@Param("classId") UUID classId);
 
+    @Query(
+            value = """
+                    SELECT COUNT(*) FROM students s
+                    JOIN users u ON u.id = s.user_id
+                    WHERE s.class_id = :classId
+                      AND u.role = 'STUDENT'
+                      AND u.is_deleted = FALSE
+                    """,
+            nativeQuery = true)
+    long countRosterByClassId(@Param("classId") UUID classId);
+
     List<Student> findByClassEntity_IdOrderByStudentCodeAsc(UUID classId);
 
     @Query("SELECT s FROM Student s JOIN FETCH s.user WHERE s.classEntity.id = :classId")

@@ -16,6 +16,7 @@ public class QuizAccessService {
     private final StudentRepository students;
     private final QuizRepository quizzes;
     private final QuizQuestionRepository questions;
+    private final QuizClassAssignmentRepository assignments;
 
     public Student currentStudent() {
         String name = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -27,8 +28,13 @@ public class QuizAccessService {
 
     public Quiz requireQuiz(UUID id, Student student) {
         Quiz quiz = quizzes.findById(id).orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
-        if (quiz.isAiGenerated() && !quiz.getCreatedBy().getId().equals(student.getUser().getId()))
-            throw new ResourceForbiddenException("Quiz belongs to another student");
+        boolean ownPractice = quiz.isAiGenerated()
+                && quiz.getCreatedBy() != null
+                && student.getUser() != null
+                && quiz.getCreatedBy().getId().equals(student.getUser().getId());
+        if (!ownPractice && !assignedToClass(quiz, student)) {
+            throw new ResourceForbiddenException("Đề thi không được giao cho lớp của bạn");
+        }
         if (!quiz.isActive()) throw new ResourceConflictException("Quiz is inactive");
         if (quiz.getGradeLevel() != null && !quiz.getGradeLevel().isBlank()
                 && !quiz.getGradeLevel().equals(student.getGradeLevel())
@@ -37,6 +43,11 @@ public class QuizAccessService {
         if (!"READY".equals(quiz.getGenerationStatus()))
             throw new ResourceConflictException("Quiz is not ready");
         return quiz;
+    }
+
+    private boolean assignedToClass(Quiz quiz, Student student) {
+        if (student.getClassEntity() == null || student.getClassEntity().getId() == null) return false;
+        return assignments.existsByQuiz_IdAndSchoolClass_Id(quiz.getId(), student.getClassEntity().getId());
     }
 
     public List<QuizQuestion> readyQuestions(UUID quizId) {

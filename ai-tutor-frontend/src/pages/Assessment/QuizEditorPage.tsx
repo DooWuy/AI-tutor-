@@ -4,6 +4,7 @@ import { questionBankApi, quizAdminApi } from '../../services/assessmentApi';
 import type { GenerationJob, QuestionItem, QuizDraft, QuizItem, SkillItem } from '../../types/assessment';
 import { questionTypeLabel, subjectLabel } from '../../types/assessment';
 import { ErrorBanner, Field, Modal, PrimaryButton, inputClass, useAssessmentBase } from './assessmentUi';
+import { PublishQuizModal } from './PublishQuizModal';
 import { QuestionView } from './MathContent';
 import { GRADES, SUBJECTS } from '../../types/assessment';
 
@@ -28,6 +29,7 @@ export default function QuizEditorPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
   const [pickerSkill, setPickerSkill] = useState('');
   const [pickerDifficulty, setPickerDifficulty] = useState('ALL');
   const [pickerType, setPickerType] = useState('ALL');
@@ -270,17 +272,24 @@ export default function QuizEditorPage() {
             <h2 className="text-lg font-bold text-on-surface">Bộ câu hỏi ({quiz.questions?.length || 0})</h2>
             <div className="flex gap-2">
               <button type="button" className="rounded-xl border border-outline-variant px-3 py-2 text-sm font-semibold" onClick={() => setPickerOpen(true)}>Chọn từ ngân hàng</button>
-              {quiz.status !== 'PUBLISHED' ? (
-                <PrimaryButton onClick={async () => {
-                  try {
-                    setQuiz(await quizAdminApi.publish(quiz.id));
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : 'Không phát hành được');
-                  }
-                }}>Phát hành</PrimaryButton>
-              ) : null}
+              <PrimaryButton onClick={() => setPublishOpen(true)}>
+                {quiz.status === 'PUBLISHED' ? 'Đổi lớp phát hành' : 'Phát hành'}
+              </PrimaryButton>
             </div>
           </div>
+          {(quiz.classes || []).length > 0 ? (
+            <p className="text-sm text-on-surface-variant">Đang giao cho: {quiz.classes?.map((item) => item.name).join(', ')}</p>
+          ) : null}
+          {publishOpen ? (
+            <PublishQuizModal
+              quiz={quiz}
+              onClose={() => setPublishOpen(false)}
+              onPublished={(updated) => {
+                setQuiz(updated);
+                setPublishOpen(false);
+              }}
+            />
+          ) : null}
           <div className="space-y-3">
             {(quiz.questions || []).map((question, index) => (
               <article key={question.id} className="overflow-visible rounded-2xl border border-outline-variant p-4">

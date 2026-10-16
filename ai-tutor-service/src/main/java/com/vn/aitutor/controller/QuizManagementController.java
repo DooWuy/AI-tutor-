@@ -2,6 +2,7 @@ package com.vn.aitutor.controller;
 
 import com.vn.aitutor.dto.request.AssignQuestionsRequest;
 import com.vn.aitutor.dto.request.QuizGenerateRequest;
+import com.vn.aitutor.dto.request.QuizPublishRequest;
 import com.vn.aitutor.dto.request.QuizUpsertRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.QuizResponse;
@@ -76,8 +77,12 @@ public class QuizManagementController {
 
     @PostMapping("/{quizId}/publish")
     public ResponseEntity<ApiResponse<QuizResponse>> publish(
-            @PathVariable UUID quizId, @AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(ok("Đã phát hành đề thi", quizManagementService.publish(quizId, principal)));
+            @PathVariable UUID quizId,
+            @Valid @RequestBody QuizPublishRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(ok(
+                "Đã phát hành đề thi",
+                quizManagementService.publish(quizId, request.getClassIds(), principal)));
     }
 
     @PostMapping("/{quizId}/archive")

@@ -17,6 +17,9 @@ import { QuizResultPage } from './pages/Student/Practice/QuizResultPage';
 import { TeacherLayout } from './layouts/TeacherLayout/TeacherLayout';
 import AnalyticsPage from './pages/Teacher/Analytics/AnalyticsPage';
 import TeachingMaterialsPage from './pages/Teacher/TeachingMaterials/TeachingMaterialsPage';
+import ClassesPage from './pages/Teacher/Classes/ClassesPage';
+import ClassDetailPage from './pages/Teacher/Classes/ClassDetailPage';
+import TeacherStudentDetailPage from './pages/Teacher/Classes/TeacherStudentDetailPage';
 
 import { AdminLayout } from './layouts/AdminLayout/AdminLayout';
 import { AdminDashboardPage } from './pages/Admin/AdminDashboardPage';
@@ -78,6 +81,9 @@ function App() {
           <Route index element={<Navigate to="/teacher/analytics" replace />} />
           <Route path="dashboard" element={<Navigate to="/teacher/analytics" replace />} />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="classes" element={<ClassesPage />} />
+          <Route path="classes/:classId" element={<ClassDetailPage />} />
+          <Route path="classes/:classId/students/:studentId" element={<TeacherStudentDetailPage />} />
           <Route path="question-bank" element={<QuestionBankPage />} />
           <Route path="question-bank/:subject/:grade" element={<SubjectSkillsPage />} />
           <Route path="question-bank/:skillId" element={<SkillQuestionsPage />} />
