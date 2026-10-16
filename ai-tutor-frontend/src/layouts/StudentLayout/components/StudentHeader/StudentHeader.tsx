@@ -6,8 +6,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { useNotification } from '../../../../context/NotificationContext';
 import { ThemeToggle } from '../../../../components/common/ThemeToggle';
 import type { Notification as AppNotification } from '../../../../services/notificationApi';
-import { getMyStudentProfile } from '../../../../services/studentProfileApi';
-import type { StudentProfile } from '../../../../types/studentProfile';
+import { useStudentLearning } from '../../../../context/StudentLearningContext';
 
 export const StudentHeader: React.FC = () => {
   const { user, logout } = useAuth();
@@ -17,7 +16,8 @@ export const StudentHeader: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
+  const { profile: profileResource } = useStudentLearning();
+  const studentProfile = profileResource.data;
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -26,21 +26,12 @@ export const StudentHeader: React.FC = () => {
   const fullName = studentProfile?.fullName || user?.fullName || 'Người dùng';
   const avatarUrl = studentProfile?.avatarUrl || user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=0A5EB0&color=fff`;
 
-  // Fetch student profile
   useEffect(() => {
-    if (user) {
-      getMyStudentProfile().then(setStudentProfile).catch(console.error);
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsDropdownOpen(false); setIsNotificationOpen(false); setIsMobileMenuOpen(false);
+      }
     }
-  }, [user?.userId]);
-
-  // Listen to profile update event
-  useEffect(() => {
-    const refresh = () => { getMyStudentProfile().then(setStudentProfile).catch(console.error); };
-    window.addEventListener('student-profile-updated', refresh);
-    return () => window.removeEventListener('student-profile-updated', refresh);
-  }, []);
-
-  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
@@ -53,7 +44,8 @@ export const StudentHeader: React.FC = () => {
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => { document.removeEventListener('mousedown', handleClickOutside); document.removeEventListener('keydown', handleEscape); };
   }, []);
 
   const handleLogout = async () => {
@@ -85,7 +77,7 @@ export const StudentHeader: React.FC = () => {
         {/* Logo & Main Navigation */}
         <div className={styles.navGroup}>
           <button 
-            className="md:hidden p-1.5 -ml-2 text-on-surface hover:text-primary transition rounded-lg hover:bg-surface-container"
+            aria-label="Mở menu điều hướng" aria-expanded={isMobileMenuOpen} className="xl:hidden p-2.5 -ml-2 text-on-surface hover:text-primary transition rounded-lg hover:bg-surface-container"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             <span className="material-symbols-outlined text-[24px]">menu</span>
@@ -95,7 +87,7 @@ export const StudentHeader: React.FC = () => {
             <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#004bb5] to-[#2575fc] text-white shadow-md shadow-[#005cb8]/20 ring-1 ring-white/20" aria-hidden="true">
               <Bot size={22} className="text-white" />
               <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="motion-reduce:animate-none animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </span>
             </div>
@@ -113,7 +105,7 @@ export const StudentHeader: React.FC = () => {
             <Link className={getNavLinkClass('/student/timetable')} to="/student/timetable">Thời khóa biểu</Link>
             <Link className={getNavLinkClass('/student/chat')} to="/student/chat">Hỏi đáp SGK</Link>
             <Link className={getNavLinkClass('/student/practice')} to="/student/practice">Luyện đề</Link>
-            <Link className={styles.navLink} to="#">Bảng vàng</Link>
+            <Link className={getNavLinkClass('/student/progress')} to="/student/progress">Tiến độ</Link>
           </nav>
         </div>
         
@@ -123,7 +115,7 @@ export const StudentHeader: React.FC = () => {
             <Link className={location.pathname.includes('/student/timetable') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/timetable" onClick={() => setIsMobileMenuOpen(false)}>Thời khóa biểu</Link>
             <Link className={location.pathname.includes('/student/chat') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/chat" onClick={() => setIsMobileMenuOpen(false)}>Hỏi đáp SGK</Link>
             <Link className={location.pathname.includes('/student/practice') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/practice" onClick={() => setIsMobileMenuOpen(false)}>Luyện đề</Link>
-            <Link className={styles.mobileMenuItem} to="#" onClick={() => setIsMobileMenuOpen(false)}>Bảng vàng</Link>
+            <Link className={location.pathname.includes('/student/progress') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/progress" onClick={() => setIsMobileMenuOpen(false)}>Tiến độ</Link>
           </div>
         )}
         
@@ -132,14 +124,14 @@ export const StudentHeader: React.FC = () => {
           {/* Streak badge */}
           <div className={styles.streakBadge}>
             <span className={styles.streakIcon} style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-            <span className={styles.streakCount}>{studentProfile?.currentStreak || 0}</span>
+            <span className={styles.streakCount}>{studentProfile ? studentProfile.currentStreak : '—'}</span>
             <span className={styles.streakLabel}>ngày</span>
           </div>
           
           {/* XP Badge */}
           <div className={styles.xpBadge}>
             <span className={styles.xpIcon} style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
-            <span className="">{studentProfile?.totalXp?.toLocaleString() || 0} XP</span>
+            <span className="">{studentProfile ? studentProfile.totalXp.toLocaleString('vi-VN') : '—'} XP</span>
           </div>
           
           {/* Theme Toggle */}
@@ -206,7 +198,7 @@ export const StudentHeader: React.FC = () => {
           
           {/* Profile Chip & Dropdown */}
           <div className={styles.profileChipWrapper} ref={dropdownRef}>
-            <div className={styles.profileChip} onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+            <button type="button" aria-label="Mở menu tài khoản" aria-expanded={isDropdownOpen} className={styles.profileChip} onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
               <img className={styles.profileAvatar} alt="Profile" src={avatarUrl} />
               <div className={styles.profileInfo}>
                 <p className={styles.profileName}>{fullName}</p>
@@ -215,23 +207,23 @@ export const StudentHeader: React.FC = () => {
                   {studentProfile?.schoolName ? ` - ${studentProfile.schoolName}` : ''}
                 </p>
               </div>
-            </div>
+            </button>
             
             {/* Dropdown Menu */}
             {isDropdownOpen && (
               <div className={styles.dropdownMenu}>
-                <div 
+                <button type="button"
                   className={styles.dropdownItem} 
                   onClick={() => { setIsDropdownOpen(false); navigate('/student/profile'); }}
                 >
                   <span className={styles.dropdownIcon}>person</span>
                   <span>Hồ sơ cá nhân</span>
-                </div>
+                </button>
                 <div className={styles.dropdownDivider}></div>
-                <div className={styles.dropdownItem} onClick={handleLogout}>
+                <button type="button" className={styles.dropdownItem} onClick={handleLogout}>
                   <span className={`${styles.dropdownIcon} text-error`}>logout</span>
                   <span className="text-error font-medium">Đăng xuất</span>
-                </div>
+                </button>
               </div>
             )}
           </div>

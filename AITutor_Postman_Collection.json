@@ -1200,6 +1200,530 @@
                     }
                 }
             ]
+        },
+        {
+            "name": "Issue 5 - Progress and Streak",
+            "description": "Task 2/3. accessToken is a STUDENT token; adminAccessToken is ADMIN. Cookie jar disabled per request to make negative tests reliable. Data comes from Student, immutable attempts and ledger. Run after login; never send studentId to select another student. Streak updates on successful quiz completion (including 0 XP/retakes), not reads or login.",
+            "item": [
+                {
+                    "name": "My progress - 200",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                                    "const body = pm.response.json();",
+                                    "pm.test(\"ApiResponse and 7 days\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.dailyActivity).to.have.lengthOf(7); });",
+                                    "pm.test(\"Level formula and recent limit\", () => { const s = body.data.summary; pm.expect(s.currentLevel).to.eql(Math.floor(s.totalXp / s.xpPerLevel) + 1); pm.expect(s.xpInCurrentLevel).to.eql(s.totalXp % s.xpPerLevel); pm.expect(s.xpToNextLevel).to.eql(s.xpPerLevel - s.xpInCurrentLevel); pm.expect(body.data.recentQuizzes.length).to.be.at.most(5); });",
+                                    "pm.test(\"No PII or answers\", () => { const forbidden = [\"email\", \"phoneNumber\", \"studentCode\", \"parentName\", \"parentEmail\", \"passwordHash\", \"correctOptionKey\", \"explanation\", \"answers\"]; const walk = o => { if (o && typeof o === \"object\") Object.keys(o).forEach(k => { pm.expect(forbidden).not.to.include(k); walk(o[k]); }); }; walk(body.data); });",
+                                    "pm.test(\"Days ascending with no gaps\", () => { const days = body.data.dailyActivity; days.forEach((d, i) => { pm.expect(d.quizCount).to.be.at.least(0); pm.expect(d.studyMinutes).to.be.at.least(0); pm.expect(d.xpEarned).to.be.at.least(0); if (i) pm.expect(Date.parse(d.date) - Date.parse(days[i-1].date)).to.eql(86400000); }); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{accessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/students/me/progress",
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Unauthenticated - 401",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [],
+                        "url": "{{baseUrl}}/api/v1/students/me/progress",
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Admin cannot use student progress - 403",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{adminAccessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/students/me/progress",
+                        "description": ""
+                    }
+                },
+                {
+                    "name": "Foreign studentId cannot select another profile",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                                    "const body = pm.response.json();",
+                                    "pm.test(\"ApiResponse and 7 days\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.dailyActivity).to.have.lengthOf(7); });",
+                                    "pm.test(\"Level formula and recent limit\", () => { const s = body.data.summary; pm.expect(s.currentLevel).to.eql(Math.floor(s.totalXp / s.xpPerLevel) + 1); pm.expect(s.xpInCurrentLevel).to.eql(s.totalXp % s.xpPerLevel); pm.expect(s.xpToNextLevel).to.eql(s.xpPerLevel - s.xpInCurrentLevel); pm.expect(body.data.recentQuizzes.length).to.be.at.most(5); });",
+                                    "pm.test(\"No PII or answers\", () => { const forbidden = [\"email\", \"phoneNumber\", \"studentCode\", \"parentName\", \"parentEmail\", \"passwordHash\", \"correctOptionKey\", \"explanation\", \"answers\"]; const walk = o => { if (o && typeof o === \"object\") Object.keys(o).forEach(k => { pm.expect(forbidden).not.to.include(k); walk(o[k]); }); }; walk(body.data); });",
+                                    "pm.test(\"Days ascending with no gaps\", () => { const days = body.data.dailyActivity; days.forEach((d, i) => { pm.expect(d.quizCount).to.be.at.least(0); pm.expect(d.studyMinutes).to.be.at.least(0); pm.expect(d.xpEarned).to.be.at.least(0); if (i) pm.expect(Date.parse(d.date) - Date.parse(days[i-1].date)).to.eql(86400000); }); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{accessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/students/me/progress?studentId=00000000-0000-0000-0000-000000000001",
+                        "description": "Query parameter is ignored; identity always comes from SecurityContext. Expect the same own progress as My progress."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Issue 5 - Leaderboard",
+            "description": "Task 4. Cookie auth. Run with a STUDENT accessToken assigned to a real class_id, adminAccessToken, unassignedAccessToken (STUDENT with no class_id), otherClassId and otherStudentId. The runtime verification script prepares these local fixtures. No automatic cookie jar; negative requests cannot accidentally reuse login cookies. No leaderboard cache.",
+            "item": [
+                {
+                    "name": "Global default - top 20 and me",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                                    "const b = pm.response.json(); const d = b.data;",
+                                    "pm.test(\"Envelope, scope and timestamp\", () => { pm.expect(b.success).to.eql(true); pm.expect([\"GLOBAL\", \"CLASS\"]).to.include(d.scope); pm.expect(Number.isNaN(Date.parse(d.generatedAt))).to.eql(false); });",
+                                    "pm.test(\"Bounded sequential ranks and descending XP\", () => { const limit = Number(pm.request.url.query.get(\"limit\") || 20); pm.expect(d.entries.length).to.be.at.most(limit); d.entries.forEach((e,i) => { pm.expect(e.rank).to.eql(i+1); if(i) pm.expect(e.totalXp).to.be.at.most(d.entries[i-1].totalXp); }); });",
+                                    "pm.test(\"Me rank even outside top\", () => { pm.expect(d.me.rank).to.be.at.least(1); pm.expect(d.me.currentLevel).to.be.at.least(1); if(d.me.rank <= d.entries.length) pm.expect(d.me).to.deep.eql(d.entries[d.me.rank-1]); });",
+                                    "pm.test(\"Exact public allowlist\", () => { [d.me, ...d.entries].forEach(e => { pm.expect(Object.keys(e).sort()).to.deep.eql([\"rank\",\"displayName\",\"avatarUrl\",\"totalXp\",\"currentLevel\"].sort()); pm.expect(e.totalXp).to.be.at.least(0); }); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{accessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/leaderboard"
+                    }
+                },
+                {
+                    "name": "Class scope - top and me",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                                    "const b = pm.response.json(); const d = b.data;",
+                                    "pm.test(\"Envelope, scope and timestamp\", () => { pm.expect(b.success).to.eql(true); pm.expect([\"GLOBAL\", \"CLASS\"]).to.include(d.scope); pm.expect(Number.isNaN(Date.parse(d.generatedAt))).to.eql(false); });",
+                                    "pm.test(\"Bounded sequential ranks and descending XP\", () => { const limit = Number(pm.request.url.query.get(\"limit\") || 20); pm.expect(d.entries.length).to.be.at.most(limit); d.entries.forEach((e,i) => { pm.expect(e.rank).to.eql(i+1); if(i) pm.expect(e.totalXp).to.be.at.most(d.entries[i-1].totalXp); }); });",
+                                    "pm.test(\"Me rank even outside top\", () => { pm.expect(d.me.rank).to.be.at.least(1); pm.expect(d.me.currentLevel).to.be.at.least(1); if(d.me.rank <= d.entries.length) pm.expect(d.me).to.deep.eql(d.entries[d.me.rank-1]); });",
+                                    "pm.test(\"Exact public allowlist\", () => { [d.me, ...d.entries].forEach(e => { pm.expect(Object.keys(e).sort()).to.deep.eql([\"rank\",\"displayName\",\"avatarUrl\",\"totalXp\",\"currentLevel\"].sort()); pm.expect(e.totalXp).to.be.at.least(0); }); });",
+                                    "pm.collectionVariables.set(\"leaderboardOwnClassEntries\", JSON.stringify(d.entries));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{accessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/leaderboard?scope=CLASS"
+                    }
+                },
+                {
+                    "name": "Global limit 50",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                                    "const b = pm.response.json(); const d = b.data;",
+                                    "pm.test(\"Envelope, scope and timestamp\", () => { pm.expect(b.success).to.eql(true); pm.expect([\"GLOBAL\", \"CLASS\"]).to.include(d.scope); pm.expect(Number.isNaN(Date.parse(d.generatedAt))).to.eql(false); });",
+                                    "pm.test(\"Bounded sequential ranks and descending XP\", () => { const limit = Number(pm.request.url.query.get(\"limit\") || 20); pm.expect(d.entries.length).to.be.at.most(limit); d.entries.forEach((e,i) => { pm.expect(e.rank).to.eql(i+1); if(i) pm.expect(e.totalXp).to.be.at.most(d.entries[i-1].totalXp); }); });",
+                                    "pm.test(\"Me rank even outside top\", () => { pm.expect(d.me.rank).to.be.at.least(1); pm.expect(d.me.currentLevel).to.be.at.least(1); if(d.me.rank <= d.entries.length) pm.expect(d.me).to.deep.eql(d.entries[d.me.rank-1]); });",
+                                    "pm.test(\"Exact public allowlist\", () => { [d.me, ...d.entries].forEach(e => { pm.expect(Object.keys(e).sort()).to.deep.eql([\"rank\",\"displayName\",\"avatarUrl\",\"totalXp\",\"currentLevel\"].sort()); pm.expect(e.totalXp).to.be.at.least(0); }); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{accessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/leaderboard?limit=50"
+                    }
+                },
+                {
+                    "name": "Class limit 1 - me may be outside top",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                                    "const b = pm.response.json(); const d = b.data;",
+                                    "pm.test(\"Envelope, scope and timestamp\", () => { pm.expect(b.success).to.eql(true); pm.expect([\"GLOBAL\", \"CLASS\"]).to.include(d.scope); pm.expect(Number.isNaN(Date.parse(d.generatedAt))).to.eql(false); });",
+                                    "pm.test(\"Bounded sequential ranks and descending XP\", () => { const limit = Number(pm.request.url.query.get(\"limit\") || 20); pm.expect(d.entries.length).to.be.at.most(limit); d.entries.forEach((e,i) => { pm.expect(e.rank).to.eql(i+1); if(i) pm.expect(e.totalXp).to.be.at.most(d.entries[i-1].totalXp); }); });",
+                                    "pm.test(\"Me rank even outside top\", () => { pm.expect(d.me.rank).to.be.at.least(1); pm.expect(d.me.currentLevel).to.be.at.least(1); if(d.me.rank <= d.entries.length) pm.expect(d.me).to.deep.eql(d.entries[d.me.rank-1]); });",
+                                    "pm.test(\"Exact public allowlist\", () => { [d.me, ...d.entries].forEach(e => { pm.expect(Object.keys(e).sort()).to.deep.eql([\"rank\",\"displayName\",\"avatarUrl\",\"totalXp\",\"currentLevel\"].sort()); pm.expect(e.totalXp).to.be.at.least(0); }); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{accessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/leaderboard?scope=CLASS&limit=1"
+                    }
+                },
+                {
+                    "name": "Foreign classId and studentId cannot select another class",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                                    "const b = pm.response.json(); const d = b.data;",
+                                    "pm.test(\"Envelope, scope and timestamp\", () => { pm.expect(b.success).to.eql(true); pm.expect([\"GLOBAL\", \"CLASS\"]).to.include(d.scope); pm.expect(Number.isNaN(Date.parse(d.generatedAt))).to.eql(false); });",
+                                    "pm.test(\"Bounded sequential ranks and descending XP\", () => { const limit = Number(pm.request.url.query.get(\"limit\") || 20); pm.expect(d.entries.length).to.be.at.most(limit); d.entries.forEach((e,i) => { pm.expect(e.rank).to.eql(i+1); if(i) pm.expect(e.totalXp).to.be.at.most(d.entries[i-1].totalXp); }); });",
+                                    "pm.test(\"Me rank even outside top\", () => { pm.expect(d.me.rank).to.be.at.least(1); pm.expect(d.me.currentLevel).to.be.at.least(1); if(d.me.rank <= d.entries.length) pm.expect(d.me).to.deep.eql(d.entries[d.me.rank-1]); });",
+                                    "pm.test(\"Exact public allowlist\", () => { [d.me, ...d.entries].forEach(e => { pm.expect(Object.keys(e).sort()).to.deep.eql([\"rank\",\"displayName\",\"avatarUrl\",\"totalXp\",\"currentLevel\"].sort()); pm.expect(e.totalXp).to.be.at.least(0); }); });",
+                                    "pm.test(\"Own class is unchanged\", () => pm.expect(JSON.stringify(d.entries)).to.eql(pm.collectionVariables.get(\"leaderboardOwnClassEntries\")));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{accessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/leaderboard?scope=CLASS&classId={{otherClassId}}&studentId={{otherStudentId}}"
+                    }
+                },
+                {
+                    "name": "Class without membership - business 400",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                                    "pm.test(\"Stable business code\", () => pm.expect(pm.response.json().error.code).to.eql(\"STUDENT_CLASS_REQUIRED\"));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{unassignedAccessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/leaderboard?scope=CLASS"
+                    }
+                },
+                {
+                    "name": "Unsupported scope - 400",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{accessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/leaderboard?scope=WEEK"
+                    }
+                },
+                {
+                    "name": "Zero limit - 400",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{accessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/leaderboard?limit=0"
+                    }
+                },
+                {
+                    "name": "Oversized limit - 400",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{accessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/leaderboard?limit=51"
+                    }
+                },
+                {
+                    "name": "Noninteger limit - 400",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{accessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/leaderboard?limit=text"
+                    }
+                },
+                {
+                    "name": "Unauthenticated - 401",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [],
+                        "url": "{{baseUrl}}/api/v1/leaderboard"
+                    }
+                },
+                {
+                    "name": "Admin role - 403",
+                    "protocolProfileBehavior": {
+                        "disableCookies": true
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "header": [
+                            {
+                                "key": "Cookie",
+                                "value": "access_token={{adminAccessToken}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/leaderboard"
+                    }
+                }
+            ]
         }
     ],
     "variable": [

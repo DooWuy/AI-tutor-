@@ -4,6 +4,7 @@ import { studentQuizApi, type QuizResult } from '../../../services/studentQuizAp
 import { getStoredSession } from '../../../services/authApi';
 import { MathMarkdown } from '../../../components/common/MathMarkdown';
 import './Quiz.css';
+import { xpAwardMessage } from '../Progress/xpAwardMessage';
 
 export function QuizResultPage() {
   const { attemptId = '' } = useParams();
@@ -15,7 +16,7 @@ export function QuizResultPage() {
   useEffect(() => {
     let cancelled = false;
     studentQuizApi.getResult(attemptId).then(data => { if (!cancelled) {
-      setResult(data); setError(''); window.dispatchEvent(new Event('student-profile-updated'));
+      setResult(data); setError('');
     } })
       .catch(ex => { if (!cancelled) setError(ex.message); });
     return () => { cancelled = true; };
@@ -34,7 +35,8 @@ export function QuizResultPage() {
   return <div className="quiz-page"><header className="quiz-heading"><div><p className="quiz-eyebrow">Kết quả luyện tập</p><h1>{result.quizTitle}</h1></div><Link to="/student/practice">Hoàn thành</Link></header>
     {error && <p className="quiz-error" role="alert">{error}</p>}
     <section className="quiz-card quiz-summary"><div><strong>{result.score.toFixed(1)} / 10</strong><span>Điểm bài làm</span></div><div><strong>{result.correctCount}/{result.totalQuestions}</strong><span>Đúng · {result.totalQuestions - result.correctCount} sai/bỏ trống</span></div><div><strong>+{result.xpEarned} XP</strong><span>Tổng {result.totalXp} XP · Level {result.currentLevel}</span></div><div><strong>{Math.floor(result.durationSeconds / 60)} phút {result.durationSeconds % 60} giây</strong><span>Thời gian làm bài</span></div></section>
-    <p className="quiz-notice">XP chỉ được thưởng ở lần hoàn tất đầu tiên của mỗi đề. Bạn vẫn có thể làm lại để luyện tập.</p>
+    <p className="quiz-notice" role="status">{xpAwardMessage(result.xpAwardStatus, result.xpEarned, result.dailyXpEarned, result.dailyXpCap)}</p>
+    <p><Link to="/student/progress">Xem tiến độ và thứ hạng mới nhất →</Link></p>
     {result.answers.map((answer, index) => {
       const correct = answer.isCorrect ?? answer.correct ?? false;
       const text = (key: string | null) => {

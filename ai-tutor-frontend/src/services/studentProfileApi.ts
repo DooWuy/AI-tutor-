@@ -28,7 +28,7 @@ async function request<T>(url: string, init: RequestInit) {
   return payload.data
 }
 
-export function getMyStudentProfile() { return request<StudentProfile>('/students/me', { method: 'GET' }) }
+export function getMyStudentProfile(signal?: AbortSignal) { return request<StudentProfile>('/students/me', { method: 'GET', signal }) }
 
 export function updateMyStudentProfile(update: StudentProfileUpdate) {
   return request<StudentProfile>('/students/me', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(update) })
