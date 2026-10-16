@@ -28,6 +28,7 @@ class QuizMigrationIntegrationTest {
             }
         }
         assertEquals(1, Flyway.configure().dataSource(url, username, password).target("2").load().migrate().migrationsExecuted);
+        assertEquals(1, Flyway.configure().dataSource(url, username, password).target("3").load().migrate().migrationsExecuted);
         assertEquals(1, Flyway.configure().dataSource(url, username, password).load().migrate().migrationsExecuted);
         try (Connection connection = DriverManager.getConnection(url, username, password); Statement sql = connection.createStatement()) {
             ResultSet row = sql.executeQuery("SELECT score,xp_earned,is_visible,source_draft_id,xp_award_status FROM quiz_attempts WHERE id='"+attempt+"'");
