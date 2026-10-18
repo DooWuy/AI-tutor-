@@ -3,8 +3,9 @@ package com.vn.aitutor.controller;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.entity.Notification;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.NotificationService;
+import com.vn.aitutor.service.system.NotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +20,16 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Notification>>> getMyNotifications(@AuthenticationPrincipal UserPrincipal principal) {
-        List<Notification> notifications = notificationService.getMyNotifications(principal.getUsers().getId());
+    public ResponseEntity<ApiResponse<List<Notification>>> getMyNotifications(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        List<Notification> notifications;
+        if (limit != null && limit > 0) {
+            notifications = notificationService.getMyNotifications(
+                    principal.getUsers().getId(), PageRequest.of(0, limit)).getContent();
+        } else {
+            notifications = notificationService.getMyNotifications(principal.getUsers().getId());
+        }
         return ResponseEntity.ok(ApiResponse.<List<Notification>>builder()
                 .success(true)
                 .message("Lấy thông báo thành công")

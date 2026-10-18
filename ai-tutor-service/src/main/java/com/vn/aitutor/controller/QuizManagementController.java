@@ -1,15 +1,15 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.AssignQuestionsRequest;
-import com.vn.aitutor.dto.request.QuizGenerateRequest;
-import com.vn.aitutor.dto.request.QuizPublishRequest;
-import com.vn.aitutor.dto.request.QuizUpsertRequest;
+import com.vn.aitutor.dto.request.quiz.AssignQuestionsRequest;
+import com.vn.aitutor.dto.request.quiz.QuizGenerateRequest;
+import com.vn.aitutor.dto.request.quiz.QuizPublishRequest;
+import com.vn.aitutor.dto.request.quiz.QuizUpsertRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.QuizResponse;
-import com.vn.aitutor.dto.response.QuizStatisticsResponse;
+import com.vn.aitutor.dto.response.quiz.QuizResponse;
+import com.vn.aitutor.dto.response.quiz.QuizStatisticsResponse;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.QuizManagementService;
-import com.vn.aitutor.service.QuizStatisticsService;
+import com.vn.aitutor.service.quiz.QuizManagementService;
+import com.vn.aitutor.service.quiz.QuizStatisticsService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

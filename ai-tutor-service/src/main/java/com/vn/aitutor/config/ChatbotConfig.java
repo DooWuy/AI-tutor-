@@ -1,8 +1,8 @@
 package com.vn.aitutor.config;
 
-import com.vn.aitutor.agent.AiTutorChatAgent;
-import com.vn.aitutor.service.impl.CustomPostgresRetriever;
-import com.vn.aitutor.service.ISystemSettingsService;
+import com.vn.aitutor.ai.agent.AiTutorChatAgent;
+import com.vn.aitutor.service.chat.CustomPostgresRetriever;
+import com.vn.aitutor.service.system.ISystemSettingsService;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.service.AiServices;

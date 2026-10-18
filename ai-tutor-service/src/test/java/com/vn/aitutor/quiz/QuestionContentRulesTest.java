@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.vn.aitutor.dto.request.QuizUpsertRequest;
+import com.vn.aitutor.dto.request.quiz.QuizUpsertRequest;
 import com.vn.aitutor.entity.enums.QuestionType;
 import com.vn.aitutor.exception.ResourceBadRequestException;
 import jakarta.validation.Validation;

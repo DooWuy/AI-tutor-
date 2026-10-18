@@ -1,7 +1,7 @@
 package com.vn.aitutor.security.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vn.aitutor.service.ISystemSettingsService;
+import com.vn.aitutor.service.system.ISystemSettingsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

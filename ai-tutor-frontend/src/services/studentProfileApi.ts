@@ -39,6 +39,14 @@ export function uploadMyAvatar(file: File) {
   return request<StudentProfile>('/students/me/avatar', { method: 'POST', body })
 }
 
-export function changePassword(oldPassword: string, newPassword: string, confirmPassword: string) {
-  return request<null>('/users/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oldPassword, newPassword, confirmPassword }) })
+export function sendChangePasswordOtp() {
+  return request<null>('/users/change-password/send-otp', { method: 'POST' })
+}
+
+export function changePassword(oldPassword: string, newPassword: string, confirmPassword: string, otp: string) {
+  return request<null>('/users/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ oldPassword, newPassword, confirmPassword, otp })
+  })
 }

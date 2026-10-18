@@ -15,6 +15,6 @@ public interface TeacherRepository extends JpaRepository<Teacher, UUID> {
 
     boolean existsByTeacherCode(String teacherCode);
 
-    @Query("SELECT t FROM Teacher t WHERE t.user.id = :userId")
+    @Query("SELECT t FROM Teacher t LEFT JOIN FETCH t.user WHERE t.user.id = :userId")
     Optional<Teacher> findByUserId(@Param("userId") UUID userId);
 }

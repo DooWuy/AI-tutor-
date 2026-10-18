@@ -1,10 +1,10 @@
 package com.vn.aitutor.mq.consumer;
 
-import com.vn.aitutor.agent.QuestionGeneratorAgent;
+import com.vn.aitutor.ai.agent.QuestionGeneratorAgent;
 import com.vn.aitutor.config.RabbitMQConfig;
-import com.vn.aitutor.dto.request.QuestionBankCreateRequest;
-import com.vn.aitutor.dto.request.QuizGenerationMessage;
-import com.vn.aitutor.dto.response.QuestionBankListResponse;
+import com.vn.aitutor.dto.request.quiz.QuestionBankCreateRequest;
+import com.vn.aitutor.dto.request.quiz.QuizGenerationMessage;
+import com.vn.aitutor.dto.response.quiz.QuestionBankListResponse;
 import com.vn.aitutor.entity.QuestionBankItem;
 import com.vn.aitutor.entity.QuestionChoice;
 import com.vn.aitutor.entity.Quiz;
@@ -139,7 +139,7 @@ public class QuizGenerationConsumer {
                 qq.setOptions(options);
                 qq.setCorrectOptionKey(correctKey);
 
-                if (!com.vn.aitutor.service.QuizAccessService.validQuestion(qq))
+                if (!com.vn.aitutor.service.quiz.QuizAccessService.validQuestion(qq))
                     throw new IllegalArgumentException("Generated question has invalid answer or explanation");
 
                 quizQuestionRepository.save(qq);

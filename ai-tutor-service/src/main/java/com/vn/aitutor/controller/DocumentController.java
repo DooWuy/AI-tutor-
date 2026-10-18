@@ -1,10 +1,10 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.DocumentMetadataRequest;
+import com.vn.aitutor.dto.request.curriculum.DocumentMetadataRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.DocumentSummaryResponse;
+import com.vn.aitutor.dto.response.curriculum.DocumentSummaryResponse;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.DocumentLifecycleService;
+import com.vn.aitutor.service.curriculum.DocumentLifecycleService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

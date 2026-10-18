@@ -1,0 +1,464 @@
+name: Production CI/CD Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - '.idea/**'
+  pull_request:
+    branches:
+      - main
+      - staging
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      deploy_component:
+        description: 'Component to build and deploy'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - backend
+          - frontend
+      skip_tests:
+        description: 'Skip CI automated tests (Emergency hotfix only)'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  packages: write
+  actions: read
+
+env:
+  REGISTRY: ghcr.io
+  JAVA_VERSION: '17'
+  NODE_VERSION: '22'
+
+jobs:
+  # ===========================================================================
+  # 1. Environment & Target Resolution
+  # ===========================================================================
+  resolve-env:
+    name: Resolve Target Environment
+    runs-on: ubuntu-latest
+    outputs:
+      target_environment: ${{ steps.set-env.outputs.target_environment }}
+      is_deployable: ${{ steps.set-env.outputs.is_deployable }}
+      image_tag: ${{ steps.set-env.outputs.image_tag }}
+      lower_repo: ${{ steps.set-env.outputs.lower_repo }}
+      deploy_component: ${{ steps.set-env.outputs.deploy_component }}
+      skip_tests: ${{ steps.set-env.outputs.skip_tests }}
+    steps:
+      - name: Resolve Environment & Inputs
+        id: set-env
+        run: |
+          # Lowercase repository name for RFC 1123 compliant Docker images
+          LOWER_REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "lower_repo=${LOWER_REPO}" >> "$GITHUB_OUTPUT"
+
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "image_tag=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "target_environment=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+            echo "is_deployable=true" >> "$GITHUB_OUTPUT"
+            echo "deploy_component=${{ inputs.deploy_component }}" >> "$GITHUB_OUTPUT"
+            echo "skip_tests=${{ inputs.skip_tests }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "target_environment=production" >> "$GITHUB_OUTPUT"
+            echo "is_deployable=${{ github.event_name == 'push' }}" >> "$GITHUB_OUTPUT"
+            echo "deploy_component=all" >> "$GITHUB_OUTPUT"
+            echo "skip_tests=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref }}" = "refs/heads/staging" ]; then
+            echo "target_environment=staging" >> "$GITHUB_OUTPUT"
+            echo "is_deployable=${{ github.event_name == 'push' }}" >> "$GITHUB_OUTPUT"
+            echo "deploy_component=all" >> "$GITHUB_OUTPUT"
+            echo "skip_tests=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "target_environment=staging" >> "$GITHUB_OUTPUT"
+            echo "is_deployable=false" >> "$GITHUB_OUTPUT"
+            echo "deploy_component=all" >> "$GITHUB_OUTPUT"
+            echo "skip_tests=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ===========================================================================
+  # 2. Quality Gates: Backend CI (Java / Spring Boot / Gradle)
+  # ===========================================================================
+  ci-backend:
+    name: Backend CI (Build & Unit Tests)
+    runs-on: ubuntu-latest
+    needs: resolve-env
+    if: needs.resolve-env.outputs.skip_tests != 'true'
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }} (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Setup Gradle Build Tool with Dependency Caching
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant Execute Permission to gradlew
+        run: chmod +x ./gradlew
+        working-directory: ai-tutor-service
+
+      - name: Run Backend Unit Tests
+        run: ./gradlew test --no-daemon --stacktrace
+        working-directory: ai-tutor-service
+
+      - name: Archive Test Results on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: ai-tutor-service/build/reports/tests/test/
+          retention-days: 7
+
+  # ===========================================================================
+  # 3. Quality Gates: Frontend CI (React / TypeScript / Vite / Oxlint)
+  # ===========================================================================
+  ci-frontend:
+    name: Frontend CI (Lint, Typecheck & Build)
+    runs-on: ubuntu-latest
+    needs: resolve-env
+    if: needs.resolve-env.outputs.skip_tests != 'true'
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ai-tutor-frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+        working-directory: ai-tutor-frontend
+
+      - name: Run Oxlint Linter
+        run: npm run lint
+        working-directory: ai-tutor-frontend
+
+      - name: Run TypeScript Type Check & Production Bundle Build
+        run: npm run build
+        working-directory: ai-tutor-frontend
+
+  # ===========================================================================
+  # 4. Security Scanning Gate (Vulnerability Audit)
+  # ===========================================================================
+  security-scan:
+    name: Security Vulnerability Scan (Trivy SAST)
+    runs-on: ubuntu-latest
+    needs: resolve-env
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy File System Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+        continue-on-error: true
+
+  # ===========================================================================
+  # 5. Container Image Build & Registry Publish (CD Artifacts)
+  # ===========================================================================
+  build-and-push:
+    name: Build & Push Container Images (GHCR)
+    runs-on: ubuntu-latest
+    needs: [resolve-env, ci-backend, ci-frontend, security-scan]
+    if: |
+      always() &&
+      needs.resolve-env.outputs.is_deployable == 'true' &&
+      (needs.ci-backend.result == 'success' || needs.resolve-env.outputs.skip_tests == 'true') &&
+      (needs.ci-frontend.result == 'success' || needs.resolve-env.outputs.skip_tests == 'true')
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx with Builder Instance
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Backend Container Image Metadata & Build ---
+      - name: Extract Docker Metadata for Backend Service
+        id: meta-backend
+        if: needs.resolve-env.outputs.deploy_component == 'all' || needs.resolve-env.outputs.deploy_component == 'backend'
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ needs.resolve-env.outputs.lower_repo }}/ai-tutor-service
+          tags: |
+            type=raw,value=${{ needs.resolve-env.outputs.image_tag }}
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ needs.resolve-env.outputs.target_environment == 'production' }}
+
+      - name: Build and Push Backend Container Image
+        if: needs.resolve-env.outputs.deploy_component == 'all' || needs.resolve-env.outputs.deploy_component == 'backend'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ai-tutor-service
+          file: ./ai-tutor-service/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- Frontend Container Image Metadata & Build ---
+      - name: Extract Docker Metadata for Frontend Application
+        id: meta-frontend
+        if: needs.resolve-env.outputs.deploy_component == 'all' || needs.resolve-env.outputs.deploy_component == 'frontend'
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ needs.resolve-env.outputs.lower_repo }}/ai-tutor-frontend
+          tags: |
+            type=raw,value=${{ needs.resolve-env.outputs.image_tag }}
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ needs.resolve-env.outputs.target_environment == 'production' }}
+
+      - name: Build and Push Frontend Container Image
+        if: needs.resolve-env.outputs.deploy_component == 'all' || needs.resolve-env.outputs.deploy_component == 'frontend'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ai-tutor-frontend
+          file: ./ai-tutor-frontend/Dockerfile
+          build-args: |
+            VITE_API_BASE_URL=/api/v1
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ===========================================================================
+  # 6. Production Remote Deployment (Rolling Update via SSH)
+  # ===========================================================================
+  deploy:
+    name: Deploy to Server Environment
+    runs-on: ubuntu-latest
+    needs: [resolve-env, build-and-push]
+    environment:
+      name: ${{ needs.resolve-env.outputs.target_environment }}
+      url: ${{ vars.APPLICATION_URL }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Remote Server via SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          IMAGE_BACKEND: ${{ env.REGISTRY }}/${{ needs.resolve-env.outputs.lower_repo }}/ai-tutor-service
+          IMAGE_FRONTEND: ${{ env.REGISTRY }}/${{ needs.resolve-env.outputs.lower_repo }}/ai-tutor-frontend
+          IMAGE_TAG: ${{ needs.resolve-env.outputs.image_tag }}
+          REGISTRY: ${{ env.REGISTRY }}
+          GH_ACTOR: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_ENV: ${{ needs.resolve-env.outputs.target_environment }}
+        run: |
+          if [ -z "$SSH_HOST" ] || [ -z "$SSH_KEY" ]; then
+            echo "ℹ️ SSH_HOST or SSH_PRIVATE_KEY secret is not configured for environment '${TARGET_ENV}'."
+            echo "ℹ️ Container images have been built and pushed to GHCR successfully."
+            echo "ℹ️ Skipping remote server deployment step."
+            exit 0
+          fi
+
+          TARGET_PORT="${SSH_PORT:-22}"
+          TARGET_PATH="${DEPLOY_PATH:-/opt/ai-tutor}"
+          TARGET_USER="${SSH_USER:-ubuntu}"
+
+          # Setup temporary SSH Key
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$TARGET_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          echo "==> Creating remote target directory: $TARGET_PATH"
+          ssh -i ~/.ssh/deploy_key -p "$TARGET_PORT" -o StrictHostKeyChecking=no "$TARGET_USER@$SSH_HOST" "mkdir -p $TARGET_PATH"
+
+          echo "==> Transferring docker-compose.prod.yml..."
+          scp -i ~/.ssh/deploy_key -P "$TARGET_PORT" -o StrictHostKeyChecking=no docker-compose.prod.yml "$TARGET_USER@$SSH_HOST:$TARGET_PATH/docker-compose.prod.yml"
+
+          echo "==> Pulling updated containers and executing rolling restart..."
+          ssh -i ~/.ssh/deploy_key -p "$TARGET_PORT" -o StrictHostKeyChecking=no "$TARGET_USER@$SSH_HOST" bash << EOF
+            set -e
+            cd "$TARGET_PATH"
+            echo "$GH_TOKEN" | docker login "$REGISTRY" -u "$GH_ACTOR" --password-stdin
+            export IMAGE_BACKEND="$IMAGE_BACKEND"
+            export IMAGE_FRONTEND="$IMAGE_FRONTEND"
+            export IMAGE_TAG="$IMAGE_TAG"
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker image prune -f
+          EOF
+
+          # Clean up SSH credentials
+          rm -f ~/.ssh/deploy_key
+          echo "✅ Remote deployment completed successfully."
+
+  # ===========================================================================
+  # 7. Automated Smoke Test & Health Check Gate
+  # ===========================================================================
+  health-check:
+    name: Post-Deployment Smoke Test
+    runs-on: ubuntu-latest
+    needs: [resolve-env, deploy]
+    if: needs.resolve-env.outputs.is_deployable == 'true'
+    steps:
+      - name: Verify Backend Actuator Health Endpoint
+        env:
+          HEALTHCHECK_URL: ${{ vars.BACKEND_HEALTHCHECK_URL }}
+          SERVER_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          TARGET_URL="${HEALTHCHECK_URL}"
+          if [ -z "$TARGET_URL" ]; then
+            if [ -n "$SERVER_HOST" ]; then
+              TARGET_URL="http://${SERVER_HOST}:8088/actuator/health"
+            else
+              echo "ℹ️ Neither BACKEND_HEALTHCHECK_URL nor SSH_HOST configured. Skipping endpoint probe."
+              exit 0
+            fi
+          fi
+
+          echo "Probing backend health at: $TARGET_URL"
+          MAX_RETRIES=15
+          RETRY_DELAY=6
+          SUCCESS=0
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i/$MAX_RETRIES: Checking service health..."
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$TARGET_URL" || echo "000")
+            if [ "$HTTP_STATUS" -eq 200 ]; then
+              echo "✅ Health check PASSED with HTTP 200 OK."
+              SUCCESS=1
+              break
+            else
+              echo "⏳ Received status $HTTP_STATUS, retrying in ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+            fi
+          done
+
+          if [ "$SUCCESS" -ne 1 ]; then
+            echo "❌ Health check FAILED after $MAX_RETRIES attempts."
+            exit 1
+          fi
+
+      - name: Verify Frontend Web Application Endpoint
+        env:
+          FRONTEND_URL: ${{ vars.FRONTEND_HEALTHCHECK_URL }}
+          SERVER_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          TARGET_URL="${FRONTEND_URL}"
+          if [ -z "$TARGET_URL" ]; then
+            if [ -n "$SERVER_HOST" ]; then
+              TARGET_URL="http://${SERVER_HOST}:3000/"
+            else
+              echo "ℹ️ Neither FRONTEND_HEALTHCHECK_URL nor SSH_HOST configured. Skipping frontend probe."
+              exit 0
+            fi
+          fi
+
+          echo "Probing frontend at: $TARGET_URL"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$TARGET_URL" || echo "000")
+          if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 304 ]; then
+            echo "✅ Frontend check PASSED with HTTP $HTTP_STATUS."
+          else
+            echo "⚠️ Frontend check returned status $HTTP_STATUS."
+          fi
+
+  # ===========================================================================
+  # 8. Enterprise Audit Summary & Notification
+  # ===========================================================================
+  audit-summary:
+    name: Deployment Audit & Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [resolve-env, ci-backend, ci-frontend, security-scan, build-and-push, deploy, health-check]
+    if: always()
+    steps:
+      - name: Generate Pipeline Markdown Summary
+        run: |
+          BACKEND_RES="${{ needs.ci-backend.result }}"
+          FRONTEND_RES="${{ needs.ci-frontend.result }}"
+          SECURITY_RES="${{ needs.security-scan.result }}"
+          BUILD_RES="${{ needs.build-and-push.result }}"
+          DEPLOY_RES="${{ needs.deploy.result }}"
+          HEALTH_RES="${{ needs.health-check.result }}"
+
+          if [ "$BACKEND_RES" = "success" ]; then BACKEND_TXT="✅ Pass"; elif [ "$BACKEND_RES" = "skipped" ]; then BACKEND_TXT="⏭️ Skipped"; else BACKEND_TXT="❌ Fail"; fi
+          if [ "$FRONTEND_RES" = "success" ]; then FRONTEND_TXT="✅ Pass"; elif [ "$FRONTEND_RES" = "skipped" ]; then FRONTEND_TXT="⏭️ Skipped"; else FRONTEND_TXT="❌ Fail"; fi
+          if [ "$SECURITY_RES" = "success" ]; then SECURITY_TXT="✅ Pass"; else SECURITY_TXT="⚠️ Completed"; fi
+          if [ "$BUILD_RES" = "success" ]; then BUILD_TXT="✅ Published"; elif [ "$BUILD_RES" = "skipped" ]; then BUILD_TXT="⏭️ Skipped"; else BUILD_TXT="❌ Fail"; fi
+          if [ "$DEPLOY_RES" = "success" ]; then DEPLOY_TXT="✅ Deployed"; elif [ "$DEPLOY_RES" = "skipped" ]; then DEPLOY_TXT="⏭️ Skipped"; else DEPLOY_TXT="❌ Fail"; fi
+          if [ "$HEALTH_RES" = "success" ]; then HEALTH_TXT="✅ Healthy"; elif [ "$HEALTH_RES" = "skipped" ]; then HEALTH_TXT="⏭️ Skipped"; else HEALTH_TXT="❌ Fail"; fi
+
+          echo "## 🚀 AI Tutor CI/CD Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|:---|:---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target Environment** | \`${{ needs.resolve-env.outputs.target_environment }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Trigger Event** | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered By** | \`@${{ github.actor }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch / Reference** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit SHA** | [\`${{ github.sha }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Image Tag Deployed** | \`${{ needs.resolve-env.outputs.image_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Pipeline Stage Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Result | Notes |" >> $GITHUB_STEP_SUMMARY
+          echo "|:---|:---:|:---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Backend CI** | $BACKEND_TXT | Unit tests, static checks |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Frontend CI** | $FRONTEND_TXT | Oxlint, TypeScript build |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Security Scan** | $SECURITY_TXT | Trivy vulnerability scan |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Container Build** | $BUILD_TXT | GHCR Multi-arch Buildx |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deploy (SSH)** | $DEPLOY_TXT | Docker Compose Rolling reload |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Smoke Test** | $HEALTH_TXT | Actuator HTTP 200 verification |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$HEALTH_RES" = "failure" ] || [ "$DEPLOY_RES" = "failure" ]; then
+            echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
+            echo "> Deployment encountered an issue. Inspect the workflow logs and execute rollback if necessary." >> $GITHUB_STEP_SUMMARY
+          fi

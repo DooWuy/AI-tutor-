@@ -1,7 +1,7 @@
 package com.vn.aitutor.config;
 
-import com.vn.aitutor.service.ISystemSettingsService;
-import com.vn.aitutor.service.ai.AiModelResolver;
+import com.vn.aitutor.service.system.ISystemSettingsService;
+import com.vn.aitutor.ai.resolver.AiModelResolver;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -64,7 +64,8 @@ public class DynamicGeminiChatLanguageModel implements ChatLanguageModel {
     private boolean isTransientOverload(Throwable t) {
         if (t == null || t.getMessage() == null) return false;
         String m = t.getMessage().toLowerCase();
-        return m.contains("503") || m.contains("unavailable") || m.contains("demand") || m.contains("overloaded");
+        return m.contains("503") || m.contains("unavailable") || m.contains("demand") || m.contains("overloaded")
+                || m.contains("429") || m.contains("quota") || m.contains("exhausted") || m.contains("rate limit");
     }
 
     private ChatLanguageModel createFallbackModel() {
@@ -112,7 +113,16 @@ public class DynamicGeminiChatLanguageModel implements ChatLanguageModel {
 
     @Override
     public String generate(String userMessage) {
-        return getDelegate().generate(userMessage);
+        try {
+            return getDelegate().generate(userMessage);
+        } catch (RuntimeException ex) {
+            if (isTransientOverload(ex) && !AiModelResolver.DEFAULT_GEMINI_MODEL.equals(cachedModel)) {
+                log.warn("Model '{}' is temporarily unavailable. Falling back to '{}'.",
+                        cachedModel, AiModelResolver.DEFAULT_GEMINI_MODEL);
+                return createFallbackModel().generate(userMessage);
+            }
+            throw ex;
+        }
     }
 
     @Override
@@ -122,7 +132,16 @@ public class DynamicGeminiChatLanguageModel implements ChatLanguageModel {
 
     @Override
     public ChatResponse chat(ChatRequest request) {
-        return getDelegate().chat(request);
+        try {
+            return getDelegate().chat(request);
+        } catch (RuntimeException ex) {
+            if (isTransientOverload(ex) && !AiModelResolver.DEFAULT_GEMINI_MODEL.equals(cachedModel)) {
+                log.warn("Model '{}' is temporarily unavailable. Falling back to '{}'.",
+                        cachedModel, AiModelResolver.DEFAULT_GEMINI_MODEL);
+                return createFallbackModel().chat(request);
+            }
+            throw ex;
+        }
     }
 
     @Override

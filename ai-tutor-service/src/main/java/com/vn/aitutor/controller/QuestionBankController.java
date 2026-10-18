@@ -1,18 +1,18 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.BulkDeleteQuestionsRequest;
-import com.vn.aitutor.dto.request.GenerateQuestionsRequest;
-import com.vn.aitutor.dto.request.QuestionUpsertRequest;
+import com.vn.aitutor.dto.request.quiz.BulkDeleteQuestionsRequest;
+import com.vn.aitutor.dto.request.quiz.GenerateQuestionsRequest;
+import com.vn.aitutor.dto.request.quiz.QuestionUpsertRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.QuestionBatchResponse;
-import com.vn.aitutor.dto.response.QuestionImportResponse;
-import com.vn.aitutor.dto.response.QuestionResponse;
-import com.vn.aitutor.dto.response.SkillResponse;
+import com.vn.aitutor.dto.response.quiz.QuestionBatchResponse;
+import com.vn.aitutor.dto.response.quiz.QuestionImportResponse;
+import com.vn.aitutor.dto.response.quiz.QuestionResponse;
+import com.vn.aitutor.dto.response.curriculum.SkillResponse;
 import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.quiz.QuestionBankWorkbook;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.GenerationJobService;
-import com.vn.aitutor.service.QuestionBankService;
+import com.vn.aitutor.service.job.GenerationJobService;
+import com.vn.aitutor.service.quiz.QuestionBankService;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;

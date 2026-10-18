@@ -1,0 +1,168 @@
+# =============================================================================
+# Production Docker Compose Configuration for AI Tutor
+# Used by GitHub Actions CI/CD Pipeline for Container Registry Deployments
+# =============================================================================
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ai-tutor-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-ai_tutor_prod}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - ai_tutor_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-ai_tutor_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: ai-tutor-rabbitmq
+    restart: always
+    command: sh -c "rabbitmq-plugins enable --offline rabbitmq_stomp rabbitmq_web_stomp && rabbitmq-server"
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+      - "${RABBITMQ_STOMP_PORT:-61613}:61613"
+      - "${RABBITMQ_WEB_STOMP_PORT:-15674}:15674"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: ai-tutor-redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - ai_tutor_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai-tutor-ollama
+    restart: always
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ./ollama_data:/root/.ollama
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  ai-tutor-service:
+    image: ${IMAGE_BACKEND:-ghcr.io/doowuy/ai-tutor-/ai-tutor-service}:${IMAGE_TAG:-latest}
+    container_name: ai-tutor-service
+    restart: always
+    ports:
+      - "${BACKEND_PORT:-8088}:8088"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      - DB_URL=jdbc:postgresql://postgres:5432/${DB_NAME:-ai_tutor_prod}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USERNAME=${RABBITMQ_USERNAME:-guest}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-guest}
+      - APP_FRONTEND_URL=${APP_FRONTEND_URL:-http://localhost:3000}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
+      - MAIL_HOST=${MAIL_HOST:-smtp.gmail.com}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_URL=${GEMINI_API_URL:-https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent}
+      - LLAMAPARSE_API_KEY=${LLAMAPARSE_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_API_URL=${OPENAI_API_URL:-}
+      - OLLAMA_BASE_URL=http://ollama:11434
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8088/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  ai-tutor-frontend:
+    image: ${IMAGE_FRONTEND:-ghcr.io/doowuy/ai-tutor-/ai-tutor-frontend}:${IMAGE_TAG:-latest}
+    container_name: ai-tutor-frontend
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      ai-tutor-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+volumes:
+  ai_tutor_pgdata:
+  ai_tutor_redisdata:

@@ -1,9 +1,9 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.ChatStreamRequest;
+import com.vn.aitutor.dto.request.chat.ChatStreamRequest;
 import com.vn.aitutor.exception.ResourceUnauthorizedException;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.IChatService;
+import com.vn.aitutor.service.chat.IChatService;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.UUID;

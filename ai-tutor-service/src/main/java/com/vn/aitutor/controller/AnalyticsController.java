@@ -1,7 +1,7 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.AlertSettingsRequest;
-import com.vn.aitutor.dto.request.ParentMessageSendRequest;
+import com.vn.aitutor.dto.request.analytics.AlertSettingsRequest;
+import com.vn.aitutor.dto.request.analytics.ParentMessageSendRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.analytics.AlertSettingsUpdateResponse;
 import com.vn.aitutor.dto.response.analytics.AlertSettingsView;
@@ -14,12 +14,12 @@ import com.vn.aitutor.dto.response.analytics.ParentMessageDraftResponse;
 import com.vn.aitutor.dto.response.analytics.ParentMessageSendResponse;
 import com.vn.aitutor.entity.enums.ReportPeriod;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.IAnalyticsService;
-import com.vn.aitutor.service.IAlertSettingsService;
-import com.vn.aitutor.service.IAtRiskService;
-import com.vn.aitutor.service.IKnowledgeGapService;
-import com.vn.aitutor.service.IParentMessageService;
-import com.vn.aitutor.service.IReportExportService;
+import com.vn.aitutor.service.analytics.IAnalyticsService;
+import com.vn.aitutor.service.analytics.IAlertSettingsService;
+import com.vn.aitutor.service.analytics.IAtRiskService;
+import com.vn.aitutor.service.analytics.IKnowledgeGapService;
+import com.vn.aitutor.service.analytics.IParentMessageService;
+import com.vn.aitutor.service.analytics.IReportExportService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.UUID;

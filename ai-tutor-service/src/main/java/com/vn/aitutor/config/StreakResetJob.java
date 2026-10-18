@@ -1,6 +1,6 @@
 package com.vn.aitutor.config;
 
-import com.vn.aitutor.service.StreakResetService;
+import com.vn.aitutor.service.gamification.StreakResetService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;

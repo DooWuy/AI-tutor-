@@ -2,8 +2,8 @@ package com.vn.aitutor.controller;
 
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.PageResponseDTO;
-import com.vn.aitutor.dto.response.SystemLogResponse;
-import com.vn.aitutor.service.ISystemLogService;
+import com.vn.aitutor.dto.response.system.SystemLogResponse;
+import com.vn.aitutor.service.system.ISystemLogService;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;

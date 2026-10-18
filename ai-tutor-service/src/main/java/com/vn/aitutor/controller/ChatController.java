@@ -1,9 +1,11 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.ChatRequest;
-import com.vn.aitutor.dto.request.ChatSessionUpdateRequest;
+import com.vn.aitutor.dto.request.chat.ChatRequest;
+import com.vn.aitutor.dto.request.chat.ChatSessionUpdateRequest;
+import com.vn.aitutor.dto.response.chat.ChatMessageResponse;
+import com.vn.aitutor.dto.response.chat.ChatSessionResponse;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.IChatService;
+import com.vn.aitutor.service.chat.IChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -37,7 +39,7 @@ public class ChatController {
         );
     }
     @GetMapping
-    public org.springframework.http.ResponseEntity<java.util.List<com.vn.aitutor.dto.response.ChatSessionResponse>> getChatSessions(
+    public org.springframework.http.ResponseEntity<java.util.List<ChatSessionResponse>> getChatSessions(
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
         return org.springframework.http.ResponseEntity.ok(
                 chatService.getChatSessions(userPrincipal.getUsers().getId())
@@ -45,7 +47,7 @@ public class ChatController {
     }
 
     @GetMapping("/{sessionId}/messages")
-    public org.springframework.http.ResponseEntity<java.util.List<com.vn.aitutor.dto.response.ChatMessageResponse>> getChatSessionMessages(
+    public org.springframework.http.ResponseEntity<java.util.List<ChatMessageResponse>> getChatSessionMessages(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable UUID sessionId) {
         return org.springframework.http.ResponseEntity.ok(
@@ -54,7 +56,7 @@ public class ChatController {
     }
 
     @PostMapping
-    public org.springframework.http.ResponseEntity<com.vn.aitutor.dto.response.ChatSessionResponse> createChatSession(
+    public org.springframework.http.ResponseEntity<ChatSessionResponse> createChatSession(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestParam(defaultValue = "Toán học") String subject) {
         return org.springframework.http.ResponseEntity.ok(
@@ -63,7 +65,7 @@ public class ChatController {
     }
 
     @PatchMapping("/{sessionId}")
-    public org.springframework.http.ResponseEntity<com.vn.aitutor.dto.response.ChatSessionResponse> renameChatSession(
+    public org.springframework.http.ResponseEntity<ChatSessionResponse> renameChatSession(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable UUID sessionId,
             @Valid @RequestBody ChatSessionUpdateRequest request) {

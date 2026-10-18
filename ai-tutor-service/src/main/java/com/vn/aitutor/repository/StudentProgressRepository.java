@@ -1,7 +1,7 @@
 package com.vn.aitutor.repository;
 
-import com.vn.aitutor.dto.response.StudentProgressResponse.RecentQuiz;
-import com.vn.aitutor.dto.response.StudentProgressResponse.SubjectStats;
+import com.vn.aitutor.dto.response.quiz.StudentProgressResponse.RecentQuiz;
+import com.vn.aitutor.dto.response.quiz.StudentProgressResponse.SubjectStats;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
