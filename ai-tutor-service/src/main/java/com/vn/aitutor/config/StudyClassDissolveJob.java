@@ -1,6 +1,6 @@
 package com.vn.aitutor.config;
 
-import com.vn.aitutor.service.StudyClassService;
+import com.vn.aitutor.service.classroom.StudyClassService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

@@ -4,7 +4,7 @@ import com.vn.aitutor.dto.request.StudyClassJoinRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.StudyClassJoinResponse;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.StudyClassService;
+import com.vn.aitutor.service.classroom.StudyClassService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

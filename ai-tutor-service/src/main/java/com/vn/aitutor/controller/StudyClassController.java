@@ -8,7 +8,7 @@ import com.vn.aitutor.dto.response.StudyClassListResponse;
 import com.vn.aitutor.dto.response.StudyClassResponse;
 import com.vn.aitutor.dto.response.StudyMemberResponse;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.StudyClassService;
+import com.vn.aitutor.service.classroom.StudyClassService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

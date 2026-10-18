@@ -1,4 +1,4 @@
-package com.vn.aitutor.service;
+package com.vn.aitutor.service.classroom;
 
 import com.vn.aitutor.dto.request.EnrollmentActionRequest;
 import com.vn.aitutor.dto.request.StudyClassCreateRequest;

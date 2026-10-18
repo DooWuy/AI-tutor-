@@ -1,4 +1,4 @@
-package com.vn.aitutor.service;
+package com.vn.aitutor.service.classroom;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
