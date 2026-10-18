@@ -1,8 +1,8 @@
 package com.vn.aitutor.controller;
 
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.StudentProgressResponse;
-import com.vn.aitutor.service.StudentProgressService;
+import com.vn.aitutor.dto.response.quiz.StudentProgressResponse;
+import com.vn.aitutor.service.quiz.StudentProgressService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;

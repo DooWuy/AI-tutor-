@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent 
 import { Link } from 'react-router-dom'
 import {
   changePassword,
+  sendChangePasswordOtp,
   updateMyStudentProfile,
   uploadMyAvatar,
 } from '../../../services/studentProfileApi'
@@ -34,6 +35,7 @@ type PasswordFieldErrors = {
   oldPassword?: string
   newPassword?: string
   confirmPassword?: string
+  otp?: string
 }
 
 function preferencesOf(profile: StudentProfile) {
@@ -60,13 +62,23 @@ export const ProfilePage = () => {
   const [notice, setNotice] = useState<string | null>(null)
 
   // Password state
-  const [password, setPassword] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' })
+  const [password, setPassword] = useState({ oldPassword: '', newPassword: '', confirmPassword: '', otp: '' })
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordNotice, setPasswordNotice] = useState<string | null>(null)
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [passwordFieldErrors, setPasswordFieldErrors] = useState<PasswordFieldErrors>({})
   const [visiblePasswords, setVisiblePasswords] = useState({ old: false, next: false, confirm: false })
+  const [otpSending, setOtpSending] = useState(false)
+  const [otpCountdown, setOtpCountdown] = useState(0)
+  const [otpSentNotice, setOtpSentNotice] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [otpCountdown])
 
   useEffect(() => {
     if (sharedProfile.data) {
@@ -114,6 +126,12 @@ export const ProfilePage = () => {
     else if (confirmPassword !== confirmPassword.trim())
       errors.confirmPassword = 'Xác nhận mật khẩu không được có khoảng trắng ở đầu hoặc cuối.'
     else if (newPassword !== confirmPassword) errors.confirmPassword = 'Mật khẩu không khớp. Hãy nhập lại.'
+
+    if (!password.otp.trim()) {
+      errors.otp = 'Vui lòng nhập mã xác nhận OTP gồm 6 chữ số gửi về email.'
+    } else if (!/^\d{6}$/.test(password.otp.trim())) {
+      errors.otp = 'Mã xác nhận OTP phải gồm đúng 6 chữ số.'
+    }
 
     return errors
   }
@@ -184,6 +202,21 @@ export const ProfilePage = () => {
     }
   }
 
+  async function handleSendOtp() {
+    setPasswordError(null)
+    setOtpSentNotice(null)
+    setOtpSending(true)
+    try {
+      await sendChangePasswordOtp()
+      setOtpSentNotice(`Mã xác nhận 6 số đã được gửi tới email ${profile.email || 'của bạn'}. Vui lòng kiểm tra hộp thư.`)
+      setOtpCountdown(60)
+    } catch (err: unknown) {
+      setPasswordError(err instanceof Error ? err.message : 'Không thể gửi mã xác nhận OTP. Vui lòng thử lại.')
+    } finally {
+      setOtpSending(false)
+    }
+  }
+
   async function submitPassword(event: FormEvent) {
     event.preventDefault()
     setPasswordError(null)
@@ -196,9 +229,10 @@ export const ProfilePage = () => {
     }
     setPasswordSaving(true)
     try {
-      await changePassword(password.oldPassword, password.newPassword, password.confirmPassword)
-      setPassword({ oldPassword: '', newPassword: '', confirmPassword: '' })
+      await changePassword(password.oldPassword, password.newPassword, password.confirmPassword, password.otp.trim())
+      setPassword({ oldPassword: '', newPassword: '', confirmPassword: '', otp: '' })
       setPasswordFieldErrors({})
+      setOtpSentNotice(null)
       setPasswordNotice('Mật khẩu của bạn đã được thay đổi thành công.')
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Không thể đổi mật khẩu.'
@@ -208,6 +242,8 @@ export const ProfilePage = () => {
         setPasswordFieldErrors({ confirmPassword: message })
       } else if (message.toLowerCase().includes('mật khẩu mới')) {
         setPasswordFieldErrors({ newPassword: message })
+      } else if (message.toLowerCase().includes('otp') || message.toLowerCase().includes('mã')) {
+        setPasswordFieldErrors({ otp: message })
       }
       setPasswordError(message)
     } finally {
@@ -845,6 +881,55 @@ export const ProfilePage = () => {
                   {passwordFieldErrors.confirmPassword && (
                     <span className="mt-1 block text-xs text-error font-medium">
                       {passwordFieldErrors.confirmPassword}
+                    </span>
+                  )}
+                </div>
+
+                {/* Email OTP Verification */}
+                <div className="p-3.5 rounded-xl bg-surface-container-low/70 border border-outline-variant/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+                      Mã xác nhận OTP (gửi qua email)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={otpSending || otpCountdown > 0}
+                      className="text-xs font-semibold text-primary hover:underline disabled:text-on-surface-variant/50 disabled:no-underline cursor-pointer flex items-center gap-1"
+                    >
+                      {otpSending && (
+                        <span className="material-symbols-outlined animate-spin text-[14px]">
+                          progress_activity
+                        </span>
+                      )}
+                      <span>
+                        {otpCountdown > 0 ? `Gửi lại sau (${otpCountdown}s)` : 'Gửi mã xác nhận'}
+                      </span>
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      className={`${styles.inputClass} font-mono tracking-widest text-base ${
+                        passwordFieldErrors.otp ? 'border-error ring-1 ring-error' : ''
+                      }`}
+                      type="text"
+                      maxLength={6}
+                      value={password.otp}
+                      onChange={(e) => updatePasswordField('otp', e.target.value.replace(/\D/g, ''))}
+                      placeholder="6 chữ số (VD: 123456)"
+                      required
+                    />
+                  </div>
+                  {otpSentNotice && (
+                    <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[15px]">mark_email_read</span>
+                      {otpSentNotice}
+                    </p>
+                  )}
+                  {passwordFieldErrors.otp && (
+                    <span className="block text-xs text-error font-medium">
+                      {passwordFieldErrors.otp}
                     </span>
                   )}
                 </div>

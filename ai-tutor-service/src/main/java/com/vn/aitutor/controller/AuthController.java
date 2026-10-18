@@ -1,10 +1,11 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.LoginRequest;
-import com.vn.aitutor.dto.request.RegisterRequest;
+import com.vn.aitutor.dto.request.user.LoginRequest;
+import com.vn.aitutor.dto.request.user.RegisterRequest;
+import com.vn.aitutor.dto.request.user.SetupPasswordRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.AuthResponse;
-import com.vn.aitutor.service.IAuthService;
+import com.vn.aitutor.dto.response.user.AuthResponse;
+import com.vn.aitutor.service.user.IAuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -45,7 +46,7 @@ public class AuthController {
     }
 
     @PostMapping("/setup-password")
-    public ResponseEntity<ApiResponse<String>> setupPassword(@Valid @RequestBody com.vn.aitutor.dto.request.SetupPasswordRequest request) {
+    public ResponseEntity<ApiResponse<String>> setupPassword(@Valid @RequestBody SetupPasswordRequest request) {
         ApiResponse<String> apiResponse = authService.setupPassword(request);
         return ResponseEntity.ok(apiResponse);
     }

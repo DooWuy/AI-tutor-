@@ -1,12 +1,13 @@
 package com.vn.aitutor.controller;
 
 import com.vn.aitutor.dto.response.ApiResponse;
+import com.vn.aitutor.exception.IngestionException;
 import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.exception.ResourceForbiddenException;
 import com.vn.aitutor.exception.ResourceNotFoundException;
 import com.vn.aitutor.exception.ServiceUnavailableException;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.IDocumentIngestionService;
+import com.vn.aitutor.service.curriculum.IDocumentIngestionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -49,7 +50,7 @@ public class AdminDocumentController {
                     .build());
             
         } catch (ResourceBadRequestException | ResourceNotFoundException | ResourceForbiddenException
-                | ServiceUnavailableException e) {
+                | ServiceUnavailableException | IngestionException e) {
             throw e;
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.<Void>builder()

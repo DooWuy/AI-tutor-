@@ -1,7 +1,7 @@
 package com.vn.aitutor.config;
 
 import com.vn.aitutor.repository.QuizAttemptDraftRepository;
-import com.vn.aitutor.service.QuizSubmissionService;
+import com.vn.aitutor.service.quiz.QuizSubmissionService;
 import java.time.Clock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

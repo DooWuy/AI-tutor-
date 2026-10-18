@@ -15,13 +15,19 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class UserDetailServiceCustom implements UserDetailsService {
     private final UserRepository userRepository;
+    private final UserPrincipalCache userPrincipalCache;
 
     @Override
     public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+        UserDetails cached = userPrincipalCache.get(identifier);
+        if (cached != null) {
+            return cached;
+        }
+
         User users = userRepository.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue(identifier)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy tên người dùng hoặc email: " + identifier));
 
-        return UserPrincipal.builder()
+        UserPrincipal principal = UserPrincipal.builder()
                 .users(users)
                 .authorities(
                         users.getRole() != null
@@ -29,5 +35,15 @@ public class UserDetailServiceCustom implements UserDetailsService {
                                 : Collections.emptyList()
                 )
                 .build();
+
+        userPrincipalCache.put(identifier, principal);
+        if (users.getUsername() != null && !users.getUsername().equalsIgnoreCase(identifier)) {
+            userPrincipalCache.put(users.getUsername(), principal);
+        }
+        if (users.getEmail() != null && !users.getEmail().equalsIgnoreCase(identifier)) {
+            userPrincipalCache.put(users.getEmail(), principal);
+        }
+
+        return principal;
     }
 }

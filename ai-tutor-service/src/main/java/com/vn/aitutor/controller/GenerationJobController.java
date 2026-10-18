@@ -1,11 +1,11 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.GenerateQuestionsRequest;
-import com.vn.aitutor.dto.request.QuizGenerateRequest;
+import com.vn.aitutor.dto.request.quiz.GenerateQuestionsRequest;
+import com.vn.aitutor.dto.request.quiz.QuizGenerateRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.GenerationJobResponse;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.GenerationJobService;
+import com.vn.aitutor.service.job.GenerationJobService;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

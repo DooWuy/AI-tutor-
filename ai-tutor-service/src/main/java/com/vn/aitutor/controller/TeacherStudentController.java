@@ -2,10 +2,10 @@ package com.vn.aitutor.controller;
 
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.PageResponseDTO;
-import com.vn.aitutor.dto.response.StudentAdminDetailResponse;
-import com.vn.aitutor.dto.response.StudentAdminListItemResponse;
+import com.vn.aitutor.dto.response.user.StudentAdminDetailResponse;
+import com.vn.aitutor.dto.response.user.StudentAdminListItemResponse;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.ITeacherStudentService;
+import com.vn.aitutor.service.classroom.ITeacherStudentService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;

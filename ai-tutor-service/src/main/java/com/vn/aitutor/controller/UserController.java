@@ -1,14 +1,14 @@
 package com.vn.aitutor.controller;
 
 import com.vn.aitutor.entity.enums.Role;
-import com.vn.aitutor.dto.request.ChangePasswordRequest;
-import com.vn.aitutor.dto.request.UpdateRoleRequest;
-import com.vn.aitutor.dto.request.UserCreateRequest;
-import com.vn.aitutor.dto.request.UserUpdateRequest;
+import com.vn.aitutor.dto.request.user.ChangePasswordRequest;
+import com.vn.aitutor.dto.request.user.UpdateRoleRequest;
+import com.vn.aitutor.dto.request.user.UserCreateRequest;
+import com.vn.aitutor.dto.request.user.UserUpdateRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.PageResponseDTO;
-import com.vn.aitutor.dto.response.UserResponse;
-import com.vn.aitutor.service.IUserService;
+import com.vn.aitutor.dto.response.user.UserResponse;
+import com.vn.aitutor.service.user.IUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -78,6 +78,11 @@ public class UserController {
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<String>> deleteProfile(@PathVariable UUID id) {
         return ResponseEntity.ok(userService.deleteProfile(id));
+    }
+
+    @PostMapping("/change-password/send-otp")
+    public ResponseEntity<ApiResponse<String>> sendChangePasswordOtp() {
+        return ResponseEntity.ok(userService.sendChangePasswordOtp());
     }
 
     @PostMapping("/change-password")

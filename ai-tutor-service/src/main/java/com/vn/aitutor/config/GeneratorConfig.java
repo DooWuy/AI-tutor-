@@ -1,8 +1,8 @@
 package com.vn.aitutor.config;
 
-import com.vn.aitutor.agent.QuestionGeneratorAgent;
-import com.vn.aitutor.service.ISystemSettingsService;
-import com.vn.aitutor.service.ai.GeminiQuestionGeneratorAgent;
+import com.vn.aitutor.ai.agent.GeminiQuestionGeneratorAgent;
+import com.vn.aitutor.ai.agent.QuestionGeneratorAgent;
+import com.vn.aitutor.service.system.ISystemSettingsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

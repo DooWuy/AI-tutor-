@@ -1,6 +1,6 @@
 package com.vn.aitutor.config;
 
-import com.vn.aitutor.service.GenerationJobStore;
+import com.vn.aitutor.service.job.GenerationJobStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;

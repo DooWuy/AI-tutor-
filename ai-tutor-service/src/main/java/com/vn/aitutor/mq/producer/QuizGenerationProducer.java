@@ -1,7 +1,7 @@
 package com.vn.aitutor.mq.producer;
 
 import com.vn.aitutor.config.RabbitMQConfig;
-import com.vn.aitutor.dto.request.QuizGenerationMessage;
+import com.vn.aitutor.dto.request.quiz.QuizGenerationMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

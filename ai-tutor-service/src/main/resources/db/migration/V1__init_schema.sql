@@ -4,6 +4,7 @@
 
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- -----------------------------------------------------------------------------
 -- 1. Users & Authentication
@@ -45,6 +46,11 @@ INSERT INTO users (
     NOW(),
     NOW()
 ) ON CONFLICT (id) DO NOTHING;
+
+CREATE INDEX idx_users_full_name_trgm ON users USING gin (full_name gin_trgm_ops);
+CREATE INDEX idx_users_email_trgm ON users USING gin (email gin_trgm_ops);
+CREATE INDEX idx_users_username_trgm ON users USING gin (username gin_trgm_ops);
+CREATE INDEX idx_users_role_active ON users (role, is_deleted, is_active);
 
 CREATE TABLE teachers (
     id UUID PRIMARY KEY,
@@ -115,6 +121,13 @@ CREATE TABLE students (
 );
 
 CREATE INDEX idx_students_class_id ON students (class_id);
+CREATE INDEX idx_students_total_xp ON students (total_xp DESC);
+CREATE INDEX idx_students_streak_reset ON students (last_activity_date, id) WHERE current_streak > 0;
+CREATE INDEX idx_students_class_xp ON students (class_id, total_xp DESC, id);
+CREATE INDEX idx_students_student_code_trgm ON students USING gin (student_code gin_trgm_ops);
+CREATE INDEX idx_students_school_name_trgm ON students USING gin (school_name gin_trgm_ops);
+CREATE INDEX idx_students_grade_level ON students (grade_level);
+CREATE INDEX idx_students_user_class ON students (user_id, class_id);
 
 CREATE TABLE password_reset_tokens (
     id UUID PRIMARY KEY,
@@ -345,6 +358,8 @@ CREATE TABLE quizzes (
 CREATE INDEX idx_quizzes_status ON quizzes (status);
 CREATE INDEX idx_quizzes_created_by ON quizzes (created_by_id);
 CREATE INDEX idx_quizzes_lesson ON quizzes (lesson_id);
+CREATE INDEX idx_quizzes_status_grade ON quizzes (status, grade_level);
+CREATE INDEX idx_quizzes_subject_grade ON quizzes (subject, grade_level, status);
 
 -- Add foreign key constraint for ai_generation_jobs referencing quizzes
 ALTER TABLE ai_generation_jobs
@@ -353,6 +368,21 @@ CREATE UNIQUE INDEX uk_ai_jobs_quiz_running
     ON ai_generation_jobs (requested_by_id, quiz_id)
     WHERE kind = 'QUIZ' AND status = 'RUNNING' AND quiz_id IS NOT NULL;
 CREATE INDEX idx_ai_jobs_quiz_user ON ai_generation_jobs (quiz_id, requested_by_id, created_at DESC);
+
+CREATE TABLE quiz_class_assignments (
+    id UUID PRIMARY KEY,
+    quiz_id UUID NOT NULL,
+    class_id UUID NOT NULL,
+    assigned_by_id UUID NOT NULL,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_qca_quiz FOREIGN KEY (quiz_id) REFERENCES quizzes (id) ON DELETE CASCADE,
+    CONSTRAINT fk_qca_class FOREIGN KEY (class_id) REFERENCES school_classes (id) ON DELETE CASCADE,
+    CONSTRAINT fk_qca_user FOREIGN KEY (assigned_by_id) REFERENCES users (id) ON DELETE RESTRICT,
+    CONSTRAINT uk_qca_quiz_class UNIQUE (quiz_id, class_id)
+);
+
+CREATE INDEX idx_qca_class_id ON quiz_class_assignments (class_id);
+CREATE INDEX idx_qca_quiz_id ON quiz_class_assignments (quiz_id);
 
 CREATE TABLE quiz_questions (
     id UUID PRIMARY KEY,
@@ -410,11 +440,20 @@ CREATE TABLE quiz_attempts (
     score DOUBLE PRECISION,
     correct_count INTEGER,
     xp_earned INTEGER NOT NULL DEFAULT 0,
+    xp_award_status VARCHAR(32) NOT NULL DEFAULT 'LEGACY_UNKNOWN',
+    daily_xp_earned INTEGER,
+    daily_xp_cap INTEGER,
     duration_seconds INTEGER,
     is_visible BOOLEAN NOT NULL DEFAULT TRUE,
     submitted_at TIMESTAMPTZ,
     CONSTRAINT fk_quiz_attempts_quiz FOREIGN KEY (quiz_id) REFERENCES quizzes (id) ON DELETE RESTRICT,
-    CONSTRAINT fk_quiz_attempts_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE
+    CONSTRAINT fk_quiz_attempts_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
+    CONSTRAINT ck_quiz_attempts_xp_award_status CHECK (xp_award_status IN (
+        'AWARDED', 'PARTIALLY_CAPPED', 'DAILY_CAP_REACHED',
+        'ALREADY_REWARDED', 'NO_XP_EARNED', 'LEGACY_UNKNOWN'
+    )),
+    CONSTRAINT ck_quiz_attempts_daily_xp_earned CHECK (daily_xp_earned IS NULL OR daily_xp_earned >= 0),
+    CONSTRAINT ck_quiz_attempts_daily_xp_cap CHECK (daily_xp_cap IS NULL OR daily_xp_cap > 0)
 );
 
 CREATE INDEX idx_quiz_attempts_quiz_id ON quiz_attempts (quiz_id);
@@ -423,6 +462,8 @@ CREATE INDEX idx_quiz_attempts_submitted_at ON quiz_attempts (submitted_at);
 CREATE UNIQUE INDEX uk_attempt_source_draft ON quiz_attempts(source_draft_id);
 CREATE UNIQUE INDEX uk_quiz_first_reward ON quiz_attempts(student_id, quiz_id)
     WHERE xp_earned > 0 AND source_draft_id IS NOT NULL;
+CREATE INDEX idx_quiz_attempts_student_submitted ON quiz_attempts (student_id, submitted_at DESC, id DESC);
+CREATE INDEX idx_quiz_attempts_student_quiz ON quiz_attempts (student_id, quiz_id, submitted_at DESC);
 
 CREATE TABLE quiz_attempt_answers (
     id UUID PRIMARY KEY,
@@ -437,6 +478,32 @@ CREATE TABLE quiz_attempt_answers (
 
 CREATE INDEX idx_quiz_attempt_answers_attempt_id ON quiz_attempt_answers (attempt_id);
 CREATE INDEX idx_quiz_attempt_answers_question_id ON quiz_attempt_answers (question_id);
+
+CREATE TABLE xp_transactions (
+    id UUID PRIMARY KEY,
+    student_id UUID NOT NULL,
+    source_type VARCHAR(32) NOT NULL,
+    source_id UUID NOT NULL,
+    reference_id UUID,
+    amount INTEGER NOT NULL,
+    balance_after INTEGER NOT NULL,
+    occurred_at TIMESTAMPTZ NOT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    CONSTRAINT fk_xp_transactions_student
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_xp_transactions_attempt
+        FOREIGN KEY (reference_id) REFERENCES quiz_attempts(id) ON DELETE RESTRICT,
+    CONSTRAINT uk_xp_transactions_source UNIQUE (student_id, source_type, source_id),
+    CONSTRAINT ck_xp_transactions_source_type CHECK (source_type IN (
+        'QUIZ_FIRST_COMPLETION', 'LEGACY_QUIZ_ATTEMPT'
+    )),
+    CONSTRAINT ck_xp_transactions_amount CHECK (amount > 0),
+    CONSTRAINT ck_xp_transactions_balance CHECK (balance_after >= amount)
+);
+
+CREATE INDEX idx_xp_transactions_student_occurred ON xp_transactions(student_id, occurred_at DESC);
+CREATE INDEX idx_xp_transactions_occurred ON xp_transactions(occurred_at);
+CREATE INDEX idx_xp_transactions_student_ranking ON xp_transactions(student_id) INCLUDE (amount, balance_after, occurred_at);
 
 -- -----------------------------------------------------------------------------
 -- 6. Communication, Calendar, Schedules & Notifications
@@ -470,6 +537,7 @@ CREATE TABLE chat_messages (
 );
 
 CREATE INDEX idx_chat_messages_session_id ON chat_messages (chat_session_id);
+CREATE INDEX idx_chat_messages_session_created ON chat_messages (chat_session_id, created_at ASC);
 
 CREATE TABLE calendar_events (
     id UUID PRIMARY KEY,
@@ -531,6 +599,8 @@ CREATE TABLE notifications (
 );
 
 CREATE INDEX idx_notifications_user_id ON notifications (user_id);
+CREATE INDEX idx_notifications_user_created ON notifications (user_id, created_at DESC);
+CREATE INDEX idx_notifications_user_unread ON notifications (user_id) WHERE is_read = false;
 
 CREATE TABLE parent_alert_messages (
     id UUID PRIMARY KEY,
@@ -664,5 +734,10 @@ CREATE TRIGGER trg_chat_messages_immutable
 
 CREATE TRIGGER trg_parent_alert_messages_immutable
     BEFORE UPDATE OR DELETE ON parent_alert_messages
+    FOR EACH ROW
+    EXECUTE FUNCTION reject_history_mutation();
+
+CREATE TRIGGER trg_xp_transactions_immutable
+    BEFORE UPDATE OR DELETE ON xp_transactions
     FOR EACH ROW
     EXECUTE FUNCTION reject_history_mutation();

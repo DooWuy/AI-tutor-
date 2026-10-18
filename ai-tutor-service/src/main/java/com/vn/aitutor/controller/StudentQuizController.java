@@ -1,14 +1,18 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.response.StudentQuizDto;
-import com.vn.aitutor.dto.request.StudentQuizGenerateRequest;
+import com.vn.aitutor.dto.response.quiz.StudentQuizDto;
+import com.vn.aitutor.dto.response.quiz.QuizContentResponse;
+import com.vn.aitutor.dto.request.quiz.StudentQuizGenerateRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.service.StudentQuizService;
+import com.vn.aitutor.service.quiz.StudentQuizService;
+import com.vn.aitutor.service.quiz.QuizSubmissionService;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,13 +25,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class StudentQuizController {
 
     private final StudentQuizService studentQuizService;
-    private final com.vn.aitutor.service.QuizSubmissionService submissions;
+    private final QuizSubmissionService submissions;
 
     @GetMapping("/{quizId}")
     @PreAuthorize("hasRole('STUDENT')")
-    public ApiResponse<com.vn.aitutor.dto.response.QuizContentResponse> content(
-            @org.springframework.web.bind.annotation.PathVariable java.util.UUID quizId) {
-        return ApiResponse.<com.vn.aitutor.dto.response.QuizContentResponse>builder()
+    public ApiResponse<QuizContentResponse> content(
+            @PathVariable UUID quizId) {
+        return ApiResponse.<QuizContentResponse>builder()
                 .success(true).data(submissions.content(quizId)).build();
     }
 
