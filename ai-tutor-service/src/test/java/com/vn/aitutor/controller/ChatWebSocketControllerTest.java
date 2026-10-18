@@ -3,11 +3,11 @@ package com.vn.aitutor.controller;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 
-import com.vn.aitutor.dto.request.ChatStreamRequest;
+import com.vn.aitutor.dto.request.chat.ChatStreamRequest;
 import com.vn.aitutor.entity.User;
 import com.vn.aitutor.exception.ResourceUnauthorizedException;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.IChatService;
+import com.vn.aitutor.service.chat.IChatService;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

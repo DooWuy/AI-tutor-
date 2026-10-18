@@ -1,7 +1,7 @@
 package com.vn.aitutor.quiz;
 
-import com.vn.aitutor.dto.request.QuestionChoiceRequest;
-import com.vn.aitutor.dto.request.QuestionUpsertRequest;
+import com.vn.aitutor.dto.request.quiz.QuestionChoiceRequest;
+import com.vn.aitutor.dto.request.quiz.QuestionUpsertRequest;
 import com.vn.aitutor.exception.ResourceBadRequestException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

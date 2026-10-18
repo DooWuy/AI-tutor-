@@ -2,8 +2,8 @@ package com.vn.aitutor.listener;
 
 import com.vn.aitutor.config.RabbitMQConfig;
 import com.vn.aitutor.dto.message.DocumentIngestionMessage;
-import com.vn.aitutor.service.DocumentIngestionProcessor;
-import com.vn.aitutor.service.DocumentStatusService;
+import com.vn.aitutor.service.curriculum.DocumentIngestionProcessor;
+import com.vn.aitutor.service.curriculum.DocumentStatusService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

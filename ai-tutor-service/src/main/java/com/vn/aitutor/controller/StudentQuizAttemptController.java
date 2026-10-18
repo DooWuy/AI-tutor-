@@ -1,12 +1,13 @@
 package com.vn.aitutor.controller;
 
+import com.vn.aitutor.dto.request.quiz.QuizDraftRequest;
+import com.vn.aitutor.dto.request.quiz.QuizSubmitRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.QuizAttemptHistoryResponse;
-import com.vn.aitutor.service.IStudentQuizAttemptService;
-import com.vn.aitutor.service.QuizSubmissionService;
-import com.vn.aitutor.dto.request.*;
-import com.vn.aitutor.dto.response.QuizDraftResponse;
-import com.vn.aitutor.dto.response.QuizAttemptDetailResponse;
+import com.vn.aitutor.dto.response.quiz.QuizAttemptDetailResponse;
+import com.vn.aitutor.dto.response.quiz.QuizAttemptHistoryResponse;
+import com.vn.aitutor.dto.response.quiz.QuizDraftResponse;
+import com.vn.aitutor.service.quiz.IStudentQuizAttemptService;
+import com.vn.aitutor.service.quiz.QuizSubmissionService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -70,9 +71,9 @@ public class StudentQuizAttemptController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('STUDENT')")
-    public ResponseEntity<ApiResponse<com.vn.aitutor.dto.response.QuizAttemptDetailResponse>> getAttemptDetail(@PathVariable UUID id) {
-        com.vn.aitutor.dto.response.QuizAttemptDetailResponse data = studentQuizAttemptService.getAttemptDetail(id);
-        return ResponseEntity.ok(ApiResponse.<com.vn.aitutor.dto.response.QuizAttemptDetailResponse>builder()
+    public ResponseEntity<ApiResponse<QuizAttemptDetailResponse>> getAttemptDetail(@PathVariable UUID id) {
+        QuizAttemptDetailResponse data = studentQuizAttemptService.getAttemptDetail(id);
+        return ResponseEntity.ok(ApiResponse.<QuizAttemptDetailResponse>builder()
                 .success(true)
                 .message("Fetched quiz attempt detail successfully")
                 .data(data)

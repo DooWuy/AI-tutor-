@@ -1,6 +1,6 @@
 package com.vn.aitutor.dto.message;
 
-import com.vn.aitutor.dto.request.ExtractStructureRequest;
+import com.vn.aitutor.dto.request.curriculum.ExtractStructureRequest;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;

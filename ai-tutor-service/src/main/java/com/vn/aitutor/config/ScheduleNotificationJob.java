@@ -4,7 +4,7 @@ import com.vn.aitutor.entity.Notification;
 import com.vn.aitutor.entity.ScheduleSlot;
 import com.vn.aitutor.repository.NotificationRepository;
 import com.vn.aitutor.repository.ScheduleSlotRepository;
-import com.vn.aitutor.service.IMailService;
+import com.vn.aitutor.service.system.IMailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;

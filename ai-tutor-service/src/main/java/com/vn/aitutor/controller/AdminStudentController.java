@@ -1,20 +1,25 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.StudentAdminCreateRequest;
-import com.vn.aitutor.dto.request.StudentAdminUpdateRequest;
+import com.vn.aitutor.dto.request.user.StudentAdminCreateRequest;
+import com.vn.aitutor.dto.request.user.StudentAdminUpdateRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.PageResponseDTO;
-import com.vn.aitutor.dto.response.StudentAdminDetailResponse;
-import com.vn.aitutor.dto.response.StudentAdminListItemResponse;
-import com.vn.aitutor.dto.response.StudentStatusUpdateResponse;
+import com.vn.aitutor.dto.response.user.StudentAdminDetailResponse;
+import com.vn.aitutor.dto.response.user.StudentAdminListItemResponse;
+import com.vn.aitutor.dto.response.user.StudentImportResponse;
+import com.vn.aitutor.dto.response.user.StudentStatusUpdateResponse;
 import com.vn.aitutor.exception.ResourceBadRequestException;
-import com.vn.aitutor.service.IAdminStudentService;
+import com.vn.aitutor.service.user.IAdminStudentService;
+import com.vn.aitutor.service.workbook.StudentWorkbook;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/admin/students")
@@ -84,5 +90,28 @@ public class AdminStudentController {
     @DeleteMapping("/{studentId}")
     public ResponseEntity<ApiResponse<String>> softDelete(@PathVariable UUID studentId) {
         return ResponseEntity.ok(adminStudentService.softDeleteStudent(studentId));
+    }
+
+    @GetMapping("/import-template.xlsx")
+    public ResponseEntity<byte[]> downloadTemplate() {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"mau-nhap-hoc-sinh.xlsx\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(StudentWorkbook.template());
+    }
+
+    @PostMapping(value = "/import-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<StudentImportResponse>> importExcel(
+            @RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ResourceBadRequestException("Vui lòng tải lên file Excel");
+        }
+        byte[] content;
+        try {
+            content = file.getBytes();
+        } catch (IOException ex) {
+            throw new ResourceBadRequestException("Không đọc được file Excel tải lên");
+        }
+        return ResponseEntity.ok(adminStudentService.importStudentsFromExcel(content));
     }
 }

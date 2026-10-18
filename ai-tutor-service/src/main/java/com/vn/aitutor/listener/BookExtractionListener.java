@@ -2,8 +2,8 @@ package com.vn.aitutor.listener;
 
 import com.vn.aitutor.config.RabbitMQConfig;
 import com.vn.aitutor.dto.message.BookExtractionMessage;
-import com.vn.aitutor.service.BookExtractionService;
-import com.vn.aitutor.service.ICloudinaryService;
+import com.vn.aitutor.service.curriculum.BookExtractionService;
+import com.vn.aitutor.service.system.ICloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;

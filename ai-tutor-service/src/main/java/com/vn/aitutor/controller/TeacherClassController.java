@@ -2,11 +2,11 @@ package com.vn.aitutor.controller;
 
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.PageResponseDTO;
-import com.vn.aitutor.dto.response.StudentAdminListItemResponse;
-import com.vn.aitutor.dto.response.TeacherClassQuizResponse;
-import com.vn.aitutor.dto.response.TeacherClassResponse;
+import com.vn.aitutor.dto.response.user.StudentAdminListItemResponse;
+import com.vn.aitutor.dto.response.classroom.TeacherClassQuizResponse;
+import com.vn.aitutor.dto.response.classroom.TeacherClassResponse;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.TeacherClassService;
+import com.vn.aitutor.service.classroom.TeacherClassService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

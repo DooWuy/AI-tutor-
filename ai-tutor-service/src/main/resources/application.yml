@@ -10,6 +10,9 @@ spring:
     validate-on-migrate: false
   jpa:
     open-in-view: false
+    properties:
+      hibernate:
+        default_batch_fetch_size: 50
   servlet:
     multipart:
       max-file-size: 100MB

@@ -1,9 +1,9 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.SystemSettingsUpdateRequest;
+import com.vn.aitutor.dto.request.system.SystemSettingsUpdateRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.SystemSettingResponse;
-import com.vn.aitutor.service.ISystemSettingsService;
+import com.vn.aitutor.dto.response.system.SystemSettingResponse;
+import com.vn.aitutor.service.system.ISystemSettingsService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;

@@ -1,10 +1,10 @@
 package com.vn.aitutor.controller;
 
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.StudentProfileResponse;
-import com.vn.aitutor.dto.request.StudentProfileUpdateRequest;
+import com.vn.aitutor.dto.response.user.StudentProfileResponse;
+import com.vn.aitutor.dto.request.user.StudentProfileUpdateRequest;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.IStudentProfileService;
+import com.vn.aitutor.service.user.IStudentProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

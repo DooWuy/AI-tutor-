@@ -1,9 +1,9 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.ClassAssignmentRequest;
+import com.vn.aitutor.dto.request.classroom.ClassAssignmentRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.analytics.ClassAssignmentResponse;
-import com.vn.aitutor.service.ISchoolClassService;
+import com.vn.aitutor.service.classroom.ISchoolClassService;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

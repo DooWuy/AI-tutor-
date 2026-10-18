@@ -1,12 +1,12 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.ScheduleCreateRequest;
+import com.vn.aitutor.dto.request.classroom.ScheduleCreateRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.OcrExtractionResponse;
-import com.vn.aitutor.dto.response.ScheduleResponse;
-import com.vn.aitutor.dto.response.ScheduleSlotDto;
+import com.vn.aitutor.dto.response.classroom.OcrExtractionResponse;
+import com.vn.aitutor.dto.response.classroom.ScheduleResponse;
+import com.vn.aitutor.dto.response.classroom.ScheduleSlotDto;
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.IScheduleService;
+import com.vn.aitutor.service.classroom.IScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

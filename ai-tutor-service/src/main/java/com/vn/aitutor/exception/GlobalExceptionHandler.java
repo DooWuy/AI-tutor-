@@ -1,8 +1,10 @@
 package com.vn.aitutor.exception;
 
 import com.vn.aitutor.dto.response.ApiResponse;
+import com.vn.aitutor.service.system.ISystemLogService;
 import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,13 +25,13 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.vn.aitutor.service.ISystemLogService systemLogService;
+    @Autowired(required = false)
+    private ISystemLogService systemLogService;
 
     public GlobalExceptionHandler() {
     }
 
-    public GlobalExceptionHandler(com.vn.aitutor.service.ISystemLogService systemLogService) {
+    public GlobalExceptionHandler(ISystemLogService systemLogService) {
         this.systemLogService = systemLogService;
     }
 
@@ -197,6 +200,78 @@ public class GlobalExceptionHandler {
         return current.getMessage();
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<String>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        log.warn("Lỗi tham số không hợp lệ (IllegalArgumentException): {}", ex.getMessage());
+        String msg = (ex.getMessage() != null && !ex.getMessage().isBlank())
+                ? ex.getMessage()
+                : "Dữ liệu yêu cầu không hợp lệ";
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<String>builder()
+                        .success(false)
+                        .message(msg)
+                        .build());
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<String>> handleIllegalStateException(IllegalStateException ex) {
+        log.warn("Trạng thái yêu cầu không hợp lệ (IllegalStateException): {}", ex.getMessage());
+        String msg = (ex.getMessage() != null && !ex.getMessage().isBlank())
+                ? ex.getMessage()
+                : "Trạng thái hệ thống hoặc yêu cầu không hợp lệ";
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<String>builder()
+                        .success(false)
+                        .message(msg)
+                        .build());
+    }
+
+    @ExceptionHandler(IngestionException.class)
+    public ResponseEntity<ApiResponse<String>> handleIngestionException(IngestionException ex) {
+        log.error("Lỗi nạp hoặc xử lý tài liệu (IngestionException): {}", ex.getMessage(), ex);
+        String msg = (ex.getMessage() != null && !ex.getMessage().isBlank())
+                ? ex.getMessage()
+                : "Lỗi trong quá trình xử lý và bóc tách tài liệu";
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<String>builder()
+                        .success(false)
+                        .message(msg)
+                        .build());
+    }
+
+    @ExceptionHandler(UncheckedIOException.class)
+    public ResponseEntity<ApiResponse<String>> handleUncheckedIOException(UncheckedIOException ex) {
+        log.error("Lỗi đọc/ghi tập tin (UncheckedIOException): {}", ex.getMessage(), ex);
+        String msg = (ex.getMessage() != null && !ex.getMessage().isBlank())
+                ? ex.getMessage()
+                : "Không thể xử lý tập tin được yêu cầu";
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<String>builder()
+                        .success(false)
+                        .message(msg)
+                        .build());
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiResponse<String>> handleRuntimeException(RuntimeException ex) {
+        log.error("Lỗi runtime hệ thống (RuntimeException): {}", ex.getMessage(), ex);
+        if (systemLogService != null) {
+            try {
+                systemLogService.log("ERROR", ex.getMessage() != null ? ex.getMessage() : ex.toString(), ex.getClass().getSimpleName(), ex);
+            } catch (Exception ignored) {
+                // Avoid failing exception handler if logging fails
+            }
+        }
+        String msg = (ex.getMessage() != null && !ex.getMessage().isBlank())
+                ? ex.getMessage()
+                : "Đã xảy ra lỗi runtime trong quá trình xử lý";
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.<String>builder()
+                        .success(false)
+                        .message(msg)
+                        .build());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<String>> handleGeneralException(Exception ex) {
         log.error("Unhandled exception caught in GlobalExceptionHandler", ex);
@@ -207,10 +282,13 @@ public class GlobalExceptionHandler {
                 // Avoid failing exception handler if logging fails
             }
         }
+        String msg = (ex.getMessage() != null && !ex.getMessage().isBlank())
+                ? ex.getMessage()
+                : "Hệ thống gặp sự cố không mong muốn. Vui lòng thử lại sau.";
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.<String>builder()
                         .success(false)
-                        .message(ex.toString() + " - " + ex.getMessage() + (ex.getCause() != null ? " Caused by: " + ex.getCause().getMessage() : ""))
+                        .message(msg)
                         .build());
     }
 }

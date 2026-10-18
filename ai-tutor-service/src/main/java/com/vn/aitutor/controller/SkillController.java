@@ -1,13 +1,13 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.SkillCreateRequest;
-import com.vn.aitutor.dto.request.SkillLessonAssignRequest;
-import com.vn.aitutor.dto.request.SkillUpdateRequest;
+import com.vn.aitutor.dto.request.curriculum.SkillCreateRequest;
+import com.vn.aitutor.dto.request.curriculum.SkillLessonAssignRequest;
+import com.vn.aitutor.dto.request.curriculum.SkillUpdateRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.LessonSummaryResponse;
+import com.vn.aitutor.dto.response.curriculum.LessonSummaryResponse;
 import com.vn.aitutor.dto.response.PageResponseDTO;
-import com.vn.aitutor.dto.response.SkillResponse;
-import com.vn.aitutor.service.ISkillService;
+import com.vn.aitutor.dto.response.curriculum.SkillResponse;
+import com.vn.aitutor.service.curriculum.ISkillService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;

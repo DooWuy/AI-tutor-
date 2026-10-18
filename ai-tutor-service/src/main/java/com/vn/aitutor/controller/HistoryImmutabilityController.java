@@ -1,7 +1,7 @@
 package com.vn.aitutor.controller;
 
 import com.vn.aitutor.security.principal.UserPrincipal;
-import com.vn.aitutor.service.HistoryGuard;
+import com.vn.aitutor.service.validator.HistoryGuard;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

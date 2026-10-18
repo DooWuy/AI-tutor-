@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.vn.aitutor.dto.request.QuestionUpsertRequest;
+import com.vn.aitutor.dto.request.quiz.QuestionUpsertRequest;
 import com.vn.aitutor.exception.ResourceBadRequestException;
 import com.vn.aitutor.quiz.QuestionBankWorkbook.ImportedRow;
 import java.io.ByteArrayOutputStream;
@@ -97,7 +97,11 @@ class QuestionBankWorkbookTest {
             {"Tự luận", "Câu này có loại không hợp lệ để test báo lỗi dòng.", "Lời giải chi tiết câu hỏi tự luận.", "3", "", "", "", "", "", "", "", "A"},
             {"Đúng/Sai", "Hàm số y = x^3 luôn đồng biến trên tập số thực R.", "Đạo hàm y' = 3x^2 >= 0 với mọi x thuộc R.", "1", "đồng biến", "Đúng", "Sai", "", "", "", "", "Đúng"}
         });
-        java.nio.file.Files.write(java.nio.file.Path.of("d:/AI-tutor-/mixed_test.xlsx"), content);
+        java.nio.file.Path target = java.nio.file.Path.of("build/mixed_test.xlsx");
+        if (target.getParent() != null) {
+            java.nio.file.Files.createDirectories(target.getParent());
+        }
+        java.nio.file.Files.write(target, content);
     }
 
     private static byte[] sheet(String[][] rows) throws IOException {

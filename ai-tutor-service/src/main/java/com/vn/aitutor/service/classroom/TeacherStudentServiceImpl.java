@@ -1,0 +1,122 @@
+package com.vn.aitutor.service.classroom;
+
+import com.vn.aitutor.dto.response.ApiResponse;
+import com.vn.aitutor.dto.response.PageResponseDTO;
+import com.vn.aitutor.dto.response.user.StudentAdminDetailResponse;
+import com.vn.aitutor.dto.response.user.StudentAdminListItemResponse;
+import com.vn.aitutor.entity.Student;
+import com.vn.aitutor.entity.User;
+import com.vn.aitutor.entity.enums.Role;
+import com.vn.aitutor.exception.ResourceForbiddenException;
+import com.vn.aitutor.exception.ResourceNotFoundException;
+import com.vn.aitutor.repository.SchoolClassRepository;
+import com.vn.aitutor.repository.StudentRepository;
+import com.vn.aitutor.repository.TeacherClassAssignmentRepository;
+import com.vn.aitutor.repository.TeacherRepository;
+import com.vn.aitutor.repository.UserRepository;
+import com.vn.aitutor.service.user.IAdminStudentService;
+import com.vn.aitutor.service.gamification.StreakService;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class TeacherStudentServiceImpl implements ITeacherStudentService {
+    private final TeacherRepository teacherRepository;
+    private final TeacherClassAssignmentRepository assignmentRepository;
+    private final StudentRepository studentRepository;
+    private final IAdminStudentService adminStudentService;
+    private final StreakService streaks;
+    private final UserRepository userRepository;
+    private final SchoolClassRepository schoolClassRepository;
+
+    @Override
+    public PageResponseDTO<StudentAdminListItemResponse> searchStudents(UUID actorUserId, UUID classId, String search, PageRequest pageRequest) {
+        User actor = userRepository.findById(actorUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+        Set<UUID> classIds = readableClassIds(actor, classId);
+        if (classIds.isEmpty()) {
+            return PageResponseDTO.<StudentAdminListItemResponse>builder().content(List.of())
+                    .page(pageRequest.getPageNumber() + 1).size(pageRequest.getPageSize())
+                    .totalElements(0L).totalPages(0).hasNext(false).hasPrevious(false).build();
+        }
+        Page<Student> page = studentRepository.searchTeacherStudents(classIds, blankToNull(search), bounded(pageRequest));
+        List<StudentAdminListItemResponse> items = page.getContent().stream().map(this::toListItem).toList();
+        return PageResponseDTO.<StudentAdminListItemResponse>builder().content(items).page(page.getNumber() + 1)
+                .size(page.getSize()).totalElements(page.getTotalElements()).totalPages(page.getTotalPages())
+                .hasNext(page.hasNext()).hasPrevious(page.hasPrevious()).build();
+    }
+
+    @Override
+    public ApiResponse<StudentAdminDetailResponse> getStudentDetail(UUID teacherUserId, UUID studentId) {
+        UUID teacherId = teacherRepository.findByUserId(teacherUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ giáo viên")).getId();
+        Student student = studentRepository.findActiveStudentWithUserById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy học sinh"));
+        boolean allowed = assignmentRepository.findByTeacherIdWithClass(teacherId).stream()
+                .anyMatch(a -> student.getClassEntity() != null && a.getSchoolClass().getId().equals(student.getClassEntity().getId()));
+        if (!allowed) throw new ResourceForbiddenException("Học sinh không thuộc lớp giáo viên được phân công");
+        return adminStudentService.getStudentDetail(studentId);
+    }
+
+    private Set<UUID> readableClassIds(User actor, UUID classId) {
+        if (actor.getRole() == Role.ADMIN) {
+            if (classId == null) {
+                return schoolClassRepository.findAllOrdered().stream().map(c -> c.getId()).collect(Collectors.toSet());
+            }
+            if (!schoolClassRepository.existsById(classId)) {
+                throw new ResourceNotFoundException("Không tìm thấy lớp học");
+            }
+            return Set.of(classId);
+        }
+        UUID teacherId = teacherRepository.findByUserId(actor.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ giáo viên")).getId();
+        Set<UUID> assigned = assignmentRepository.findByTeacherIdWithClass(teacherId).stream()
+                .map(a -> a.getSchoolClass().getId()).collect(Collectors.toSet());
+        if (classId == null) {
+            return assigned;
+        }
+        if (!assigned.contains(classId)) {
+            throw new ResourceForbiddenException("Giáo viên không được phân quyền xem lớp học này");
+        }
+        return Set.of(classId);
+    }
+
+    private PageRequest bounded(PageRequest request) {
+        Sort.Order order = request.getSort().stream().findFirst().orElse(Sort.Order.desc("createdAt"));
+        String property = switch (order.getProperty()) {
+            case "fullName" -> "u.full_name";
+            case "createdAt" -> "u.created_at";
+            case "totalXp" -> "s.total_xp";
+            case "lastActivityDate" -> "s.last_activity_date";
+            default -> "u.created_at";
+        };
+        return PageRequest.of(Math.max(0, request.getPageNumber()), Math.min(Math.max(1, request.getPageSize()), 50),
+                Sort.by(order.getDirection(), property));
+    }
+
+    private StudentAdminListItemResponse toListItem(Student student) {
+        User user = student.getUser();
+        return StudentAdminListItemResponse.builder().studentId(student.getId()).userId(user.getId())
+                .studentCode(student.getStudentCode()).username(user.getUsername()).email(user.getEmail())
+                .fullName(user.getFullName()).phoneNumber(user.getPhoneNumber()).avatarUrl(user.getAvatarUrl())
+                .gender(user.getGender() == null ? null : user.getGender().name()).dateOfBirth(user.getDateOfBirth())
+                .schoolName(student.getSchoolName()).gradeLevel(student.getGradeLevel())
+                .classId(student.getClassEntity() == null ? null : student.getClassEntity().getId())
+                .className(student.getClassName()).totalXp(student.getTotalXp()).currentLevel(student.getCurrentLevel())
+                .currentStreak(streaks.effectiveCurrentStreak(student)).lastActivityDate(student.getLastActivityDate())
+                .active(user.isActive()).createdAt(user.getCreatedAt()).updatedAt(user.getUpdatedAt()).build();
+    }
+
+    private String blankToNull(String value) { return StringUtils.hasText(value) ? value.trim() : null; }
+}

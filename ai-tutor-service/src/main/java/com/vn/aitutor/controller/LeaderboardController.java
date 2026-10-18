@@ -1,10 +1,10 @@
 package com.vn.aitutor.controller;
 
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.LeaderboardResponse;
+import com.vn.aitutor.dto.response.gamification.LeaderboardResponse;
 import com.vn.aitutor.entity.enums.LeaderboardScope;
 import com.vn.aitutor.exception.StudentClassRequiredException;
-import com.vn.aitutor.service.LeaderboardService;
+import com.vn.aitutor.service.gamification.LeaderboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;

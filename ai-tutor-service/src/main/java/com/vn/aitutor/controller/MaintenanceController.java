@@ -1,9 +1,9 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.MaintenanceToggleRequest;
+import com.vn.aitutor.dto.request.system.MaintenanceToggleRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
-import com.vn.aitutor.dto.response.MaintenanceStatusResponse;
-import com.vn.aitutor.service.ISystemSettingsService;
+import com.vn.aitutor.dto.response.system.MaintenanceStatusResponse;
+import com.vn.aitutor.service.system.ISystemSettingsService;
 import jakarta.validation.Valid;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
