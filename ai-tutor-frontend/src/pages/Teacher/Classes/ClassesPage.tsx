@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listTeacherClasses } from '../../../services/teacherClassApi';
 import type { TeacherClass } from '../../../types/teacherClass';
+import { StudyClassSection } from './StudyClassSection';
 
 export default function ClassesPage() {
   const [classes, setClasses] = useState<TeacherClass[]>([]);
@@ -29,11 +30,12 @@ export default function ClassesPage() {
   }, [retry]);
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-8">
+      <StudyClassSection />
       <div>
-        <h1 className="text-2xl font-bold text-on-surface">Lớp học của tôi</h1>
+        <h1 className="text-2xl font-bold text-on-surface">Lớp được phân công</h1>
         <p className="mt-1 text-sm text-on-surface-variant">
-          Sĩ số và đề đã phát hành của các lớp bạn được phân công.
+          Sĩ số và đề đã phát hành của các lớp nhà trường bạn được phân công. Các lớp này không tính vào giới hạn 4 lớp học thêm.
         </p>
       </div>
       {error ? (

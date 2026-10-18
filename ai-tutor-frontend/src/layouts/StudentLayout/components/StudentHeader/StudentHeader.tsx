@@ -106,6 +106,7 @@ export const StudentHeader: React.FC = () => {
             <Link className={getNavLinkClass('/student/chat')} to="/student/chat">Hỏi đáp SGK</Link>
             <Link className={getNavLinkClass('/student/practice')} to="/student/practice">Luyện đề</Link>
             <Link className={getNavLinkClass('/student/progress')} to="/student/progress">Tiến độ</Link>
+            <Link className={getNavLinkClass('/student/classes')} to="/student/classes">Lớp học thêm</Link>
           </nav>
         </div>
         
@@ -116,6 +117,7 @@ export const StudentHeader: React.FC = () => {
             <Link className={location.pathname.includes('/student/chat') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/chat" onClick={() => setIsMobileMenuOpen(false)}>Hỏi đáp SGK</Link>
             <Link className={location.pathname.includes('/student/practice') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/practice" onClick={() => setIsMobileMenuOpen(false)}>Luyện đề</Link>
             <Link className={location.pathname.includes('/student/progress') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/progress" onClick={() => setIsMobileMenuOpen(false)}>Tiến độ</Link>
+            <Link className={location.pathname.includes('/student/classes') ? styles.mobileMenuItemActive : styles.mobileMenuItem} to="/student/classes" onClick={() => setIsMobileMenuOpen(false)}>Lớp học thêm</Link>
           </div>
         )}
         
