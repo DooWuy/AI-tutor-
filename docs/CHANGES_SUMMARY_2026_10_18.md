@@ -222,9 +222,24 @@ Không còn bất kỳ file nào nằm rời rạc tại thư mục gốc `dto/r
 
 ---
 
+### 8. Đồng Bộ Frontend: Xác Thực OTP Khi Đổi Mật Khẩu (Security Flow)
+
+- **Cập Nhật API Service (`studentProfileApi.ts`)**:
+  - Bổ sung hàm `sendChangePasswordOtp()` gọi `POST /users/change-password/send-otp` để kích hoạt gửi mã OTP 6 số qua email.
+  - Cập nhật hàm `changePassword(oldPassword, newPassword, confirmPassword, otp)` để gửi payload chứa trường `otp` đúng theo chuẩn của Backend `ChangePasswordRequest`.
+- **Cập Nhật Giao Diện Người Dùng (`ProfilePage.tsx`)**:
+  - Bổ sung ô nhập mã xác nhận OTP (6 chữ số).
+  - Tích hợp nút "Gửi mã xác nhận" kèm bộ đếm ngược chống spam (cooldown 60 giây).
+  - Hiển thị thông báo trạng thái khi mã đã được gửi tới email của học sinh.
+  - Kiểm tra tính hợp lệ của mã OTP (đúng 6 số, không để trống) trước khi gửi yêu cầu cập nhật mật khẩu.
+
+---
+
 ## III. KẾT LUẬN & ĐÁNH GIÁ CHẤT LƯỢNG
 
-1. **Tính Toàn Vẹn API**: Giữ nguyên 100% các endpoint URL, tên trường JSON (`@JsonProperty`), kiểu dữ liệu request/response, đảm bảo tương thích hoàn toàn với ứng dụng Frontend mà không gây breaking changes.
+1. **Tính Toàn Vẹn API & Trải Nghiệm Người Dùng**: 
+   - Giữ nguyên 100% các endpoint URL, tên trường JSON (`@JsonProperty`), kiểu dữ liệu request/response, đảm bảo tương thích hoàn toàn giữa Frontend và Backend.
+   - Luồng đổi mật khẩu 2 lớp bảo mật (Mật khẩu cũ + OTP qua Email) hoạt động mượt mà, đồng bộ cả hai tầng.
 2. **Chất Lượng Mã Nguồn**:
    - Loại bỏ hoàn toàn mô hình Monolithic Service cồng kềnh.
    - Codebase có ranh giới module rõ ràng theo Domain-Driven Design (Feature Modules).
@@ -233,4 +248,5 @@ Không còn bất kỳ file nào nằm rời rạc tại thư mục gốc `dto/r
 4. **Hạ Tầng & Vận Hành Chuẩn Doanh Nghiệp**:
    - Quy trình CI/CD hoàn thiện khép kín từ kiểm thử, quét bảo mật, đóng gói container image, deploy zero-downtime, đến kiểm tra sức khỏe hệ thống tự động.
    - Sẵn sàng triển khai tự động lên các môi trường Staging và Production.
+
 
