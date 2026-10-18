@@ -20,6 +20,8 @@ import TeachingMaterialsPage from './pages/Teacher/TeachingMaterials/TeachingMat
 import ClassesPage from './pages/Teacher/Classes/ClassesPage';
 import ClassDetailPage from './pages/Teacher/Classes/ClassDetailPage';
 import TeacherStudentDetailPage from './pages/Teacher/Classes/TeacherStudentDetailPage';
+import StudyClassDetailPage from './pages/Teacher/Classes/StudyClassDetailPage';
+import JoinStudyClassPage from './pages/Student/Classes/JoinStudyClassPage';
 
 import { AdminLayout } from './layouts/AdminLayout/AdminLayout';
 import { AdminDashboardPage } from './pages/Admin/AdminDashboardPage';
@@ -69,6 +71,7 @@ function App() {
           <Route path="progress" element={<ProgressPage />} />
           <Route path="timetable" element={<TimetablePage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="classes" element={<JoinStudyClassPage />} />
           <Route path="chat" element={<AIChatPage />} />
           <Route path="practice" element={<PracticePage />} />
           <Route path="practice/:subjectId" element={<PracticeTopicPage />} />
@@ -82,6 +85,7 @@ function App() {
           <Route path="dashboard" element={<Navigate to="/teacher/analytics" replace />} />
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="classes" element={<ClassesPage />} />
+          <Route path="study-classes/:classId" element={<StudyClassDetailPage />} />
           <Route path="classes/:classId" element={<ClassDetailPage />} />
           <Route path="classes/:classId/students/:studentId" element={<TeacherStudentDetailPage />} />
           <Route path="question-bank" element={<QuestionBankPage />} />

@@ -128,7 +128,7 @@ Giáo viên gọi API lớp, sĩ số hoặc hồ sơ của lớp không có tro
 | FR-CLS-06 | Học sinh chỉ thấy và chỉ mở đề chính thức đã gán cho lớp mình | Must |
 | FR-CLS-07 | Lưu trữ hoặc về nháp giữ dòng gán nhưng ẩn đề với học sinh | Must |
 | FR-CLS-08 | Đề `PUBLISHED` đã có trước migration được gán vào mọi lớp cùng khối | Must |
-| FR-CLS-09 | Giáo viên không tạo, sửa, khóa, xóa học sinh và không tạo lớp | Must |
+| FR-CLS-09 | Giáo viên không tạo, sửa, khóa, xóa học sinh và không tạo lớp nhà trường | Must |
 
 ## 6. Dữ liệu
 
@@ -195,8 +195,27 @@ Desktop dùng bảng. Màn hẹp dùng thẻ. Chữ trên trang là tiếng Vi�
 
 ## 10. Ngoài phạm vi
 
-- Tạo, sửa, xóa lớp.
-- Ghi danh, chuyển lớp, tạo hoặc khóa tài khoản học sinh.
+- Tạo, sửa, xóa lớp nhà trường. Lớp học thêm của giáo viên nằm ở mục 11.
+- Ghi danh hoặc chuyển `students.class_id`. Tạo hoặc khóa tài khoản học sinh.
 - Cảnh báo phụ huynh và ngưỡng at-risk (đã có ở Analytics).
 - Đề tự luyện AI của học sinh.
 - Sửa câu hỏi của đề đã có bài làm.
+
+## 11. Lớp học thêm
+
+Lớp nhà trường ở các mục trên vẫn chỉ đọc. Lớp học thêm là bảng `study_classes` và `study_class_enrollments`, migration `V9__study_classes.sql`. Giáo viên tạo tối đa 4 lớp `ACTIVE`. Lớp được phân công không tính vào 4. Hết `end_date` hoặc bấm giải tán thì lớp thành `DISSOLVED` và không sửa lại.
+
+Học sinh xin vào bằng mã 6 ký tự. Duyệt hoặc từ chối không đổi `students.class_id` và không đổi đề chính thức của lớp nhà trường.
+
+| Method | Đường dẫn | Việc |
+|---|---|---|
+| GET | `/api/v1/teacher/study-classes` | Danh sách, lọc `status` và `keyword` |
+| POST | `/api/v1/teacher/study-classes` | Tạo lớp |
+| GET | `/api/v1/teacher/study-classes/{id}` | Chi tiết và học sinh đã duyệt |
+| PUT | `/api/v1/teacher/study-classes/{id}` | Sửa khi còn hoạt động |
+| POST | `/api/v1/teacher/study-classes/{id}/dissolve` | Giải tán |
+| GET | `/api/v1/teacher/study-classes/{id}/requests` | Yêu cầu chờ |
+| POST | `/api/v1/teacher/study-classes/{id}/requests/{requestId}/action` | `approve` hoặc `reject` |
+| POST | `/api/v1/student/study-classes/join` | Xin vào bằng mã lớp |
+
+Giao diện: khối lớp học thêm trên `/teacher/classes`, chi tiết `/teacher/study-classes/{id}`, học sinh nhập mã tại `/student/classes`.
