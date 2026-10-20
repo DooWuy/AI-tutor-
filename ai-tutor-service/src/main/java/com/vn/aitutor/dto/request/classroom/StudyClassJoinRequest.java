@@ -1,4 +1,4 @@
-package com.vn.aitutor.dto.request;
+package com.vn.aitutor.dto.request.classroom;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
