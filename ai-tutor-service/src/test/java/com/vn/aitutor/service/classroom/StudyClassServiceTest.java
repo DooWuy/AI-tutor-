@@ -7,9 +7,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.vn.aitutor.dto.request.EnrollmentActionRequest;
-import com.vn.aitutor.dto.request.StudyClassCreateRequest;
-import com.vn.aitutor.dto.request.StudyClassJoinRequest;
+import com.vn.aitutor.dto.request.classroom.EnrollmentActionRequest;
+import com.vn.aitutor.dto.request.classroom.StudyClassCreateRequest;
+import com.vn.aitutor.dto.request.classroom.StudyClassJoinRequest;
+import com.vn.aitutor.dto.request.classroom.StudyClassUpdateRequest;
 import com.vn.aitutor.entity.Student;
 import com.vn.aitutor.entity.StudyClass;
 import com.vn.aitutor.entity.StudyClassEnrollment;
@@ -196,6 +197,59 @@ class StudyClassServiceTest {
         when(enrollmentRepository.findByStudyClass_IdAndStudent_Id(studyClass.getId(), student.getId())).thenReturn(Optional.of(enrollment));
 
         assertThrows(ResourceConflictException.class, () -> service.join(studentPrincipal, joinRequest("AB12CD")));
+    }
+
+    @Test
+    void dissolveMarksClassAsDissolved() {
+        StudyClass studyClass = ownedClass();
+        when(teacherRepository.findByUserId(teacher.getUser().getId())).thenReturn(Optional.of(teacher));
+        when(studyClassRepository.findById(studyClass.getId())).thenReturn(Optional.of(studyClass));
+        when(studyClassRepository.save(any(StudyClass.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var result = service.dissolve(teacherPrincipal, studyClass.getId());
+
+        assertEquals(StudyClassStatus.DISSOLVED, result.getStatus());
+        assertEquals(StudyClassStatus.DISSOLVED, studyClass.getStatus());
+    }
+
+    @Test
+    void dissolveAlreadyDissolvedClassThrowsBadRequest() {
+        StudyClass studyClass = ownedClass();
+        studyClass.setStatus(StudyClassStatus.DISSOLVED);
+        when(teacherRepository.findByUserId(teacher.getUser().getId())).thenReturn(Optional.of(teacher));
+        when(studyClassRepository.findById(studyClass.getId())).thenReturn(Optional.of(studyClass));
+
+        assertThrows(ResourceBadRequestException.class, () -> service.dissolve(teacherPrincipal, studyClass.getId()));
+    }
+
+    @Test
+    void updateModifiesActiveStudyClass() {
+        StudyClass studyClass = ownedClass();
+        when(teacherRepository.findByUserId(teacher.getUser().getId())).thenReturn(Optional.of(teacher));
+        when(studyClassRepository.findById(studyClass.getId())).thenReturn(Optional.of(studyClass));
+        when(studyClassRepository.save(any(StudyClass.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StudyClassUpdateRequest request = new StudyClassUpdateRequest();
+        request.setName("Lớp Toán Mới");
+        request.setDescription("Mô tả mới");
+        request.setMaxStudents(50);
+        request.setEndDate(LocalDate.of(2026, 11, 15));
+
+        var updated = service.update(teacherPrincipal, studyClass.getId(), request);
+
+        assertEquals("Lớp Toán Mới", updated.getName());
+        assertEquals(50, updated.getMaxStudents());
+        assertEquals(LocalDate.of(2026, 11, 15), updated.getEndDate());
+    }
+
+    @Test
+    void dissolveExpiredDelegatesToRepository() {
+        when(studyClassRepository.dissolveExpired(any(LocalDate.class), any(Instant.class))).thenReturn(2);
+
+        int count = service.dissolveExpired();
+
+        assertEquals(2, count);
+        verify(studyClassRepository).dissolveExpired(any(LocalDate.class), any(Instant.class));
     }
 
     private StudyClass ownedClass() {

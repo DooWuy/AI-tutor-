@@ -1,4 +1,4 @@
-package com.vn.aitutor.dto.response;
+package com.vn.aitutor.dto.response.classroom;
 
 import java.util.List;
 import lombok.Builder;
