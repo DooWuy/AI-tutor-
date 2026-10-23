@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { BarChart3, Users, Send, Archive, RotateCcw, Trash2 } from 'lucide-react';
 import { quizAdminApi } from '../../services/assessmentApi';
 import type { QuizItem } from '../../types/assessment';
-import { statusLabel, subjectLabel } from '../../types/assessment';
+import { assignedClassLabels, formatQuizWindow, statusLabel, subjectLabel } from '../../types/assessment';
 import { DangerButton, ErrorBanner, Filters, Modal, useAssessmentBase } from './assessmentUi';
 import { PublishQuizModal } from './PublishQuizModal';
 
@@ -109,7 +109,8 @@ export default function QuizListPage() {
                 <td className="px-4 py-3">
                   <Link className="font-semibold text-primary hover:underline" to={`${base}/quizzes/${quiz.id}`}>{quiz.title}</Link>
                   <p className="text-xs text-on-surface-variant">{quiz.createdByName}</p>
-                  {(quiz.classes || []).length > 0 ? <p className="text-xs text-on-surface-variant">{quiz.classes?.map((item) => item.name).join(', ')}</p> : null}
+                  {assignedClassLabels(quiz).length > 0 ? <p className="text-xs text-on-surface-variant">{assignedClassLabels(quiz).join(', ')}</p> : null}
+                  {quiz.status === 'PUBLISHED' ? <p className="text-xs text-on-surface-variant">{formatQuizWindow(quiz.availableFrom, quiz.availableUntil)}</p> : null}
                 </td>
                 <td className="px-4 py-3">{subjectLabel(quiz.subject)} · Lớp {quiz.gradeLevel}</td>
                 <td className="px-4 py-3">{statusLabel(quiz.status)}</td>
@@ -129,7 +130,8 @@ export default function QuizListPage() {
           <article key={quiz.id} className="rounded-2xl border border-outline-variant p-4">
             <Link className="font-semibold text-primary" to={`${base}/quizzes/${quiz.id}`}>{quiz.title}</Link>
             <p className="mt-1 text-xs text-on-surface-variant">{subjectLabel(quiz.subject)} · Lớp {quiz.gradeLevel} · {statusLabel(quiz.status)}</p>
-            {(quiz.classes || []).length > 0 ? <p className="mt-1 text-xs text-on-surface-variant">{quiz.classes?.map((item) => item.name).join(', ')}</p> : null}
+            {assignedClassLabels(quiz).length > 0 ? <p className="mt-1 text-xs text-on-surface-variant">{assignedClassLabels(quiz).join(', ')}</p> : null}
+            {quiz.status === 'PUBLISHED' ? <p className="mt-1 text-xs text-on-surface-variant">{formatQuizWindow(quiz.availableFrom, quiz.availableUntil)}</p> : null}
             <p className="mt-2 text-sm">{quiz.questionCount} câu · {quiz.attemptCount} lượt làm</p>
             <div className="mt-3">
               <QuizActions base={base} quiz={quiz} onStatus={changeStatus} onPublish={setPublishTarget} onDelete={() => { setDeleteError(''); setPendingDelete(quiz); }} />

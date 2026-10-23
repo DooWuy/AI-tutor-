@@ -7,7 +7,7 @@ interface AtRiskStudentsModalProps {
   onClose: () => void;
   students: AtRiskStudent[];
   className?: string;
-  onOpenSendAlert: (student: AtRiskStudent) => void;
+  onOpenSendAlert?: (student: AtRiskStudent) => void;
 }
 
 export function AtRiskStudentsModal({
@@ -220,15 +220,19 @@ export function AtRiskStudentsModal({
 
                         {/* Action */}
                         <td className={`${styles.tableTd} text-right`}>
-                          <button
-                            type="button"
-                            onClick={() => onOpenSendAlert(s)}
-                            className={styles.btnSuccess}
-                            title="Soạn tin nhắn gửi phụ huynh"
-                          >
-                            <span className="material-symbols-outlined text-[15px]">send</span>
-                            <span>Gửi cảnh báo</span>
-                          </button>
+                          {onOpenSendAlert ? (
+                            <button
+                              type="button"
+                              onClick={() => onOpenSendAlert(s)}
+                              className={styles.btnSuccess}
+                              title="Soạn tin nhắn gửi phụ huynh"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">send</span>
+                              <span>Gửi cảnh báo</span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-outline">Dùng ngưỡng mặc định</span>
+                          )}
                         </td>
                       </tr>
                     );

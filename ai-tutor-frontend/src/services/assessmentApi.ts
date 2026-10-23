@@ -7,6 +7,7 @@ import type {
   QuestionImportResult,
   QuestionItem,
   QuizDraft,
+  QuizClassRef,
   QuizItem,
   QuizStatistics,
   SkillItem,
@@ -148,8 +149,18 @@ export const quizAdminApi = {
   create: (body: QuizDraft) => request<QuizItem>('/quizzes', { method: 'POST', body: JSON.stringify(toQuizBody(body)) }),
   update: (quizId: string, body: QuizDraft) =>
     request<QuizItem>(`/quizzes/${quizId}`, { method: 'PUT', body: JSON.stringify(toQuizBody(body)) }),
-  publish: (quizId: string, classIds: string[]) =>
-    request<QuizItem>(`/quizzes/${quizId}/publish`, { method: 'POST', body: JSON.stringify({ classIds }) }),
+  publish: (
+    quizId: string,
+    classIds: string[],
+    studyClassIds: string[] = [],
+    availableFrom: string | null = null,
+    availableUntil: string | null = null,
+  ) =>
+    request<QuizItem>(`/quizzes/${quizId}/publish`, {
+      method: 'POST',
+      body: JSON.stringify({ classIds, studyClassIds, availableFrom, availableUntil }),
+    }),
+  listStudyPublishTargets: () => request<QuizClassRef[]>('/quizzes/publish-study-classes'),
   archive: (quizId: string) => request<QuizItem>(`/quizzes/${quizId}/archive`, { method: 'POST' }),
   draft: (quizId: string) => request<QuizItem>(`/quizzes/${quizId}/draft`, { method: 'POST' }),
   remove: (quizId: string) => request<null>(`/quizzes/${quizId}`, { method: 'DELETE' }),

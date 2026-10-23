@@ -64,4 +64,88 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID> {
             order by q.createdAt desc
             """)
     List<Quiz> findPublishedAssignedToClass(@Param("classId") UUID classId, @Param("ownerId") UUID ownerId);
+
+    @Query("""
+            select distinct q from Quiz q
+            where q.subject = :subject
+              and q.active = true
+              and q.status = com.vn.aitutor.entity.enums.QuizStatus.PUBLISHED
+              and q.generationStatus = 'READY'
+              and (
+                (:classId is not null and exists (
+                    select a.id from QuizClassAssignment a
+                    where a.quiz = q and a.schoolClass.id = :classId
+                ))
+                or exists (
+                    select s.id from QuizStudyClassAssignment s
+                    where s.quiz = q
+                      and s.studyClass.status = com.vn.aitutor.entity.enums.StudyClassStatus.ACTIVE
+                      and exists (
+                        select e.id from StudyClassEnrollment e
+                        where e.studyClass = s.studyClass
+                          and e.student.id = :studentId
+                          and e.status = com.vn.aitutor.entity.enums.EnrollmentStatus.APPROVED
+                      )
+                )
+              )
+            order by q.createdAt desc
+            """)
+    List<Quiz> findOfficialForStudent(
+            @Param("subject") String subject,
+            @Param("classId") UUID classId,
+            @Param("studentId") UUID studentId);
+
+    @Query("""
+            select distinct q from Quiz q
+            join fetch q.createdBy
+            where q.status = com.vn.aitutor.entity.enums.QuizStatus.PUBLISHED
+              and (:ownerId is null or q.createdBy.id = :ownerId)
+              and exists (
+                select a.id from QuizStudyClassAssignment a
+                where a.quiz = q and a.studyClass.id = :classId
+              )
+            order by q.createdAt desc
+            """)
+    List<Quiz> findPublishedAssignedToStudyClass(@Param("classId") UUID classId, @Param("ownerId") UUID ownerId);
+
+    @Query("""
+            select q from Quiz q
+            where q.active = true
+              and q.status = com.vn.aitutor.entity.enums.QuizStatus.PUBLISHED
+              and q.generationStatus = 'READY'
+              and exists (
+                select a.id from QuizStudyClassAssignment a
+                where a.quiz = q
+                  and a.studyClass.id = :classId
+                  and a.studyClass.status = com.vn.aitutor.entity.enums.StudyClassStatus.ACTIVE
+              )
+            order by q.createdAt desc
+            """)
+    List<Quiz> findPublishedForActiveStudyClass(@Param("classId") UUID classId);
+
+    @Query("""
+            select q from Quiz q
+            where q.active = true
+              and q.status = com.vn.aitutor.entity.enums.QuizStatus.PUBLISHED
+              and q.generationStatus = 'READY'
+              and (
+                (:classId is not null and exists (
+                    select a.id from QuizClassAssignment a
+                    where a.quiz = q and a.schoolClass.id = :classId
+                ))
+                or exists (
+                    select s.id from QuizStudyClassAssignment s
+                    where s.quiz = q
+                      and s.studyClass.status = com.vn.aitutor.entity.enums.StudyClassStatus.ACTIVE
+                      and exists (
+                        select e.id from StudyClassEnrollment e
+                        where e.studyClass = s.studyClass
+                          and e.student.id = :studentId
+                          and e.status = com.vn.aitutor.entity.enums.EnrollmentStatus.APPROVED
+                      )
+                )
+              )
+            order by q.createdAt desc
+            """)
+    List<Quiz> findPublishedForStudent(@Param("classId") UUID classId, @Param("studentId") UUID studentId);
 }

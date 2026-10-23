@@ -49,7 +49,7 @@ class AtRiskServiceTest {
     void studentAndUnassignedTeacherAreRejected() {
         UUID classId = UUID.randomUUID();
         UserPrincipal teacher = principal(Role.TEACHER);
-        when(analyticsAccess.requireReadableClass(teacher, classId))
+        when(analyticsAccess.requireScope(teacher, classId))
                 .thenThrow(new ResourceForbiddenException("Giáo viên không được phân quyền xem lớp học này"));
 
         assertThrows(

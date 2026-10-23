@@ -15,6 +15,7 @@ import com.vn.aitutor.entity.enums.EnrollmentStatus;
 import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.entity.enums.StudyClassStatus;
 import com.vn.aitutor.security.principal.UserPrincipal;
+import com.vn.aitutor.service.classroom.StudyClassClassroomService;
 import com.vn.aitutor.service.classroom.StudyClassService;
 import java.util.Collections;
 import java.util.List;
@@ -33,13 +34,16 @@ class StudyClassControllerTest {
     @Mock
     private StudyClassService studyClassService;
 
+    @Mock
+    private StudyClassClassroomService studyClassClassroomService;
+
     private StudyClassController controller;
     private UserPrincipal teacherPrincipal;
     private UUID classId;
 
     @BeforeEach
     void setUp() {
-        controller = new StudyClassController(studyClassService);
+        controller = new StudyClassController(studyClassService, studyClassClassroomService);
         User user = new User();
         user.setId(UUID.randomUUID());
         user.setRole(Role.TEACHER);

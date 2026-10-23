@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { getTeacherClass, listClassQuizzes, listClassStudents } from '../../../services/teacherClassApi';
 import type { AdminStudentListItem, StudentSortField, SortDirection } from '../../../types/adminStudent';
 import type { PageResponse } from '../../../types/adminStudent';
-import { subjectLabel } from '../../../types/assessment';
+import { formatQuizWindow, subjectLabel } from '../../../types/assessment';
 import type { TeacherClass, TeacherClassQuiz } from '../../../types/teacherClass';
 
 const number = new Intl.NumberFormat('vi-VN');
@@ -78,7 +78,7 @@ export default function ClassDetailPage() {
             {schoolClass ? `Khối ${schoolClass.gradeLevel}${schoolClass.subject ? ` · ${schoolClass.subject}` : ''} · ${schoolClass.studentCount} học sinh` : 'Đang tải thông tin lớp'}
           </p>
         </div>
-        <Link to="/teacher/analytics" className="rounded-xl border border-outline-variant px-4 py-2 text-center text-sm font-semibold">
+        <Link to={`/teacher/analytics?classId=${classId}`} className="rounded-xl border border-outline-variant px-4 py-2 text-center text-sm font-semibold">
           Xem phân tích lớp
         </Link>
       </div>
@@ -183,7 +183,7 @@ export default function ClassDetailPage() {
             <article key={quiz.id} className="rounded-2xl border border-outline-variant p-4">
               <h3 className="font-semibold text-on-surface">{quiz.title}</h3>
               <p className="mt-1 text-sm text-on-surface-variant">
-                {subjectLabel(quiz.subject)} · {quiz.questionCount} câu · {quiz.attemptCount} lượt làm · {quiz.timeLimitMinutes} phút
+                {subjectLabel(quiz.subject)} · {quiz.questionCount} câu · {quiz.attemptCount} lượt làm · {quiz.timeLimitMinutes} phút · {formatQuizWindow(quiz.availableFrom, quiz.availableUntil)}
               </p>
               <Link className="mt-3 inline-block text-sm font-semibold text-primary" to={`/teacher/quizzes/${quiz.id}/statistics`}>Xem thống kê</Link>
             </article>

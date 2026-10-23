@@ -86,7 +86,7 @@ class KnowledgeGapServiceTest {
             }
         }
 
-        when(analyticsAccess.requireReadableClass(principal, classId)).thenReturn(schoolClass);
+        when(analyticsAccess.requireScope(principal, classId)).thenReturn(ReadableClass.of(schoolClass));
         when(academicCalendar.resolve(any(), any(), any(), any()))
                 .thenReturn(new AcademicCalendar.DateRange(
                         Instant.parse("2026-09-15T17:00:00Z"),
@@ -125,7 +125,7 @@ class KnowledgeGapServiceTest {
     void forbiddenClassIsRejectedBeforeAnalysis() {
         UUID classId = UUID.randomUUID();
         UserPrincipal principal = principal();
-        when(analyticsAccess.requireReadableClass(principal, classId))
+        when(analyticsAccess.requireScope(principal, classId))
                 .thenThrow(new ResourceForbiddenException("no"));
 
         assertThrows(

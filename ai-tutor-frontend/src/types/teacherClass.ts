@@ -17,4 +17,6 @@ export interface TeacherClassQuiz {
   questionCount: number;
   attemptCount: number;
   timeLimitMinutes: number;
+  availableFrom?: string | null;
+  availableUntil?: string | null;
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { analyticsApi } from '../../../services/analyticsApi';
 import type {
   ClassOption,
@@ -23,6 +24,8 @@ import { useToast } from '../../../context/ToastContext';
 
 export default function AnalyticsPage() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const requestedClassId = searchParams.get('classId');
   // Filter States
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
@@ -57,7 +60,12 @@ export default function AnalyticsPage() {
         const availableClasses = res.classes || [];
         setClasses(availableClasses);
         setSubjects(res.subjects || []);
-        if (res.defaultClassId) {
+        const requested = requestedClassId && availableClasses.some((item) => item.id === requestedClassId)
+          ? requestedClassId
+          : '';
+        if (requested) {
+          setSelectedClassId(requested);
+        } else if (res.defaultClassId) {
           setSelectedClassId(res.defaultClassId);
         } else if (availableClasses.length > 0) {
           setSelectedClassId(availableClasses[0].id);
@@ -78,7 +86,7 @@ export default function AnalyticsPage() {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [requestedClassId]);
 
   // 2. Fetch Dashboard Data whenever filters change
   const fetchDashboardData = useCallback(async () => {
@@ -112,7 +120,9 @@ export default function AnalyticsPage() {
   }, [fetchDashboardData]);
 
   // Current selected class name
-  const currentClassName = classes.find((c) => c.id === selectedClassId)?.name || '';
+  const selectedClass = classes.find((c) => c.id === selectedClassId);
+  const currentClassName = selectedClass?.name || '';
+  const studyClassSelected = Boolean(selectedClass?.studyClass);
 
   // Trigger Send Alert for a student
   const handleOpenSendAlert = (student: AtRiskStudent) => {
@@ -167,17 +177,24 @@ export default function AnalyticsPage() {
           <p className={styles.headerSubtitle}>
             Theo dõi chuyên cần tự học, đánh giá điểm số thực tế, bóc tách lỗ hổng kiến thức bằng AI và chủ động can thiệp hỗ trợ học sinh có nguy cơ mất gốc.
           </p>
+          {studyClassSelected ? (
+            <p className="mt-2 text-xs text-on-surface-variant">
+              Lớp học thêm tính trên học sinh đã được duyệt và dùng ngưỡng cảnh báo mặc định.
+            </p>
+          ) : null}
         </div>
 
         <div className={styles.headerActions}>
-          <button
-            type="button"
-            onClick={() => setIsAlertSettingsModalOpen(true)}
-            className={styles.headerSettingsBtn}
-          >
-            <span className="material-symbols-outlined text-[18px]">tune</span>
-            <span>Cài đặt cảnh báo</span>
-          </button>
+          {studyClassSelected ? null : (
+            <button
+              type="button"
+              onClick={() => setIsAlertSettingsModalOpen(true)}
+              className={styles.headerSettingsBtn}
+            >
+              <span className="material-symbols-outlined text-[18px]">tune</span>
+              <span>Cài đặt cảnh báo</span>
+            </button>
+          )}
 
           <ExportReportMenu
             classId={selectedClassId}
@@ -255,7 +272,7 @@ export default function AnalyticsPage() {
         onClose={() => setIsAtRiskModalOpen(false)}
         students={atRiskStudents}
         className={currentClassName}
-        onOpenSendAlert={handleOpenSendAlert}
+        onOpenSendAlert={studyClassSelected ? undefined : handleOpenSendAlert}
       />
 
       {/* Modal 2: Soạn & Gửi tin nhắn phụ huynh tự động bằng AI (AC-04) */}

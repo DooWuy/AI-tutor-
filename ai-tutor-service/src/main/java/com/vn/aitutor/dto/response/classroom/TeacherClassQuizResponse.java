@@ -1,5 +1,6 @@
 package com.vn.aitutor.dto.response.classroom;
 
+import java.time.Instant;
 import java.util.UUID;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,4 +15,6 @@ public class TeacherClassQuizResponse {
     private int questionCount;
     private long attemptCount;
     private int timeLimitMinutes;
+    private Instant availableFrom;
+    private Instant availableUntil;
 }

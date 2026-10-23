@@ -13,6 +13,7 @@ import com.vn.aitutor.entity.Student;
 import com.vn.aitutor.entity.User;
 import com.vn.aitutor.exception.ResourceForbiddenException;
 import com.vn.aitutor.repository.QuizClassAssignmentRepository;
+import com.vn.aitutor.repository.QuizStudyClassAssignmentRepository;
 import com.vn.aitutor.repository.QuizQuestionRepository;
 import com.vn.aitutor.repository.QuizRepository;
 import com.vn.aitutor.repository.StudentRepository;
@@ -34,6 +35,7 @@ class QuizAccessServiceTest {
     @Mock private QuizRepository quizzes;
     @Mock private QuizQuestionRepository questions;
     @Mock private QuizClassAssignmentRepository assignments;
+    @Mock private QuizStudyClassAssignmentRepository studyAssignments;
     @InjectMocks private QuizAccessService service;
 
     private Student student;
@@ -94,5 +96,34 @@ class QuizAccessServiceTest {
 
         assertSame(quiz, service.requireQuiz(quiz.getId(), student));
         verify(assignments, never()).existsByQuiz_IdAndSchoolClass_Id(any(), any());
+    }
+
+    @Test
+    void validQuestionAllowsMultipleChoiceWithOptionsUsingText() {
+        com.vn.aitutor.entity.QuizQuestion q = new com.vn.aitutor.entity.QuizQuestion();
+        q.setQuestionText("Cho hàm số y = f(x)...");
+        q.setQuestionType(com.vn.aitutor.entity.enums.QuestionType.MULTIPLE_CHOICE);
+        q.setOptions(java.util.List.of(
+                java.util.Map.of("key", "A", "text", "Đáp án A"),
+                java.util.Map.of("key", "B", "text", "Đáp án B")
+        ));
+        q.setCorrectOptionKey("A");
+        org.junit.jupiter.api.Assertions.assertTrue(QuizAccessService.validQuestion(q));
+    }
+
+    @Test
+    void validQuestionAllowsFillInTheBlankWithCorrectText() {
+        com.vn.aitutor.entity.QuizQuestion q = new com.vn.aitutor.entity.QuizQuestion();
+        q.setQuestionText("Cho hàm số y = x^3 - 3x^2 + 2. Giá trị cực tiểu bằng bao nhiêu?");
+        q.setQuestionType(com.vn.aitutor.entity.enums.QuestionType.FILL_BLANK);
+        q.setCorrectText("-2");
+        org.junit.jupiter.api.Assertions.assertTrue(QuizAccessService.validQuestion(q));
+    }
+
+    @Test
+    void validQuestionRejectsIncompleteQuestion() {
+        com.vn.aitutor.entity.QuizQuestion q = new com.vn.aitutor.entity.QuizQuestion();
+        q.setQuestionText("");
+        org.junit.jupiter.api.Assertions.assertFalse(QuizAccessService.validQuestion(q));
     }
 }

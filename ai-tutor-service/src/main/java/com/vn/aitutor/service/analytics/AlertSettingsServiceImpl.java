@@ -35,6 +35,7 @@ public class AlertSettingsServiceImpl implements IAlertSettingsService {
     @Override
     @Transactional(readOnly = true)
     public AlertSettingsView get(UserPrincipal principal, UUID classId) {
+        rejectStudyClassSettings(principal, classId);
         SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, classId);
         return settingRepository
                 .findById(schoolClass.getId())
@@ -45,6 +46,7 @@ public class AlertSettingsServiceImpl implements IAlertSettingsService {
     @Override
     @Transactional
     public AlertSettingsUpdateResponse update(UserPrincipal principal, UUID classId, AlertSettingsRequest request) {
+        rejectStudyClassSettings(principal, classId);
         SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, classId);
         BigDecimal score = normalizeScore(request.getScoreThreshold());
         int inactivityDays = requireRange(
@@ -65,6 +67,14 @@ public class AlertSettingsServiceImpl implements IAlertSettingsService {
         AtRiskListResponse atRisk = atRiskService.list(
                 principal, schoolClass.getId(), SubjectCode.ALL, ReportPeriod.LAST_7_DAYS, null, null);
         return AlertSettingsUpdateResponse.builder().settings(toView(setting, true)).atRisk(atRisk).build();
+    }
+
+    private void rejectStudyClassSettings(UserPrincipal principal, UUID classId) {
+        if (!analyticsAccess.isStudyClass(classId)) {
+            return;
+        }
+        analyticsAccess.requireScope(principal, classId);
+        throw new ResourceBadRequestException("Lớp học thêm dùng ngưỡng cảnh báo mặc định");
     }
 
     private BigDecimal normalizeScore(BigDecimal score) {

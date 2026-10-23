@@ -35,13 +35,21 @@ public class QuizSubmissionService {
 
     @Transactional(readOnly = true)
     public QuizContentResponse content(UUID quizId) {
-        Quiz quiz = access.requireQuiz(quizId, access.currentStudent());
+        Student student = access.currentStudent();
+        Quiz quiz = access.requireQuiz(quizId, student);
+        boolean inProgress = drafts.findByStudentIdAndQuizIdAndCompletedAtIsNull(student.getId(), quiz.getId()).isPresent();
+        if (!inProgress) {
+            PublishWindow.requireOpen(quiz.getAvailableFrom(), quiz.getAvailableUntil(), learningClock.instant());
+        }
         return new QuizContentResponse(quiz.getId(), quiz.getTitle(), quiz.getSubject(), quiz.getTimeLimit() == null ? 0 : quiz.getTimeLimit(),
                 access.readyQuestions(quizId).stream().map(q -> new QuizContentResponse.Question(q.getId(), q.getQuestionText(),
                         q.getType() == null ? com.vn.aitutor.entity.enums.QuestionType.MULTIPLE_CHOICE : q.getType(),
-                        q.getOptions().stream().map(o -> {
+                        q.getOptions() == null ? List.of() : q.getOptions().stream().map(o -> {
                             Object body = o.get("content") != null ? o.get("content") : o.get("text");
-                            return Map.<String,Object>of("key", o.get("key"), "content", body == null ? "" : body);
+                            Map<String, Object> opt = new LinkedHashMap<>();
+                            opt.put("key", o.get("key") != null ? o.get("key") : "");
+                            opt.put("content", body != null ? body : "");
+                            return Collections.unmodifiableMap(opt);
                         }).toList(), q.getOrderIndex())).toList());
     }
 
@@ -57,6 +65,7 @@ public class QuizSubmissionService {
         } else {
             draft = drafts.findByStudentIdAndQuizIdAndCompletedAtIsNull(student.getId(), quiz.getId()).orElse(null);
             if (draft == null) {
+                PublishWindow.requireOpen(quiz.getAvailableFrom(), quiz.getAvailableUntil(), learningClock.instant());
                 if (quiz.getTimeLimit() == null || quiz.getTimeLimit() <= 0)
                     throw new ResourceConflictException("Quiz must have a positive time limit");
                 draft = new QuizAttemptDraft();

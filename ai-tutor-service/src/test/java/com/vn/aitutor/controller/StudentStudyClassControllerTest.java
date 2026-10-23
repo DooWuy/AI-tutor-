@@ -10,6 +10,7 @@ import com.vn.aitutor.entity.User;
 import com.vn.aitutor.entity.enums.EnrollmentStatus;
 import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.security.principal.UserPrincipal;
+import com.vn.aitutor.service.classroom.StudyClassClassroomService;
 import com.vn.aitutor.service.classroom.StudyClassService;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,12 +27,15 @@ class StudentStudyClassControllerTest {
     @Mock
     private StudyClassService studyClassService;
 
+    @Mock
+    private StudyClassClassroomService studyClassClassroomService;
+
     private StudentStudyClassController controller;
     private UserPrincipal studentPrincipal;
 
     @BeforeEach
     void setUp() {
-        controller = new StudentStudyClassController(studyClassService);
+        controller = new StudentStudyClassController(studyClassService, studyClassClassroomService);
         User user = new User();
         user.setId(UUID.randomUUID());
         user.setRole(Role.STUDENT);

@@ -17,6 +17,7 @@ public class QuizAccessService {
     private final QuizRepository quizzes;
     private final QuizQuestionRepository questions;
     private final QuizClassAssignmentRepository assignments;
+    private final QuizStudyClassAssignmentRepository studyAssignments;
 
     public Student currentStudent() {
         String name = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -32,11 +33,17 @@ public class QuizAccessService {
                 && quiz.getCreatedBy() != null
                 && student.getUser() != null
                 && quiz.getCreatedBy().getId().equals(student.getUser().getId());
-        if (!ownPractice && !assignedToClass(quiz, student)) {
-            throw new ResourceForbiddenException("Đề thi không được giao cho lớp của bạn");
+        boolean schoolAssigned = false;
+        boolean studyAssigned = false;
+        if (!ownPractice) {
+            schoolAssigned = assignedToSchool(quiz, student);
+            studyAssigned = assignedToStudyClass(quiz, student);
+            if (!schoolAssigned && !studyAssigned) {
+                throw new ResourceForbiddenException("Đề thi không được giao cho lớp của bạn");
+            }
         }
         if (!quiz.isActive()) throw new ResourceConflictException("Quiz is inactive");
-        if (quiz.getGradeLevel() != null && !quiz.getGradeLevel().isBlank()
+        if (!studyAssigned && quiz.getGradeLevel() != null && !quiz.getGradeLevel().isBlank()
                 && !quiz.getGradeLevel().equals(student.getGradeLevel())
                 && (student.getClassEntity() == null || !quiz.getGradeLevel().equals(student.getClassEntity().getGradeLevel())))
             throw new ResourceForbiddenException("Quiz does not match your grade");
@@ -45,9 +52,14 @@ public class QuizAccessService {
         return quiz;
     }
 
-    private boolean assignedToClass(Quiz quiz, Student student) {
+    private boolean assignedToSchool(Quiz quiz, Student student) {
         if (student.getClassEntity() == null || student.getClassEntity().getId() == null) return false;
         return assignments.existsByQuiz_IdAndSchoolClass_Id(quiz.getId(), student.getClassEntity().getId());
+    }
+
+    private boolean assignedToStudyClass(Quiz quiz, Student student) {
+        if (student.getId() == null) return false;
+        return studyAssignments.existsApprovedActive(quiz.getId(), student.getId());
     }
 
     public List<QuizQuestion> readyQuestions(UUID quizId) {
@@ -58,11 +70,16 @@ public class QuizAccessService {
     }
 
     public static boolean validQuestion(QuizQuestion q) {
-        if (q.getQuestionText() == null || q.getQuestionText().isBlank()
-                || q.getCorrectOptionKey() == null || q.getCorrectOptionKey().isBlank()
-                || q.getCorrectOptionKey().length() > 200
-                || q.getExplanation() == null || q.getExplanation().isBlank()) return false;
+        if (q.getQuestionText() == null || q.getQuestionText().isBlank()) return false;
         QuestionType type = q.getType() == null ? QuestionType.MULTIPLE_CHOICE : q.getType();
+        if (type == QuestionType.FILL_BLANK) {
+            String answer = q.getCorrectText() != null && !q.getCorrectText().isBlank()
+                    ? q.getCorrectText()
+                    : q.getCorrectOptionKey();
+            return answer != null && !answer.isBlank() && answer.length() <= 500;
+        }
+        if (q.getCorrectOptionKey() == null || q.getCorrectOptionKey().isBlank()
+                || q.getCorrectOptionKey().length() > 200) return false;
         if (type == QuestionType.MULTI_SELECT) {
             if (q.getOptions() == null || q.getOptions().size() < 2) return false;
             Set<String> expected = QuizGradingService.choiceKeys(q.getCorrectOptionKey());
@@ -76,10 +93,20 @@ public class QuizAccessService {
             }
             return optionKeys.containsAll(expected);
         }
-        if (type == QuestionType.MULTIPLE_CHOICE || type == QuestionType.TRUE_FALSE)
-            return q.getOptions() != null && q.getOptions().size() >= 2
-                    && q.getOptions().stream().allMatch(o -> o.get("key") instanceof String && o.get("content") instanceof String)
-                    && q.getOptions().stream().filter(o -> q.getCorrectOptionKey().equals(o.get("key"))).count() == 1;
+        if (type == QuestionType.MULTIPLE_CHOICE || type == QuestionType.TRUE_FALSE) {
+            if (q.getOptions() == null || q.getOptions().size() < 2) return false;
+            boolean allOptionsValid = q.getOptions().stream().allMatch(o -> {
+                if (!(o.get("key") instanceof String key) || key.isBlank()) return false;
+                Object body = o.get("content") != null ? o.get("content") : o.get("text");
+                return body instanceof String text && !text.isBlank();
+            });
+            if (!allOptionsValid) return false;
+            String correctKey = q.getCorrectOptionKey().trim();
+            return q.getOptions().stream().anyMatch(o -> {
+                Object k = o.get("key");
+                return k instanceof String key && key.trim().equalsIgnoreCase(correctKey);
+            });
+        }
         return true;
     }
 }

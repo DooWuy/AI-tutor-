@@ -5,6 +5,7 @@ import com.vn.aitutor.dto.request.quiz.QuizGenerateRequest;
 import com.vn.aitutor.dto.request.quiz.QuizPublishRequest;
 import com.vn.aitutor.dto.request.quiz.QuizUpsertRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
+import com.vn.aitutor.dto.response.quiz.QuizClassRef;
 import com.vn.aitutor.dto.response.quiz.QuizResponse;
 import com.vn.aitutor.dto.response.quiz.QuizStatisticsResponse;
 import com.vn.aitutor.security.principal.UserPrincipal;
@@ -82,7 +83,19 @@ public class QuizManagementController {
             @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(ok(
                 "Đã phát hành đề thi",
-                quizManagementService.publish(quizId, request.getClassIds(), principal)));
+                quizManagementService.publish(
+                        quizId,
+                        request.getClassIds(),
+                        request.getStudyClassIds(),
+                        request.getAvailableFrom(),
+                        request.getAvailableUntil(),
+                        principal)));
+    }
+
+    @GetMapping("/publish-study-classes")
+    public ResponseEntity<ApiResponse<List<QuizClassRef>>> studyPublishTargets(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(ok("Lấy lớp học thêm có thể phát hành", quizManagementService.listStudyPublishTargets(principal)));
     }
 
     @PostMapping("/{quizId}/archive")

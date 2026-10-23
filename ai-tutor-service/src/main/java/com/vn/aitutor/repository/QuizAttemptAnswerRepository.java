@@ -27,7 +27,15 @@ public interface QuizAttemptAnswerRepository extends JpaRepository<QuizAttemptAn
                     JOIN quizzes qz ON qz.id = qa.quiz_id
                     JOIN students s ON s.id = qa.student_id
                     JOIN users u ON u.id = s.user_id
-                    WHERE s.class_id = :classId
+                    WHERE (
+                      s.class_id = :classId
+                      OR EXISTS (
+                        SELECT 1 FROM study_class_enrollments sce
+                        WHERE sce.class_id = :classId
+                          AND sce.student_id = s.id
+                          AND sce.status = 'APPROVED'
+                      )
+                    )
                       AND u.is_deleted = FALSE
                       AND u.is_active = TRUE
                       AND qa.submitted_at >= :fromTs

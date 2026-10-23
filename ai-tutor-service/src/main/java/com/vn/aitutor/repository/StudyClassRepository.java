@@ -22,6 +22,10 @@ public interface StudyClassRepository extends JpaRepository<StudyClass, UUID> {
 
     List<StudyClass> findByTeacher_IdOrderByCreatedAtDesc(UUID teacherId);
 
+    List<StudyClass> findByTeacher_IdAndStatusOrderByNameAsc(UUID teacherId, StudyClassStatus status);
+
+    List<StudyClass> findAllByOrderByNameAsc();
+
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
             UPDATE StudyClass c

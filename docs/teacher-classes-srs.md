@@ -144,7 +144,7 @@ Bảng mới `quiz_class_assignments`:
 
 Unique `(quiz_id, class_id)`.
 
-Migration `V8__quiz_class_assignments.sql` thêm sau `V7`, không sửa các migration đã chạy. Đề đang `PUBLISHED` được gán vào mọi `school_classes` có cùng khối. Đề published không có lớp cùng khối sẽ không hiện với học sinh cho đến khi được phát hành lại.
+Bảng `quiz_class_assignments` nằm trong `V1__init_schema.sql`. Đề published không có lớp cùng khối sẽ không hiện với học sinh cho đến khi được phát hành lại.
 
 ## 7. API
 
@@ -203,9 +203,11 @@ Desktop dùng bảng. Màn hẹp dùng thẻ. Chữ trên trang là tiếng Vi�
 
 ## 11. Lớp học thêm
 
-Lớp nhà trường ở các mục trên vẫn chỉ đọc. Lớp học thêm là bảng `study_classes` và `study_class_enrollments`, migration `V9__study_classes.sql`. Giáo viên tạo tối đa 4 lớp `ACTIVE`. Lớp được phân công không tính vào 4. Hết `end_date` hoặc bấm giải tán thì lớp thành `DISSOLVED` và không sửa lại.
+Lớp nhà trường ở các mục trên vẫn chỉ đọc. Lớp học thêm là bảng `study_classes` và `study_class_enrollments`, migration `V2__study_classes.sql`. Giáo viên tạo tối đa 4 lớp `ACTIVE`. Lớp được phân công không tính vào 4. Hết `end_date` hoặc bấm giải tán thì lớp thành `DISSOLVED` và không sửa lại.
 
-Học sinh xin vào bằng mã 6 ký tự. Duyệt hoặc từ chối không đổi `students.class_id` và không đổi đề chính thức của lớp nhà trường.
+Học sinh xin vào bằng mã 6 ký tự. Duyệt hoặc từ chối không đổi `students.class_id`.
+
+Phát hành đề cho lớp học thêm dùng bảng `quiz_study_class_assignments`, migration `V5__quiz_study_class_assignments.sql`. Một lần phát hành gửi cả `classIds` và `studyClassIds`; danh sách nào bỏ trống thì gỡ các lớp thuộc danh sách đó. Cùng lần phát hành có thể gửi `availableFrom` và `availableUntil` (timestamptz, migration `V6__quiz_availability_window.sql`). Bỏ trống nghĩa là mở ngay và không khóa giờ. Nếu có cả hai mốc thì mốc kết thúc phải sau mốc bắt đầu. Học sinh chỉ tạo bài làm mới khi thời điểm hiện tại nằm trong khoảng đó. Bài đã nộp vẫn xem được câu hỏi, đáp án của học sinh và đáp án đúng sau khi hết giờ. Lớp nhà trường vẫn phải cùng khối và nằm trong phân công. Lớp học thêm phải còn `ACTIVE`. Giáo viên chỉ phát hành cho lớp học thêm của mình. Admin phát hành cho mọi lớp học thêm đang hoạt động. Học sinh thấy đề khi đã được duyệt và lớp còn hoạt động, kể cả khi chưa có lớp nhà trường hoặc khác khối. Lớp đã giải tán không còn đưa đề cho học sinh. Dữ liệu phân tích của lớp học thêm tính trên mọi hoạt động của học sinh đã duyệt, dùng ngưỡng cảnh báo mặc định và chưa gửi tin phụ huynh.
 
 | Method | Đường dẫn | Việc |
 |---|---|---|
@@ -214,8 +216,16 @@ Học sinh xin vào bằng mã 6 ký tự. Duyệt hoặc từ chối không đ�
 | GET | `/api/v1/teacher/study-classes/{id}` | Chi tiết và học sinh đã duyệt |
 | PUT | `/api/v1/teacher/study-classes/{id}` | Sửa khi còn hoạt động |
 | POST | `/api/v1/teacher/study-classes/{id}/dissolve` | Giải tán |
+| GET | `/api/v1/teacher/study-classes/{id}/students` | Sĩ số đã duyệt, tìm kiếm và phân trang |
+| GET | `/api/v1/teacher/study-classes/{id}/students/{studentId}` | Hồ sơ học sinh chỉ đọc |
+| GET | `/api/v1/teacher/study-classes/{id}/quizzes` | Đề đã phát hành cho lớp |
 | GET | `/api/v1/teacher/study-classes/{id}/requests` | Yêu cầu chờ |
 | POST | `/api/v1/teacher/study-classes/{id}/requests/{requestId}/action` | `approve` hoặc `reject` |
+| GET | `/api/v1/student/study-classes` | Lớp đã xin vào, đang chờ hoặc đã tham gia |
+| GET | `/api/v1/student/study-classes/school-class` | Lớp nhà trường học sinh đang học |
+| GET | `/api/v1/student/study-classes/quizzes` | Đề giáo viên đã và đang phát hành cho lớp của học sinh |
 | POST | `/api/v1/student/study-classes/join` | Xin vào bằng mã lớp |
+| GET | `/api/v1/quizzes/publish-study-classes` | Lớp học thêm đang hoạt động mà người dùng được phát hành |
+| POST | `/api/v1/quizzes/{id}/publish` | Thêm `studyClassIds` bên cạnh `classIds` |
 
-Giao diện: khối lớp học thêm trên `/teacher/classes`, chi tiết `/teacher/study-classes/{id}`, học sinh nhập mã tại `/student/classes`.
+Giao diện: khối lớp học thêm trên `/teacher/classes`, chi tiết `/teacher/study-classes/{id}` có sĩ số, hồ sơ học sinh và đề đã phát hành, phân tích tại `/teacher/analytics?classId=`. Modal phát hành có ngày giờ bắt đầu và kết thúc. Học sinh mở `/student/classes`: tab Lớp học xem lớp đang học, tab Đề thi xem đề đã và đang phát hành, làm bài trong khung giờ và xem bài đã nộp.

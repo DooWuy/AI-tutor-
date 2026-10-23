@@ -37,6 +37,57 @@ export interface StudyClassJoinResult {
   status: EnrollmentStatus;
 }
 
+export interface StudentSchoolClass {
+  id: string;
+  name: string;
+  gradeLevel: string;
+  schoolName: string | null;
+  academicYear: string;
+}
+
+export interface StudentPublishedQuiz {
+  id: string;
+  title: string;
+  subject: string;
+  questionCount: number;
+  timeLimitMinutes: number;
+  availableFrom: string | null;
+  availableUntil: string | null;
+  phase: 'UPCOMING' | 'OPEN' | 'CLOSED' | string;
+  classNames: string;
+  teacherName: string | null;
+  attemptId: string | null;
+  score: number | null;
+  submittedAt: string | null;
+  canStart: boolean;
+  canReview: boolean;
+}
+
+export interface StudentStudyQuiz {
+  id: string;
+  title: string;
+  subject: string;
+  questionCount: number;
+  timeLimitMinutes: number;
+}
+
+export interface StudentStudyClassCard {
+  enrollmentId: string;
+  enrollmentStatus: EnrollmentStatus;
+  requestedAt: string;
+  classId: string;
+  name: string;
+  description: string | null;
+  classCode: string;
+  classStatus: StudyClassStatus;
+  teacherName: string | null;
+  startDate: string;
+  endDate: string | null;
+  maxStudents: number;
+  approvedCount: number;
+  quizzes: StudentStudyQuiz[];
+}
+
 export interface StudyClassCreateInput {
   name: string;
   description?: string;

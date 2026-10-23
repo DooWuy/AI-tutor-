@@ -1,7 +1,23 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { actOnStudyRequest, dissolveStudyClass, getStudyClass, listStudyRequests, updateStudyClass } from '../../../services/studyClassApi';
+import { actOnStudyRequest, dissolveStudyClass, getStudyClass, listStudyClassQuizzes, listStudyClassStudents, listStudyRequests, updateStudyClass } from '../../../services/studyClassApi';
+import type { AdminStudentListItem, PageResponse, SortDirection, StudentSortField } from '../../../types/adminStudent';
+import { formatQuizWindow, subjectLabel } from '../../../types/assessment';
+import type { TeacherClassQuiz } from '../../../types/teacherClass';
 import type { StudyClass, StudyMember } from '../../../types/studyClass';
+
+const number = new Intl.NumberFormat('vi-VN');
+const sorts: { label: string; sort: StudentSortField; direction: SortDirection }[] = [
+  { label: 'Tên A-Z', sort: 'fullName', direction: 'asc' },
+  { label: 'XP cao nhất', sort: 'totalXp', direction: 'desc' },
+  { label: 'Hoạt động gần đây', sort: 'lastActivityDate', direction: 'desc' },
+];
+
+function formatDate(value: string | null) {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? '—' : parsed.toLocaleDateString('vi-VN');
+}
 
 export default function StudyClassDetailPage() {
   const { classId = '' } = useParams();
@@ -15,6 +31,12 @@ export default function StudyClassDetailPage() {
   const [notice, setNotice] = useState('');
   const [confirmDissolve, setConfirmDissolve] = useState(false);
   const [reload, setReload] = useState(0);
+  const [students, setStudents] = useState<PageResponse<AdminStudentListItem> | null>(null);
+  const [quizzes, setQuizzes] = useState<TeacherClassQuiz[]>([]);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState(sorts[0]);
 
   useEffect(() => {
     let disposed = false;
@@ -36,6 +58,33 @@ export default function StudyClassDetailPage() {
       disposed = true;
     };
   }, [classId, reload]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [searchInput]);
+
+  useEffect(() => {
+    let disposed = false;
+    Promise.all([
+      listStudyClassStudents(classId, { search, page, size: 20, sort: sort.sort, direction: sort.direction }),
+      listStudyClassQuizzes(classId),
+    ])
+      .then(([roster, published]) => {
+        if (disposed) return;
+        setStudents(roster);
+        setQuizzes(published);
+      })
+      .catch((err: unknown) => {
+        if (!disposed) setError(err instanceof Error ? err.message : 'Không tải được sĩ số');
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [classId, search, page, sort, reload]);
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -79,6 +128,7 @@ export default function StudyClassDetailPage() {
   }
 
   const active = studyClass?.status === 'ACTIVE';
+  const rows = students?.content || [];
 
   return (
     <section className="space-y-6">
@@ -93,9 +143,14 @@ export default function StudyClassDetailPage() {
               <h1 className="text-2xl font-bold text-on-surface">{studyClass.name}</h1>
               <p className="mt-1 text-sm text-on-surface-variant">Mã lớp {studyClass.classCode} · {studyClass.approvedCount}/{studyClass.maxStudents} học sinh</p>
             </div>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${active ? 'bg-primary/10 text-primary' : 'bg-surface-container text-on-surface-variant'}`}>
-              {active ? 'Đang hoạt động' : 'Đã giải tán'}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link to={`/teacher/analytics?classId=${classId}`} className="rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold">
+                Xem phân tích lớp
+              </Link>
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${active ? 'bg-primary/10 text-primary' : 'bg-surface-container text-on-surface-variant'}`}>
+                {active ? 'Đang hoạt động' : 'Đã giải tán'}
+              </span>
+            </div>
           </div>
           <form className="space-y-3 rounded-2xl border border-outline-variant bg-surface p-4" onSubmit={save}>
             <label className="block text-sm font-semibold text-on-surface">
@@ -123,18 +178,102 @@ export default function StudyClassDetailPage() {
               </div>
             ) : null}
           </form>
-          <div>
+          <div className="space-y-3">
             <h2 className="text-lg font-bold text-on-surface">Học sinh đã duyệt</h2>
-            {(studyClass.members ?? []).length === 0 ? <p className="mt-2 text-sm text-on-surface-variant">Chưa có học sinh nào.</p> : (
-              <ul className="mt-2 space-y-2">
-                {(studyClass.members ?? []).map((member) => (
-                  <li key={member.id} className="rounded-xl border border-outline-variant px-3 py-2 text-sm">
-                    <span className="font-semibold text-on-surface">{member.fullName}</span>
-                    <span className="text-on-surface-variant"> · {member.studentCode} · {member.email}</span>
-                  </li>
-                ))}
-              </ul>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <label className="flex flex-1 flex-col gap-1 text-sm font-medium text-on-surface">
+                Tìm học sinh
+                <input
+                  className="rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm"
+                  value={searchInput}
+                  placeholder="Tên, email, username hoặc mã học sinh"
+                  onChange={(event) => setSearchInput(event.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium text-on-surface">
+                Sắp xếp
+                <select
+                  className="rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm"
+                  value={`${sort.sort}:${sort.direction}`}
+                  onChange={(event) => {
+                    const next = sorts.find((item) => `${item.sort}:${item.direction}` === event.target.value) || sorts[0];
+                    setSort(next);
+                    setPage(1);
+                  }}
+                >
+                  {sorts.map((item) => (
+                    <option key={`${item.sort}:${item.direction}`} value={`${item.sort}:${item.direction}`}>{item.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {rows.length === 0 ? (
+              <p className="text-sm text-on-surface-variant">{search ? 'Không có học sinh phù hợp.' : 'Chưa có học sinh nào.'}</p>
+            ) : (
+              <>
+                <div className="hidden overflow-x-auto rounded-2xl border border-outline-variant md:block">
+                  <table className="w-full min-w-[760px] text-left text-sm">
+                    <thead className="bg-surface-container text-on-surface-variant">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold">Học sinh</th>
+                        <th className="px-4 py-3 font-semibold">Mã</th>
+                        <th className="px-4 py-3 font-semibold">Email</th>
+                        <th className="px-4 py-3 font-semibold">XP</th>
+                        <th className="px-4 py-3 font-semibold">Level</th>
+                        <th className="px-4 py-3 font-semibold">Streak</th>
+                        <th className="px-4 py-3 font-semibold">Hoạt động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((student) => (
+                        <tr key={student.studentId} className="border-t border-outline-variant">
+                          <td className="px-4 py-3">
+                            <Link className="font-semibold text-primary hover:underline" to={`/teacher/study-classes/${classId}/students/${student.studentId}`}>
+                              {student.fullName}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3">{student.studentCode}</td>
+                          <td className="px-4 py-3">{student.email}</td>
+                          <td className="px-4 py-3">{number.format(student.totalXp)}</td>
+                          <td className="px-4 py-3">{student.currentLevel}</td>
+                          <td className="px-4 py-3">{student.currentStreak}</td>
+                          <td className="px-4 py-3">{formatDate(student.lastActivityDate)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="space-y-3 md:hidden">
+                  {rows.map((student) => (
+                    <Link key={student.studentId} to={`/teacher/study-classes/${classId}/students/${student.studentId}`} className="block rounded-2xl border border-outline-variant p-4">
+                      <p className="font-semibold text-primary">{student.fullName}</p>
+                      <p className="mt-1 text-xs text-on-surface-variant">{student.studentCode} · {student.email}</p>
+                      <p className="mt-2 text-sm">{number.format(student.totalXp)} XP · Level {student.currentLevel} · Streak {student.currentStreak}</p>
+                    </Link>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <button type="button" className="rounded-xl border border-outline-variant px-3 py-2 disabled:opacity-40" disabled={!students?.hasPrevious} onClick={() => setPage((value) => value - 1)}>Trước</button>
+                  <span>Trang {students?.page || page}/{students?.totalPages || 1}</span>
+                  <button type="button" className="rounded-xl border border-outline-variant px-3 py-2 disabled:opacity-40" disabled={!students?.hasNext} onClick={() => setPage((value) => value + 1)}>Sau</button>
+                </div>
+              </>
             )}
+          </div>
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold text-on-surface">Đề đã phát hành</h2>
+            {quizzes.length === 0 ? <p className="text-sm text-on-surface-variant">Chưa có đề nào được phát hành cho lớp này.</p> : null}
+            <div className="grid gap-3 md:grid-cols-2">
+              {quizzes.map((quiz) => (
+                <article key={quiz.id} className="rounded-2xl border border-outline-variant p-4">
+                  <h3 className="font-semibold text-on-surface">{quiz.title}</h3>
+                  <p className="mt-1 text-sm text-on-surface-variant">
+                    {subjectLabel(quiz.subject)} · {quiz.questionCount} câu · {quiz.attemptCount} lượt làm · {quiz.timeLimitMinutes} phút · {formatQuizWindow(quiz.availableFrom, quiz.availableUntil)}
+                  </p>
+                  <Link className="mt-3 inline-block text-sm font-semibold text-primary" to={`/teacher/quizzes/${quiz.id}/statistics`}>Xem thống kê</Link>
+                </article>
+              ))}
+            </div>
           </div>
           <div>
             <h2 className="text-lg font-bold text-on-surface">Yêu cầu gia nhập</h2>

@@ -13,6 +13,7 @@ export interface ClassOption {
   name: string;
   gradeLevel: string;
   isHomeroom: boolean;
+  studyClass?: boolean;
 }
 
 export interface SubjectOption {

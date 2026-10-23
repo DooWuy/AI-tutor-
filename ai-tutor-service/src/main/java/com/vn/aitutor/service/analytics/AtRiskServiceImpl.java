@@ -12,12 +12,14 @@ import com.vn.aitutor.dto.response.analytics.ParentMessageDraftResponse;
 import com.vn.aitutor.entity.ClassAlertSetting;
 import com.vn.aitutor.entity.SchoolClass;
 import com.vn.aitutor.entity.Student;
+import com.vn.aitutor.entity.StudyClassEnrollment;
 import com.vn.aitutor.entity.User;
 import com.vn.aitutor.entity.enums.ReportPeriod;
 import com.vn.aitutor.entity.enums.RiskLevel;
 import com.vn.aitutor.entity.enums.SubjectCode;
 import com.vn.aitutor.exception.ResourceNotFoundException;
 import com.vn.aitutor.repository.ClassAlertSettingRepository;
+import com.vn.aitutor.repository.StudyClassEnrollmentRepository;
 import com.vn.aitutor.repository.QuizAttemptAnswerRepository;
 import com.vn.aitutor.repository.QuizAttemptRepository;
 import com.vn.aitutor.repository.StudentRepository;
@@ -53,6 +55,7 @@ public class AtRiskServiceImpl implements IAtRiskService {
     private final QuizAttemptRepository quizAttemptRepository;
     private final QuizAttemptAnswerRepository answerRepository;
     private final ClassAlertSettingRepository alertSettingRepository;
+    private final StudyClassEnrollmentRepository enrollmentRepository;
 
     @Override
     public AtRiskListResponse list(
@@ -62,13 +65,12 @@ public class AtRiskServiceImpl implements IAtRiskService {
             ReportPeriod period,
             LocalDate from,
             LocalDate to) {
-        SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, classId);
-        return listClass(schoolClass, subject, period, from, to);
+        return listClass(analyticsAccess.requireScope(principal, classId), subject, period, from, to);
     }
 
     @Override
     public int[] countLevels(SchoolClass schoolClass) {
-        AtRiskListResponse response = listClass(schoolClass, SubjectCode.ALL, ReportPeriod.LAST_7_DAYS, null, null);
+        AtRiskListResponse response = listClass(ReadableClass.of(schoolClass), SubjectCode.ALL, ReportPeriod.LAST_7_DAYS, null, null);
         return counts(response.getStudents());
     }
 
@@ -81,18 +83,22 @@ public class AtRiskServiceImpl implements IAtRiskService {
             ReportPeriod period,
             LocalDate from,
             LocalDate to) {
-        SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, classId);
-        AtRiskStudentDto assessed = requireStudent(schoolClass, studentId, subject, period, from, to);
+        ReadableClass scope = analyticsAccess.requireScope(principal, classId);
+        AtRiskStudentDto assessed = requireInScope(scope, studentId, subject, period, from, to);
         String teacherName = principal.getUsers() == null ? null : principal.getUsers().getFullName();
+        String schoolName = scope.schoolName();
+        if (schoolName == null || schoolName.isBlank()) {
+            schoolName = scope.studyClass() ? "Lớp học thêm" : "Nhà trường";
+        }
         String body = ParentMessageComposer.compose(
-                templateOf(schoolClass.getId()),
+                templateOf(scope.id()),
                 assessed.getFullName(),
                 assessed.getInactiveDays(),
                 assessed.getAverageScore(),
                 assessed.getSubjects(),
                 assessed.getGapTopics(),
                 teacherName,
-                schoolClass.getSchoolName());
+                schoolName);
         return ParentMessageDraftResponse.builder()
                 .studentId(studentId)
                 .fullName(assessed.getFullName())
@@ -114,24 +120,34 @@ public class AtRiskServiceImpl implements IAtRiskService {
             ReportPeriod period,
             LocalDate from,
             LocalDate to) {
-        return assess(schoolClass, subject, period, from, to).stream()
+        return requireInScope(ReadableClass.of(schoolClass), studentId, subject, period, from, to);
+    }
+
+    private AtRiskStudentDto requireInScope(
+            ReadableClass readable,
+            UUID studentId,
+            String subject,
+            ReportPeriod period,
+            LocalDate from,
+            LocalDate to) {
+        return assess(readable, subject, period, from, to).stream()
                 .filter(student -> studentId.equals(student.getStudentId()))
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Học sinh không thuộc lớp này"));
     }
 
     private AtRiskListResponse listClass(
-            SchoolClass schoolClass, String subject, ReportPeriod period, LocalDate from, LocalDate to) {
+            ReadableClass readable, String subject, ReportPeriod period, LocalDate from, LocalDate to) {
         ResolvedScope scope = resolve(subject, period, from, to);
-        List<AtRiskStudentDto> flagged = assess(schoolClass, subject, period, from, to).stream()
+        List<AtRiskStudentDto> flagged = assess(readable, subject, period, from, to).stream()
                 .filter(student -> student.getLevel() != null)
                 .sorted(Comparator.comparingInt((AtRiskStudentDto student) -> student.getLevel() == RiskLevel.RED ? 0 : 1)
                         .thenComparing(AtRiskStudentDto::getFullName, Comparator.nullsLast(String::compareTo)))
                 .toList();
         return AtRiskListResponse.builder()
                 .filters(AppliedFiltersDto.builder()
-                        .classId(schoolClass.getId())
-                        .className(schoolClass.getName())
+                        .classId(readable.id())
+                        .className(readable.name())
                         .subject(scope.subjectCode())
                         .period(scope.period().name())
                         .from(scope.range().from())
@@ -143,13 +159,13 @@ public class AtRiskServiceImpl implements IAtRiskService {
     }
 
     private List<AtRiskStudentDto> assess(
-            SchoolClass schoolClass, String subject, ReportPeriod period, LocalDate from, LocalDate to) {
+            ReadableClass readable, String subject, ReportPeriod period, LocalDate from, LocalDate to) {
         ResolvedScope scope = resolve(subject, period, from, to);
-        AlertThresholds thresholds = thresholdsOf(schoolClass.getId());
+        AlertThresholds thresholds = thresholdsOf(readable.id());
         Instant now = Instant.now();
         Map<UUID, StudentScoreRow> scores = new HashMap<>();
         List<StudentScoreRow> scoreRows = quizAttemptRepository.studentScores(
-                schoolClass.getId(), scope.range().from(), scope.range().to(), scope.subjectFilter());
+                readable.id(), scope.range().from(), scope.range().to(), scope.subjectFilter());
         if (scoreRows != null) {
             for (StudentScoreRow row : scoreRows) {
                 if (row.getStudentId() != null) {
@@ -158,10 +174,10 @@ public class AtRiskServiceImpl implements IAtRiskService {
             }
         }
         Map<UUID, Map<String, GapTally>> gaps = gapTallies(
-                schoolClass.getId(), scope.range().from(), scope.range().to(), scope.subjectFilter());
+                readable.id(), scope.range().from(), scope.range().to(), scope.subjectFilter());
 
         List<AtRiskStudentDto> result = new ArrayList<>();
-        for (Student student : activeStudents(schoolClass.getId())) {
+        for (Student student : activeStudents(readable)) {
             StudentScoreRow score = scores.get(student.getId());
             BigDecimal average = score == null
                     ? null
@@ -227,8 +243,15 @@ public class AtRiskServiceImpl implements IAtRiskService {
         return byStudent;
     }
 
-    private List<Student> activeStudents(UUID classId) {
-        List<Student> students = studentRepository.findWithUserByClassId(classId);
+    private List<Student> activeStudents(ReadableClass readable) {
+        if (readable.studyClass()) {
+            List<StudyClassEnrollment> rows = enrollmentRepository.findApprovedWithUser(readable.id());
+            if (rows == null) {
+                return List.of();
+            }
+            return rows.stream().map(StudyClassEnrollment::getStudent).filter(this::isActive).toList();
+        }
+        List<Student> students = studentRepository.findWithUserByClassId(readable.id());
         if (students == null) {
             return List.of();
         }

@@ -45,7 +45,7 @@ class ReportExportServiceTest {
     void pdfAndExcelRefuseUnassignedTeacher() {
         UUID classId = UUID.randomUUID();
         UserPrincipal principal = principal();
-        when(analyticsAccess.requireReadableClass(principal, classId))
+        when(analyticsAccess.requireScope(principal, classId))
                 .thenThrow(new ResourceForbiddenException("Giáo viên không được phân quyền xem lớp học này"));
 
         assertThrows(

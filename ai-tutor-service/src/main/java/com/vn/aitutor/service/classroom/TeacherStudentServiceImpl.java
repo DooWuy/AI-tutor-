@@ -105,6 +105,11 @@ public class TeacherStudentServiceImpl implements ITeacherStudentService {
                 Sort.by(order.getDirection(), property));
     }
 
+    @Override
+    public StudentAdminListItemResponse toRosterItem(Student student) {
+        return toListItem(student);
+    }
+
     private StudentAdminListItemResponse toListItem(Student student) {
         User user = student.getUser();
         return StudentAdminListItemResponse.builder().studentId(student.getId()).userId(user.getId())
