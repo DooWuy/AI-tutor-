@@ -7,7 +7,6 @@ import com.vn.aitutor.analytics.ReportFileNames;
 import com.vn.aitutor.dto.response.analytics.ClassReportResponse;
 import com.vn.aitutor.dto.response.analytics.DashboardSummaryResponse;
 import com.vn.aitutor.dto.response.analytics.KnowledgeGapsResponse;
-import com.vn.aitutor.entity.SchoolClass;
 import com.vn.aitutor.entity.enums.ReportPeriod;
 import com.vn.aitutor.entity.enums.SubjectCode;
 import com.vn.aitutor.repository.QuizAttemptRepository;
@@ -44,18 +43,18 @@ public class ReportExportServiceImpl implements IReportExportService {
             ReportPeriod period,
             LocalDate from,
             LocalDate to) {
-        SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, classId);
+        ReadableClass scope = analyticsAccess.requireScope(principal, classId);
         DashboardSummaryResponse summary = analyticsService.getSummary(principal, classId, subject, period, from, to);
         KnowledgeGapsResponse gaps = knowledgeGapService.getGaps(principal, classId, subject, period, from, to);
-        String schoolName = schoolClass.getSchoolName();
+        String schoolName = scope.schoolName();
         if (schoolName == null || schoolName.isBlank()) {
-            schoolName = "AI Tutor";
+            schoolName = scope.studyClass() ? "Lớp học thêm" : "AI Tutor";
         }
         String reporter = principal.getUsers() == null ? "Giáo viên" : principal.getUsers().getFullName();
         return ClassReportResponse.builder()
                 .schoolName(schoolName)
                 .reporterName(reporter)
-                .className(schoolClass.getName())
+                .className(scope.name())
                 .summary(summary)
                 .knowledgeGaps(gaps)
                 .build();
@@ -74,13 +73,13 @@ public class ReportExportServiceImpl implements IReportExportService {
             ReportPeriod period,
             LocalDate from,
             LocalDate to) {
-        SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, classId);
+        ReadableClass scope = analyticsAccess.requireScope(principal, classId);
         ReportPeriod resolved = period == null ? ReportPeriod.LAST_7_DAYS : period;
         String subjectFilter = SubjectCode.normalizeFilter(subject);
         AcademicCalendar.DateRange range = academicCalendar.resolve(resolved, from, to, Instant.now());
         List<RawScoreRow> rows =
                 quizAttemptRepository.findRawScores(classId, range.from(), range.to(), subjectFilter);
-        return new ExportFile(ReportFileNames.excel(schoolClass.getName()), ExcelScoreWorkbook.write(rows));
+        return new ExportFile(ReportFileNames.excel(scope.name()), ExcelScoreWorkbook.write(rows));
     }
 
     @Override

@@ -46,8 +46,11 @@ export const PracticeTopicPage: React.FC = () => {
       sessionStorage.setItem(`quiz-draft:${getStoredSession()?.user.userId}:${selectedQuiz.id}`, draft.draftId);
       if (draft.attemptId) navigate(`/student/quiz-results/${draft.attemptId}`);
       else navigate(`/student/quiz-attempt/${selectedQuiz.id}`, { state: { draftId: draft.draftId } });
-    } catch (ex) { setError(ex instanceof Error ? ex.message : 'Không thể mở bài thi.'); }
-    finally { setStarting(false); }
+    } catch (ex) {
+      const msg = ex instanceof Error ? ex.message : 'Không thể mở bài thi.';
+      setError(msg.includes('incomplete') ? 'Đề thi chưa hoàn thiện câu hỏi hoặc đang được giáo viên cập nhật. Vui lòng liên hệ giáo viên.' : msg);
+      setShowConfirmModal(false);
+    } finally { setStarting(false); }
   };
 
   const quizzes = activeTab === 'ASSIGNED' ? assignedQuizzes : customQuizzes;

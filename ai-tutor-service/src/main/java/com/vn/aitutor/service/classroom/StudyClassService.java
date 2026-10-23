@@ -97,9 +97,14 @@ public class StudyClassService {
     }
 
     @Transactional
-    public StudyClassResponse get(UserPrincipal principal, UUID classId) {
+    public StudyClass owned(UserPrincipal principal, UUID classId) {
         dissolveExpired();
-        return toResponse(requireOwned(requireTeacher(principal), classId), true);
+        return requireOwned(requireTeacher(principal), classId);
+    }
+
+    @Transactional
+    public StudyClassResponse get(UserPrincipal principal, UUID classId) {
+        return toResponse(owned(principal, classId), true);
     }
 
     @Transactional

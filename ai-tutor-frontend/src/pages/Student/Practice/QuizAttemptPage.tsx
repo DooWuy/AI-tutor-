@@ -18,6 +18,11 @@ function QuizAttemptSession({ quizId }: { quizId: string }) {
   const draftKey = `quiz-draft:${getStoredSession()?.user.userId}:${quizId}`;
   const location = useLocation();
   const navigate = useNavigate();
+  const resultUrl = (attemptId: string) => (
+    (location.state as { from?: string } | null)?.from === 'classes'
+      ? `/student/quiz-results/${attemptId}?from=classes`
+      : `/student/quiz-results/${attemptId}`
+  );
   const [quiz, setQuiz] = useState<QuizContent | null>(null);
   const [draft, setDraft] = useState<QuizDraft | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -48,7 +53,7 @@ function QuizAttemptSession({ quizId }: { quizId: string }) {
         const storedId = location.state?.draftId || sessionStorage.getItem(draftKey);
         const started = storedId ? await studentQuizApi.getDraft(storedId) : await studentQuizApi.saveDraft(quizId, []);
         if (cancelled) return;
-        if (started.attemptId) { navigate(`/student/quiz-results/${started.attemptId}`, { replace: true }); return; }
+        if (started.attemptId) { navigate(resultUrl(started.attemptId), { replace: true }); return; }
         if (started.quizId !== quizId) throw new Error('Bài làm không thuộc đề này.');
         sessionStorage.setItem(draftKey, started.draftId);
         let cached: Record<string, string> = {};
@@ -82,7 +87,7 @@ function QuizAttemptSession({ quizId }: { quizId: string }) {
         if (ex instanceof QuizApiError && ex.status === 409) {
           try {
             const state = await studentQuizApi.getDraft(current.draftId);
-            if (state.attemptId) navigate(`/student/quiz-results/${state.attemptId}`, { replace: true });
+            if (state.attemptId) navigate(resultUrl(state.attemptId), { replace: true });
             else if (mounted.current) { setExpired(true); setError('Bài đã hết giờ. Hãy nộp để xem kết quả.'); }
           } catch { /* preserve retry state */ }
         }
@@ -99,7 +104,7 @@ function QuizAttemptSession({ quizId }: { quizId: string }) {
       await inFlight.current.catch(() => undefined);
       const result = await studentQuizApi.submit(current.draftId, valuesOf(latest.current));
       sessionStorage.removeItem(`quiz-answers:${current.draftId}`);
-      navigate(`/student/quiz-results/${result.id}`, { replace: true });
+      navigate(resultUrl(result.id), { replace: true });
     } catch (ex) {
       submitLock.current = false;
       if (mounted.current) { setSubmitting(false); setError(ex instanceof Error ? ex.message : 'Không thể nộp bài. Hãy thử lại.'); }
@@ -137,7 +142,7 @@ function QuizAttemptSession({ quizId }: { quizId: string }) {
       try {
         const state = await studentQuizApi.getDraft(current.draftId);
         if (!mounted.current) return;
-        if (state.attemptId) { navigate(`/student/quiz-results/${state.attemptId}`, { replace: true }); return; }
+        if (state.attemptId) { navigate(resultUrl(state.attemptId), { replace: true }); return; }
         deadline.current = performance.now() + new Date(state.expiresAt).getTime() - new Date(state.serverTime).getTime();
         if (performance.now() >= deadline.current) void submit(true); else void save().catch(() => undefined);
       } catch { if (mounted.current) setSaving('Chưa lưu được — đang chờ kết nối'); }
@@ -155,7 +160,10 @@ function QuizAttemptSession({ quizId }: { quizId: string }) {
     const next = { ...latest.current, [questionId]: value }; latest.current = next; setValues(next); setSaving('Đang lưu…');
     if (activeDraft.current) sessionStorage.setItem(`quiz-answers:${activeDraft.current.draftId}`, JSON.stringify(next));
   };
-  if (!quiz || !draft) return <div className="quiz-page"><p role="status">{error || 'Đang tải bài làm…'}</p>{error && <><button onClick={() => setRetryLoad(n => n + 1)}>Thử lại</button><Link to="/student/practice">Quay lại luyện tập</Link></>}</div>;
+  if (!quiz || !draft) {
+    const backHref = (location.state as { from?: string } | null)?.from === 'classes' ? '/student/classes?tab=quizzes' : '/student/practice';
+    return <div className="quiz-page"><p role="status">{error || 'Đang tải bài làm…'}</p>{error && <><button onClick={() => setRetryLoad(n => n + 1)}>Thử lại</button><Link to={backHref}>Quay lại</Link></>}</div>;
+  }
   const question = quiz.questions[index];
   const answered = Object.values(values).filter(value => value.trim()).length;
   const locked = expired || submitting;
@@ -180,7 +188,7 @@ function QuizAttemptSession({ quizId }: { quizId: string }) {
             }} /><strong>{option.key}</strong><span className="quiz-option-text"><MathMarkdown content={option.content} inline prose={false} /></span></label>;
           })}
         </> : question.type === 'MULTIPLE_CHOICE' || question.type === 'TRUE_FALSE' ? question.options.map(option => <label key={option.key} className={`quiz-option ${values[question.id] === option.key ? 'quiz-selected' : ''}`}><input type="radio" name={question.id} value={option.key} checked={values[question.id] === option.key} onChange={() => change(question.id, option.key)} /><strong>{option.key}</strong><span className="quiz-option-text"><MathMarkdown content={option.content} inline prose={false} /></span></label>)
-          : <><label htmlFor="quiz-answer">{question.type === 'FILL_IN_BLANK' ? 'Điền câu trả lời' : 'Câu trả lời ngắn'}</label><textarea id="quiz-answer" rows={4} maxLength={200} value={values[question.id] || ''} onChange={event => change(question.id, event.target.value)} placeholder="Nhập câu trả lời…" /><small>{(values[question.id] || '').length}/200 ký tự · Chấm theo đáp án chuẩn, không phân biệt hoa thường.</small></>}
+          : <><label htmlFor="quiz-answer">{question.type === 'FILL_BLANK' || question.type === 'FILL_IN_BLANK' ? 'Điền câu trả lời' : 'Câu trả lời ngắn'}</label><textarea id="quiz-answer" rows={4} maxLength={200} value={values[question.id] || ''} onChange={event => change(question.id, event.target.value)} placeholder="Nhập câu trả lời…" /><small>{(values[question.id] || '').length}/200 ký tự · Chấm theo đáp án chuẩn, không phân biệt hoa thường.</small></>}
       </fieldset>
       <footer className="quiz-navigation"><button disabled={index === 0} onClick={() => setIndex(n => n - 1)}><ArrowLeft size={18} /> Quay lại</button>{index < quiz.questions.length - 1 ? <button onClick={() => setIndex(n => n + 1)}>Tiếp theo <ArrowRight size={18} /></button> : <button className="quiz-primary" disabled={locked} onClick={() => setConfirm(true)}>Nộp bài</button>}</footer>
     </section><aside className="quiz-card"><h2>Danh sách câu hỏi</h2><div className="quiz-grid">{quiz.questions.map((q, i) => <button key={q.id} aria-label={`Câu ${i + 1}${values[q.id]?.trim() ? ', đã trả lời' : ''}`} aria-current={i === index ? 'step' : undefined} className={`${values[q.id]?.trim() ? 'quiz-answered' : ''} ${i === index ? 'quiz-current' : ''}`} onClick={() => setIndex(i)}>{i + 1}</button>)}</div><p className="quiz-save" role="status"><Cloud size={18} />{saving}</p><button className="quiz-primary quiz-full" disabled={locked} onClick={() => setConfirm(true)}>{submitting ? 'Đang nộp…' : 'Nộp bài'}</button></aside></div>

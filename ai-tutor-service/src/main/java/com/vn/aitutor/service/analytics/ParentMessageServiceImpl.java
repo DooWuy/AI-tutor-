@@ -56,6 +56,10 @@ public class ParentMessageServiceImpl implements IParentMessageService {
     @Override
     @Transactional
     public ParentMessageSendResponse send(UserPrincipal principal, UUID studentId, ParentMessageSendRequest request) {
+        if (analyticsAccess.isStudyClass(request.getClassId())) {
+            analyticsAccess.requireScope(principal, request.getClassId());
+            throw new ResourceBadRequestException("Lớp học thêm chưa gửi tin nhắn phụ huynh");
+        }
         SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, request.getClassId());
         Student student = studentRepository
                 .findWithUserById(studentId)

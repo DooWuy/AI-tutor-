@@ -67,7 +67,8 @@ export interface QuestionDraft {
 export interface QuizClassRef {
   id: string;
   name: string;
-  gradeLevel: string;
+  gradeLevel?: string | null;
+  classCode?: string | null;
 }
 
 export interface QuizItem {
@@ -89,6 +90,37 @@ export interface QuizItem {
   createdAt?: string | null;
   questions?: QuizQuestionItem[] | null;
   classes?: QuizClassRef[] | null;
+  studyClasses?: QuizClassRef[] | null;
+  availableFrom?: string | null;
+  availableUntil?: string | null;
+}
+
+export function formatQuizWindow(from?: string | null, until?: string | null) {
+  const text = (value?: string | null) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+  const start = text(from);
+  const end = text(until);
+  if (start && end) return `Mở từ ${start} đến ${end}`;
+  if (start) return `Mở từ ${start}`;
+  if (end) return `Mở đến ${end}`;
+  return 'Không giới hạn thời gian mở đề';
+}
+
+export function assignedClassLabels(quiz: { classes?: QuizClassRef[] | null; studyClasses?: QuizClassRef[] | null }) {
+  return [
+    ...(quiz.classes || []).map((item) => item.name),
+    ...(quiz.studyClasses || []).map((item) => (item.classCode ? `${item.name} (${item.classCode})` : item.name)),
+  ];
 }
 
 export interface QuizQuestionItem {

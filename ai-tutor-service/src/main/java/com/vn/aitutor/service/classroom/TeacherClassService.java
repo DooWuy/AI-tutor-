@@ -102,6 +102,8 @@ public class TeacherClassService {
                         .questionCount(questions.getOrDefault(quiz.getId(), 0L).intValue())
                         .attemptCount(attempts.getOrDefault(quiz.getId(), 0L))
                         .timeLimitMinutes(quiz.getTimeLimit() == null ? 30 : quiz.getTimeLimit())
+                        .availableFrom(quiz.getAvailableFrom())
+                        .availableUntil(quiz.getAvailableUntil())
                         .build())
                 .toList();
     }

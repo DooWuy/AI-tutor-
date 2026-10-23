@@ -85,6 +85,7 @@ function App() {
           <Route path="dashboard" element={<Navigate to="/teacher/analytics" replace />} />
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="classes" element={<ClassesPage />} />
+          <Route path="study-classes/:classId/students/:studentId" element={<TeacherStudentDetailPage />} />
           <Route path="study-classes/:classId" element={<StudyClassDetailPage />} />
           <Route path="classes/:classId" element={<ClassDetailPage />} />
           <Route path="classes/:classId/students/:studentId" element={<TeacherStudentDetailPage />} />

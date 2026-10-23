@@ -10,4 +10,5 @@ public class QuizClassRef {
     private UUID id;
     private String name;
     private String gradeLevel;
+    private String classCode;
 }

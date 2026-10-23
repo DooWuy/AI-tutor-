@@ -14,6 +14,7 @@ import com.vn.aitutor.mq.producer.QuizGenerationProducer;
 import com.vn.aitutor.repository.QuizAttemptRepository;
 import com.vn.aitutor.repository.QuizQuestionRepository;
 import com.vn.aitutor.repository.QuizRepository;
+import com.vn.aitutor.repository.QuizStudyClassAssignmentRepository;
 import com.vn.aitutor.repository.StudentRepository;
 import com.vn.aitutor.repository.UserRepository;
 import java.util.List;
@@ -34,11 +35,15 @@ class StudentQuizServiceTest {
     @Mock private QuizGenerationProducer quizGenerationProducer;
     @Mock private QuizAttemptRepository quizAttemptRepository;
     @Mock private QuizAccessService access;
+    @Mock private QuizStudyClassAssignmentRepository studyAssignments;
     @InjectMocks private StudentQuizService service;
 
     @Test
     void studentWithoutAClassSeesNoOfficialQuiz() {
-        when(access.currentStudent()).thenReturn(new Student());
+        Student student = new Student();
+        student.setId(UUID.randomUUID());
+        when(access.currentStudent()).thenReturn(student);
+        when(quizRepository.findOfficialForStudent("TOAN", null, student.getId())).thenReturn(List.of());
 
         assertTrue(service.getAssignedQuizzes("TOAN").isEmpty());
         verify(quizRepository, never()).findOfficialForClass(any(), any());
@@ -63,7 +68,7 @@ class StudentQuizServiceTest {
         quiz.setTimeLimit(20);
         quiz.setGenerationStatus("READY");
         when(access.currentStudent()).thenReturn(student);
-        when(quizRepository.findOfficialForClass("TOAN", classId)).thenReturn(List.of(quiz));
+        when(quizRepository.findOfficialForStudent("TOAN", classId, studentId)).thenReturn(List.of(quiz));
         when(quizQuestionRepository.countByQuizId(quiz.getId())).thenReturn(4L);
         when(quizAttemptRepository.existsByStudentIdAndQuizId(studentId, quiz.getId())).thenReturn(false);
 
@@ -89,7 +94,7 @@ class StudentQuizServiceTest {
         quiz.setGradeLevel("10");
         quiz.setGenerationStatus("READY");
         when(access.currentStudent()).thenReturn(student);
-        when(quizRepository.findOfficialForClass("TOAN", schoolClass.getId())).thenReturn(List.of(quiz));
+        when(quizRepository.findOfficialForStudent("TOAN", schoolClass.getId(), student.getId())).thenReturn(List.of(quiz));
 
         assertTrue(service.getAssignedQuizzes("TOAN").isEmpty());
     }

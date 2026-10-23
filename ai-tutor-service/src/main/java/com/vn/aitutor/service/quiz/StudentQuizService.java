@@ -13,6 +13,7 @@ import com.vn.aitutor.entity.enums.QuestionType;
 import com.vn.aitutor.exception.ResourceNotFoundException;
 import com.vn.aitutor.repository.QuizQuestionRepository;
 import com.vn.aitutor.repository.QuizRepository;
+import com.vn.aitutor.repository.QuizStudyClassAssignmentRepository;
 import com.vn.aitutor.repository.QuizAttemptRepository;
 import com.vn.aitutor.dto.response.quiz.QuestionBankListResponse;
 import com.vn.aitutor.repository.StudentRepository;
@@ -40,15 +41,14 @@ public class StudentQuizService {
     private final QuizGenerationProducer quizGenerationProducer;
     private final QuizAttemptRepository quizAttemptRepository;
     private final QuizAccessService access;
+    private final QuizStudyClassAssignmentRepository studyAssignments;
 
     @Transactional(readOnly = true)
     public List<StudentQuizDto> getAssignedQuizzes(String subject) {
         Student student = access.currentStudent();
-        if (student.getClassEntity() == null) {
-            return List.of();
-        }
-        List<Quiz> quizzes = quizRepository.findOfficialForClass(subject, student.getClassEntity().getId());
-        return mapToDtoList(quizzes);
+        UUID classId = student.getClassEntity() == null ? null : student.getClassEntity().getId();
+        List<Quiz> quizzes = quizRepository.findOfficialForStudent(subject, classId, student.getId());
+        return mapAssigned(quizzes, student);
     }
 
     @Transactional(readOnly = true)
@@ -107,24 +107,47 @@ public class StudentQuizService {
                 .build();
     }
 
+    private List<StudentQuizDto> mapAssigned(List<Quiz> quizzes, Student student) {
+        List<StudentQuizDto> result = new ArrayList<>();
+        for (Quiz q : quizzes) {
+            if (!q.isActive()) continue;
+            if (!matchesGrade(q, student) && !visibleThroughStudyClass(q, student)) continue;
+            result.add(toDto(q, student));
+        }
+        return result;
+    }
+
     private List<StudentQuizDto> mapToDtoList(List<Quiz> quizzes) {
         List<StudentQuizDto> result = new ArrayList<>();
         Student student = access.currentStudent();
         for (Quiz q : quizzes) {
             if (!q.isActive()) continue;
-            if (q.getGradeLevel() != null && !q.getGradeLevel().isBlank() && !q.getGradeLevel().equals(student.getGradeLevel())
-                    && (student.getClassEntity() == null || !q.getGradeLevel().equals(student.getClassEntity().getGradeLevel()))) continue;
-            int qCount = (int) quizQuestionRepository.countByQuizId(q.getId());
-            result.add(StudentQuizDto.builder()
-                    .id(q.getId())
-                    .title(q.getTitle())
-                    .duration(q.getTimeLimit() != null ? q.getTimeLimit() : 0)
-                    .questionCount(qCount)
-                    .status(!"READY".equals(q.getGenerationStatus()) ? q.getGenerationStatus()
-                            : quizAttemptRepository.existsByStudentIdAndQuizId(student.getId(), q.getId()) ? "COMPLETED" : "PENDING")
-                    .build());
+            if (!matchesGrade(q, student)) continue;
+            result.add(toDto(q, student));
         }
         return result;
+    }
+
+    private StudentQuizDto toDto(Quiz q, Student student) {
+        int qCount = (int) quizQuestionRepository.countByQuizId(q.getId());
+        return StudentQuizDto.builder()
+                .id(q.getId())
+                .title(q.getTitle())
+                .duration(q.getTimeLimit() != null ? q.getTimeLimit() : 0)
+                .questionCount(qCount)
+                .status(!"READY".equals(q.getGenerationStatus()) ? q.getGenerationStatus()
+                        : quizAttemptRepository.existsByStudentIdAndQuizId(student.getId(), q.getId()) ? "COMPLETED" : "PENDING")
+                .build();
+    }
+
+    private boolean matchesGrade(Quiz quiz, Student student) {
+        if (quiz.getGradeLevel() == null || quiz.getGradeLevel().isBlank()) return true;
+        if (quiz.getGradeLevel().equals(student.getGradeLevel())) return true;
+        return student.getClassEntity() != null && quiz.getGradeLevel().equals(student.getClassEntity().getGradeLevel());
+    }
+
+    private boolean visibleThroughStudyClass(Quiz quiz, Student student) {
+        return student.getId() != null && studyAssignments.existsApprovedActive(quiz.getId(), student.getId());
     }
 
     private User getCurrentUser() {

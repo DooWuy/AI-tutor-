@@ -79,6 +79,12 @@ public class Quiz {
     @Column(name = "generation_status", nullable = false, length = 16)
     private String generationStatus = "READY";
 
+    @Column(name = "available_from")
+    private Instant availableFrom;
+
+    @Column(name = "available_until")
+    private Instant availableUntil;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

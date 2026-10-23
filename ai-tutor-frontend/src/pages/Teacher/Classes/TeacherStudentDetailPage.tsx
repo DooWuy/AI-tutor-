@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { fetchStudentDetail } from '../../../services/adminStudentApi';
+import { fetchStudyStudent } from '../../../services/studyClassApi';
 import { fetchTeacherStudent } from '../../../services/teacherClassApi';
 import type { AdminStudentDetail } from '../../../types/adminStudent';
 
@@ -24,6 +25,8 @@ function Field({ label, value }: { label: string; value: string }) {
 
 export default function TeacherStudentDetailPage() {
   const { classId = '', studentId = '' } = useParams();
+  const location = useLocation();
+  const studyClass = location.pathname.includes('/study-classes/');
   const { user } = useAuth();
   const [student, setStudent] = useState<AdminStudentDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +37,11 @@ export default function TeacherStudentDetailPage() {
     let disposed = false;
     setLoading(true);
     setError('');
-    const load = user?.role === 'ADMIN' ? fetchStudentDetail(studentId) : fetchTeacherStudent(studentId);
+    const load = studyClass
+      ? fetchStudyStudent(classId, studentId)
+      : user?.role === 'ADMIN'
+        ? fetchStudentDetail(studentId)
+        : fetchTeacherStudent(studentId);
     load
       .then((detail) => {
         if (!disposed) setStudent(detail);
@@ -48,11 +55,11 @@ export default function TeacherStudentDetailPage() {
     return () => {
       disposed = true;
     };
-  }, [studentId, user?.role, retry]);
+  }, [classId, studentId, studyClass, user?.role, retry]);
 
   return (
     <section className="space-y-5">
-      <Link to={`/teacher/classes/${classId}`} className="text-sm font-semibold text-primary">← Quay lại lớp</Link>
+      <Link to={studyClass ? `/teacher/study-classes/${classId}` : `/teacher/classes/${classId}`} className="text-sm font-semibold text-primary">← Quay lại lớp</Link>
       <div>
         <h1 className="text-2xl font-bold text-on-surface">{student?.fullName || 'Hồ sơ học sinh'}</h1>
         <p className="mt-1 text-sm text-on-surface-variant">Thông tin chỉ để theo dõi. Tài khoản học sinh được quản lý ở trang Admin.</p>

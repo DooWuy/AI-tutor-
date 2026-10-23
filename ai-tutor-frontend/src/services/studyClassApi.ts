@@ -1,5 +1,7 @@
 import type { ApiResponse } from '../types/auth';
-import type { StudyClass, StudyClassCreateInput, StudyClassJoinResult, StudyClassList, StudyMember } from '../types/studyClass';
+import type { AdminStudentDetail, AdminStudentListItem, PageResponse, SortDirection, StudentSortField } from '../types/adminStudent';
+import type { TeacherClassQuiz } from '../types/teacherClass';
+import type { StudentPublishedQuiz, StudentSchoolClass, StudentStudyClassCard, StudyClass, StudyClassCreateInput, StudyClassJoinResult, StudyClassList, StudyMember } from '../types/studyClass';
 import { getStoredSession } from './authApi';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8088/api/v1').replace(/\/$/, '');
@@ -78,6 +80,40 @@ export function listStudyRequests(classId: string) {
 
 export function actOnStudyRequest(classId: string, requestId: string, action: 'approve' | 'reject') {
   return request<StudyMember>(`/teacher/study-classes/${classId}/requests/${requestId}/action`, 'POST', { action });
+}
+
+export function listStudyClassStudents(
+  classId: string,
+  params: { search?: string; page: number; size: number; sort: StudentSortField; direction: SortDirection },
+) {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    size: String(params.size),
+    sort: params.sort,
+    direction: params.direction,
+  });
+  if (params.search) query.set('search', params.search);
+  return request<PageResponse<AdminStudentListItem>>(`/teacher/study-classes/${classId}/students?${query.toString()}`);
+}
+
+export function listStudyClassQuizzes(classId: string) {
+  return request<TeacherClassQuiz[]>(`/teacher/study-classes/${classId}/quizzes`);
+}
+
+export function fetchStudyStudent(classId: string, studentId: string) {
+  return request<AdminStudentDetail>(`/teacher/study-classes/${classId}/students/${studentId}`);
+}
+
+export function listMyStudyClasses() {
+  return request<StudentStudyClassCard[]>('/student/study-classes');
+}
+
+export function listMySchoolClass() {
+  return request<StudentSchoolClass | null>('/student/study-classes/school-class');
+}
+
+export function listMyClassQuizzes() {
+  return request<StudentPublishedQuiz[]>('/student/study-classes/quizzes');
 }
 
 export function joinStudyClass(classCode: string) {
