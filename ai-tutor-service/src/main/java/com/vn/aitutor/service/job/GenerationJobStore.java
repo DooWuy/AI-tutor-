@@ -14,6 +14,8 @@ import com.vn.aitutor.repository.AiGenerationJobRepository;
 import com.vn.aitutor.repository.LessonRepository;
 import com.vn.aitutor.repository.QuizRepository;
 import com.vn.aitutor.repository.UserRepository;
+import com.vn.aitutor.service.system.notification.NotificationCreationService;
+import com.vn.aitutor.service.system.notification.NotificationCommands;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +39,7 @@ public class GenerationJobStore {
     private final LessonRepository lessonRepository;
     private final QuizRepository quizRepository;
     private final QuestionBankService questionBankService;
+    private final NotificationCreationService notifications;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public GenerationJobResponse insertBank(
@@ -117,7 +120,7 @@ public class GenerationJobStore {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markDone(UUID jobId, UUID batchId, String message) {
-        AiGenerationJob job = repository.findById(jobId).orElse(null);
+        AiGenerationJob job = repository.lockById(jobId).orElse(null);
         if (job == null || job.getStatus() != GenerationJobStatus.RUNNING) {
             return;
         }
@@ -125,22 +128,25 @@ public class GenerationJobStore {
         job.setBatchId(batchId);
         job.setMessage(clip(message));
         job.setFinishedAt(Instant.now());
+        notifyQuizResult(job, true);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markFailed(UUID jobId, String message) {
-        AiGenerationJob job = repository.findById(jobId).orElse(null);
+        AiGenerationJob job = repository.lockById(jobId).orElse(null);
         if (job == null || job.getStatus() != GenerationJobStatus.RUNNING) {
             return;
         }
         job.setStatus(GenerationJobStatus.FAILED);
         job.setMessage(clip(message));
         job.setFinishedAt(Instant.now());
+        notifyQuizResult(job, false);
     }
 
     @Transactional
     public GenerationJobResponse acknowledge(UUID jobId, UUID userId) {
-        AiGenerationJob job = require(jobId);
+        AiGenerationJob job = repository.lockById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tác vụ AI"));
         assertOwner(job, userId);
         if (job.getStatus() == GenerationJobStatus.RUNNING) {
             throw new ResourceBadRequestException("Tác vụ AI vẫn đang chạy");
@@ -163,7 +169,23 @@ public class GenerationJobStore {
 
     @Transactional
     public int failInterrupted() {
-        return repository.failRunning(INTERRUPTED, Instant.now());
+        var interrupted = repository.findByStatusOrderByIdAsc(GenerationJobStatus.RUNNING);
+        Instant now = Instant.now();
+        for (AiGenerationJob job : interrupted) {
+            job.setStatus(GenerationJobStatus.FAILED);
+            job.setMessage(INTERRUPTED);
+            job.setFinishedAt(now);
+            notifyQuizResult(job, false);
+        }
+        return interrupted.size();
+    }
+
+    private void notifyQuizResult(AiGenerationJob job, boolean success) {
+        if (job.getKind() != GenerationJobKind.QUIZ) return;
+        var owner = job.getRequestedBy();
+        var quiz = job.getQuiz();
+        notifications.create(NotificationCommands.quizResult(owner.getId(), owner.getRole(),
+                quiz.getId(), job.getId(), quiz.getSubject(), success));
     }
 
     private AiGenerationJob require(UUID jobId) {
