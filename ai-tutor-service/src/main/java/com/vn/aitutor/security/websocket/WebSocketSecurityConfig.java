@@ -7,17 +7,24 @@ import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.web.socket.EnableWebSocketSecurity;
 import org.springframework.security.messaging.access.intercept.MessageMatcherDelegatingAuthorizationManager;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.simp.SimpMessageType;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSocketSecurity
+@RequiredArgsConstructor
 public class WebSocketSecurityConfig {
+    private final OwnedChatDestinationAuthorization ownedChatDestination;
 
     @Bean
     public AuthorizationManager<Message<?>> messageAuthorizationManager(MessageMatcherDelegatingAuthorizationManager.Builder messages) {
         messages
-                .nullDestMatcher().authenticated()
-                .simpDestMatchers("/app/**").authenticated()
-                .simpSubscribeDestMatchers("/user/**", "/topic/**", "/queue/**").authenticated()
+                .simpTypeMatchers(SimpMessageType.CONNECT, SimpMessageType.DISCONNECT,
+                        SimpMessageType.UNSUBSCRIBE, SimpMessageType.HEARTBEAT).authenticated()
+                .simpSubscribeDestMatchers("/user/queue/notifications").authenticated()
+                .simpSubscribeDestMatchers("/user/queue/chat-sessions/*/stream").access(ownedChatDestination)
+                .simpTypeMatchers(SimpMessageType.SUBSCRIBE).denyAll()
+                .simpDestMatchers("/app/chat-sessions/*/messages").access(ownedChatDestination)
                 .anyMessage().denyAll();
                 
         return messages.build();

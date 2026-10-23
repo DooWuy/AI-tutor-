@@ -13,6 +13,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ChatSessionRepository extends JpaRepository<ChatSession, UUID> {
 
+    boolean existsByIdAndStudent_User_Id(UUID id, UUID userId);
+
     long countByStudent_Id(UUID studentId);
 
     @Query("SELECT cs FROM ChatSession cs WHERE cs.student.id = :studentId ORDER BY COALESCE(cs.lastMessageAt, cs.createdAt) DESC")
