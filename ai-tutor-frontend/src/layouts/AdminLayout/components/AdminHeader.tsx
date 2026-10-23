@@ -1,4 +1,5 @@
-import { Bell, Bot, LogOut, Menu, Sparkles } from 'lucide-react';
+import { Bot, LogOut, Menu, Sparkles } from 'lucide-react';
+import { NotificationBell } from '../../../components/common/NotificationBell';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { ThemeToggle } from '../../../components/common/ThemeToggle';
@@ -66,15 +67,7 @@ export function AdminHeader({ user, onOpenMenu }: AdminHeaderProps) {
 
           <ThemeToggle />
 
-          <button 
-            type="button" 
-            className="relative grid h-9 w-9 place-items-center rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
-            title="Thông báo hệ thống"
-            aria-label="Thông báo hệ thống"
-          >
-            <Bell size={17} />
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary ring-2 ring-surface-container-lowest" />
-          </button>
+          <NotificationBell />
 
           <div className={styles.userCopy}>
             <span className={styles.userName}>{displayName}</span>

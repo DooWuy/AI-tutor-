@@ -1,57 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
-import { Client } from '@stomp/stompjs';
-import type { IMessage } from '@stomp/stompjs';
+import { useEffect, useState } from 'react';
+import { getStoredSession } from '../services/authApi';
+import { createNotificationConnection, websocketUrl } from '../services/notificationConnection';
+import type { Notification } from '../types/notification';
 
-export const useWebSocket = (token: string | null) => {
-  const clientRef = useRef<Client | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState<any>(null);
+export const useWebSocket = (token: string | null, userId: string | null,
+  onNotification: (notification: Notification) => void, onReconnect: () => void) => {
+  const [connection, setConnection] = useState({ userId: null as string | null, connected: false });
 
   useEffect(() => {
-    if (!token) return;
-
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8088/ws';
-
-    const client = new Client({
-      brokerURL: wsUrl,
-      connectHeaders: {
-        Authorization: `Bearer ${token}`
-      },
-      debug: function (str) {
-        console.log(str);
-      },
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
+    if (!token || !userId) return;
+    setConnection({ userId, connected: false });
+    return createNotificationConnection({
+      url: websocketUrl(import.meta.env.VITE_WS_URL, import.meta.env.VITE_API_BASE_URL, window.location.href),
+      getToken: () => { const session = getStoredSession(); return session?.user.userId === userId ? session.accessToken : null; },
+      onNotification,
+      onConnectionChange: connected => { setConnection({ userId, connected }); if (connected) onReconnect(); },
+      dev: import.meta.env.DEV,
     });
+  }, [token, userId, onNotification, onReconnect]);
 
-    client.onConnect = function (frame) {
-      setIsConnected(true);
-      console.log('Connected: ' + frame);
-      
-      // The backend sends to "/user/queue/notifications"
-      client.subscribe('/user/queue/notifications', (message: IMessage) => {
-        if (message.body) {
-          const body = JSON.parse(message.body);
-          setLastMessage(body);
-        }
-      });
-    };
-
-    client.onStompError = function (frame) {
-      console.error('Broker reported error: ' + frame.headers['message']);
-      console.error('Additional details: ' + frame.body);
-    };
-
-    client.activate();
-    clientRef.current = client;
-
-    return () => {
-      if (clientRef.current) {
-        clientRef.current.deactivate();
-      }
-    };
-  }, [token]);
-
-  return { isConnected, lastMessage };
+  return { isConnected: Boolean(token && userId && connection.userId === userId && connection.connected) };
 };

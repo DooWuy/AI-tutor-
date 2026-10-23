@@ -11,6 +11,7 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -27,7 +28,10 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+        StompHeaderAccessor original = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        // Keep the user-change callback installed by StompSubProtocolHandler so subsequent
+        // frames and SimpUserRegistry retain the CONNECT principal.
+        StompHeaderAccessor accessor = original != null && original.isMutable() ? original : StompHeaderAccessor.wrap(message);
         
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             String authorizationHeader = accessor.getFirstNativeHeader("Authorization");
@@ -43,6 +47,10 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                     
                     if (username != null && "access".equals(type)) {
                         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                        if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()
+                                || !userDetails.isAccountNonExpired() || !userDetails.isCredentialsNonExpired()) {
+                            throw new IllegalArgumentException("Tài khoản không thể kết nối");
+                        }
                         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                         
@@ -55,8 +63,8 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                         throw new IllegalArgumentException("Token JWT không hợp lệ");
                     }
                 } catch (Exception e) {
-                    log.error("Failed to authenticate WebSocket connection: {}", e.getMessage());
-                    throw new IllegalArgumentException("Xác thực thất bại: " + e.getMessage());
+                    log.debug("WebSocket authentication failed ({})", e.getClass().getSimpleName());
+                    throw new IllegalArgumentException("Xác thực WebSocket thất bại");
                 }
             } else {
                 log.error("Missing or invalid Authorization header in WebSocket connect");

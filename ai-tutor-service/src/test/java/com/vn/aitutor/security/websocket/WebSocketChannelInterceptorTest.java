@@ -68,6 +68,31 @@ class WebSocketChannelInterceptorTest {
                 () -> interceptor.preSend(message, null));
     }
 
+    @Test void disabledAccountIsRejectedAndProviderDetailsAreNotExposed() {
+        User user = new User(); user.setId(UUID.randomUUID()); user.setUsername("disabled"); user.setActive(false);
+        when(jwtProvider.getUsernameFromToken("disabled-token")).thenReturn("disabled");
+        when(jwtProvider.getTypeFromToken("disabled-token")).thenReturn("access");
+        when(userDetailsService.loadUserByUsername("disabled")).thenReturn(UserPrincipal.builder().users(user).build());
+        var error = assertThrows(IllegalArgumentException.class, () -> interceptor.preSend(connectMessage("disabled-token"), null));
+        assertTrue(!error.getMessage().contains("disabled-token"));
+    }
+
+    @Test void preservesTheProtocolHandlersUserChangeCallback() {
+        User user = new User(); user.setId(UUID.randomUUID()); user.setUsername("student-one");
+        var principal = UserPrincipal.builder().users(user).build();
+        when(jwtProvider.getUsernameFromToken("access-token")).thenReturn("student-one");
+        when(jwtProvider.getTypeFromToken("access-token")).thenReturn("access");
+        when(userDetailsService.loadUserByUsername("student-one")).thenReturn(principal);
+        var accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+        accessor.addNativeHeader("Authorization", "Bearer access-token");
+        var changed = new java.util.concurrent.atomic.AtomicReference<java.security.Principal>();
+        accessor.setUserChangeCallback(changed::set);
+        accessor.setLeaveMutable(true);
+        interceptor.preSend(MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders()), null);
+        assertTrue(changed.get() instanceof Authentication);
+        assertTrue(((Authentication) changed.get()).getPrincipal() == principal);
+    }
+
     private static Message<byte[]> connectMessage(String token) {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
         accessor.addNativeHeader("Authorization", "Bearer " + token);

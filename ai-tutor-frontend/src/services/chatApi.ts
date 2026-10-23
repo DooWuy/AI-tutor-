@@ -1,5 +1,6 @@
 import { Client, type StompSubscription, type IMessage } from '@stomp/stompjs';
 import { getStoredSession } from './authApi';
+import { websocketUrl } from './notificationConnection';
 
 export interface ChatSession {
   id: string;
@@ -133,9 +134,11 @@ export const deleteChatSession = async (sessionId: string): Promise<void> => {
 };
 
 // WebSocket STOMP Client Helpers
-export function createChatStompClient(token?: string, options?: { onConnect?: () => void; onError?: (err: any) => void }): Client {
-  const authToken = token || getStoredSession()?.accessToken || '';
-  const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8088/ws';
+export function createChatStompClient(token?: string, options?: { onConnect?: () => void; onError?: (err: unknown) => void; onDisconnect?: () => void }): Client {
+  const initialSession = getStoredSession();
+  const initialUserId = initialSession?.user.userId;
+  const authToken = token || initialSession?.accessToken || '';
+  const wsUrl = websocketUrl(import.meta.env.VITE_WS_URL, import.meta.env.VITE_API_BASE_URL, window.location.href);
 
   const client = new Client({
     brokerURL: wsUrl,
@@ -143,20 +146,31 @@ export function createChatStompClient(token?: string, options?: { onConnect?: ()
     reconnectDelay: 5000,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
-    debug: (str) => {
-      if (import.meta.env.DEV) {
-        console.debug('[STOMP]', str);
+    debug: () => {},
+    beforeConnect: async () => {
+      const latest = getStoredSession();
+      if (initialUserId && latest?.user.userId !== initialUserId) {
+        await client.deactivate();
+        return;
       }
+      const current = latest?.accessToken || authToken;
+      if (!current) { await client.deactivate(); return; }
+      client.connectHeaders = { Authorization: `Bearer ${current}` };
     },
   });
 
   if (options?.onConnect) {
-    client.onConnect = () => options.onConnect?.();
+    client.onConnect = () => {
+      if (import.meta.env.DEV) console.debug('[Chat] Connected');
+      options.onConnect?.();
+    };
   }
-  if (options?.onError) {
-    client.onStompError = (frame) => options.onError?.(frame);
-    client.onWebSocketError = (event) => options.onError?.(event);
-  }
+  client.onStompError = () => {
+    options?.onError?.(new Error('Kết nối chat bị gián đoạn.'));
+    client.forceDisconnect();
+  };
+  client.onWebSocketError = (event) => options?.onError?.(event);
+  client.onWebSocketClose = () => options?.onDisconnect?.();
 
   return client;
 }

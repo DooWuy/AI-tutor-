@@ -1,130 +1,68 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
-import type { Notification as AppNotification } from '../services/notificationApi';
-import { 
-  getMyNotifications, 
-  markNotificationAsRead as apiMarkAsRead, 
-  markAllNotificationsAsRead as apiMarkAllAsRead 
-} from '../services/notificationApi';
+import React, { createContext, useContext, useMemo, useEffect, useCallback, useSyncExternalStore, type ReactNode } from 'react';
+import { getNotificationFeed, getNotificationUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } from '../services/notificationApi';
+import { NotificationStore, type NotificationState } from '../services/notificationStore';
+import type { Notification as AppNotification } from '../types/notification';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { useWebSocket } from '../hooks/useWebSocket';
 
-export interface NotificationContextType {
-  notifications: AppNotification[];
-  unreadCount: number;
-  isLoading: boolean;
+export interface NotificationContextType extends NotificationState {
+  isConnected: boolean;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
+  loadMore: () => Promise<void>;
 }
-
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { token, isAuthenticated } = useAuth();
+  const { token, user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const userId = isAuthenticated ? user?.userId ?? null : null;
+  const store = useMemo(() => new NotificationStore({ feed: getNotificationFeed, count: getNotificationUnreadCount,
+    read: markNotificationAsRead, readAll: markAllNotificationsAsRead }), [userId]);
+  const state = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
-  // Connect to STOMP WebSocket
-  const { lastMessage } = useWebSocket(token);
-
-  const fetchNotifications = useCallback(async () => {
-    if (!isAuthenticated) {
-      setNotifications([]);
-      return;
+  const onNotification = useCallback((notification: AppNotification) => {
+    if (!store.receive(notification)) return;
+    toast.info(notification.message, { title: notification.title, duration: 6000 });
+    if (document.hidden && 'Notification' in window && window.Notification.permission === 'granted') {
+      try { new window.Notification(notification.title, { body: notification.message, tag: notification.id }); }
+      catch { /* Browser notifications are optional; in-app delivery remains available. */ }
     }
-    try {
-      setIsLoading(true);
-      const data = await getMyNotifications();
-      setNotifications(data || []);
-    } catch (err) {
-      console.error('Failed to load notifications:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isAuthenticated]);
+  }, [store, toast]);
+  const onReconnect = useCallback(() => { void store.refresh(); }, [store]);
+  const { isConnected } = useWebSocket(token, userId, onNotification, onReconnect);
 
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    store.activate();
+    if (userId) void store.refresh();
+    return () => store.dispose();
+  }, [store, userId]);
 
-  // Request browser notification permission once
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().catch(() => {});
-    }
-  }, []);
+    if (!userId) return;
+    const resume = () => { if (!document.hidden) void store.refresh(); };
+    const timer = window.setInterval(() => { if (!document.hidden && !isConnected) void store.refresh(); }, 30000);
+    document.addEventListener('visibilitychange', resume);
+    window.addEventListener('focus', resume);
+    window.addEventListener('online', resume);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', resume);
+      window.removeEventListener('focus', resume);
+      window.removeEventListener('online', resume);
+    };
+  }, [store, userId, isConnected]);
 
-  // Listen to incoming WebSocket notification
-  useEffect(() => {
-    if (!lastMessage) return;
-
-    setNotifications((prev) => [lastMessage, ...prev]);
-
-    // Show floating toast alert
-    toast.info(lastMessage.message, {
-      title: lastMessage.title || 'Thông báo mới',
-      duration: 6000,
-    });
-
-    // Native Browser Notification if window is in background
-    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-      try {
-        new window.Notification(lastMessage.title || 'AI Tutor', {
-          body: lastMessage.message,
-          icon: '/favicon.ico',
-        });
-      } catch (e) {
-        console.error('Browser notification error:', e);
-      }
-    }
-  }, [lastMessage, toast]);
-
-  const markAsRead = useCallback(async (id: string) => {
-    try {
-      await apiMarkAsRead(id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-      );
-    } catch (err) {
-      console.error('Failed to mark notification as read:', err);
-    }
-  }, []);
-
-  const markAllAsRead = useCallback(async () => {
-    try {
-      await apiMarkAllAsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    } catch (err) {
-      console.error('Failed to mark all notifications as read:', err);
-    }
-  }, []);
-
-  const unreadCount = useMemo(() => {
-    return notifications.filter((n) => !n.isRead).length;
-  }, [notifications]);
-
-  const value = useMemo<NotificationContextType>(() => ({
-    notifications,
-    unreadCount,
-    isLoading,
-    markAsRead,
-    markAllAsRead,
-    refreshNotifications: fetchNotifications,
-  }), [notifications, unreadCount, isLoading, markAsRead, markAllAsRead, fetchNotifications]);
-
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
-  );
+  const value = useMemo<NotificationContextType>(() => ({ ...state, isConnected,
+    markAsRead: store.markAsRead, markAllAsRead: store.markAllAsRead,
+    refreshNotifications: store.refresh, loadMore: store.loadMore }), [state, isConnected, store]);
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 };
 
 export const useNotification = (): NotificationContextType => {
   const context = useContext(NotificationContext);
-  if (!context) {
-    throw new Error('useNotification must be used within a NotificationProvider');
-  }
+  if (!context) throw new Error('useNotification must be used within a NotificationProvider');
   return context;
 };

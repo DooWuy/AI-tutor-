@@ -9,6 +9,11 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
+import com.vn.aitutor.entity.enums.NotificationSourceType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Getter
 @Setter
@@ -44,4 +49,21 @@ public class Notification {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "event_key", length = 255)
+    private String eventKey;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source_type", length = 32)
+    private NotificationSourceType sourceType;
+
+    @Column(name = "source_id")
+    private UUID sourceId;
+
+    @Column(name = "occurrence_at")
+    private Instant occurrenceAt;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false, columnDefinition = "jsonb")
+    private Map<String, Object> metadata = new HashMap<>();
 }
