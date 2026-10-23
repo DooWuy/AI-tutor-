@@ -1,11 +1,11 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.StudyClassJoinRequest;
+import com.vn.aitutor.dto.request.classroom.StudyClassJoinRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.StudentPublishedQuizResponse;
 import com.vn.aitutor.dto.response.StudentSchoolClassCard;
 import com.vn.aitutor.dto.response.StudentStudyClassCard;
-import com.vn.aitutor.dto.response.StudyClassJoinResponse;
+import com.vn.aitutor.dto.response.classroom.StudyClassJoinResponse;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.classroom.StudyClassClassroomService;
 import com.vn.aitutor.service.classroom.StudyClassService;

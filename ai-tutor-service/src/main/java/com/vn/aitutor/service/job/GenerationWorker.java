@@ -37,6 +37,8 @@ public class GenerationWorker {
             return;
         }
         GenerationWork work = loaded.get();
+        UUID batchId = null;
+        String warning = null;
         try {
             User user = userRepository.findById(work.userId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người tạo"));
@@ -47,28 +49,27 @@ public class GenerationWorker {
                 request.setCount(work.questionCount());
                 request.setQuestionType(work.questionType());
                 QuestionBatchResponse batch = questionBankService.generate(work.lessonId(), request, principal);
-                store.markDone(jobId, batch.getBatchId(), batch.getWarning());
-                return;
+                batchId = batch.getBatchId();
+                warning = batch.getWarning();
+            } else {
+                QuizGenerateRequest request = new QuizGenerateRequest();
+                request.setTopic(work.topic());
+                request.setCount(work.questionCount());
+                request.setMinDifficulty(work.minDifficulty());
+                request.setMaxDifficulty(work.maxDifficulty());
+                request.setMultipleChoice(work.multipleChoice());
+                request.setTrueFalse(work.trueFalse());
+                request.setFillBlank(work.fillBlank());
+                request.setMultiSelect(work.multiSelect() == null ? 0 : work.multiSelect());
+                quizManagementService.generate(work.quizId(), request, principal);
             }
-            QuizGenerateRequest request = new QuizGenerateRequest();
-            request.setTopic(work.topic());
-            request.setCount(work.questionCount());
-            request.setMinDifficulty(work.minDifficulty());
-            request.setMaxDifficulty(work.maxDifficulty());
-            request.setMultipleChoice(work.multipleChoice());
-            request.setTrueFalse(work.trueFalse());
-            request.setFillBlank(work.fillBlank());
-            request.setMultiSelect(work.multiSelect() == null ? 0 : work.multiSelect());
-            quizManagementService.generate(work.quizId(), request, principal);
-            store.markDone(jobId, null, null);
         } catch (RuntimeException ex) {
             log.warn("Generation job {} failed: {}", jobId, ex.getClass().getSimpleName());
-            try {
-                store.markFailed(jobId, publicMessage(ex));
-            } catch (RuntimeException nested) {
-                log.warn("Could not record generation failure: {}", nested.getClass().getSimpleName());
-            }
+            store.markFailed(jobId, publicMessage(ex));
+            return;
         }
+        // Persistence/notification failure is not an AI failure. Leave the job transaction rolled back.
+        store.markDone(jobId, batchId, warning);
     }
 
     private String publicMessage(RuntimeException ex) {

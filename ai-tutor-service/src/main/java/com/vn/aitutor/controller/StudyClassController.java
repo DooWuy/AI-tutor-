@@ -1,13 +1,13 @@
 package com.vn.aitutor.controller;
 
-import com.vn.aitutor.dto.request.EnrollmentActionRequest;
-import com.vn.aitutor.dto.request.StudyClassCreateRequest;
-import com.vn.aitutor.dto.request.StudyClassUpdateRequest;
+import com.vn.aitutor.dto.request.classroom.EnrollmentActionRequest;
+import com.vn.aitutor.dto.request.classroom.StudyClassCreateRequest;
+import com.vn.aitutor.dto.request.classroom.StudyClassUpdateRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
 import com.vn.aitutor.dto.response.PageResponseDTO;
-import com.vn.aitutor.dto.response.StudyClassListResponse;
-import com.vn.aitutor.dto.response.StudyClassResponse;
-import com.vn.aitutor.dto.response.StudyMemberResponse;
+import com.vn.aitutor.dto.response.classroom.StudyClassListResponse;
+import com.vn.aitutor.dto.response.classroom.StudyClassResponse;
+import com.vn.aitutor.dto.response.classroom.StudyMemberResponse;
 import com.vn.aitutor.dto.response.classroom.TeacherClassQuizResponse;
 import com.vn.aitutor.dto.response.user.StudentAdminDetailResponse;
 import com.vn.aitutor.dto.response.user.StudentAdminListItemResponse;

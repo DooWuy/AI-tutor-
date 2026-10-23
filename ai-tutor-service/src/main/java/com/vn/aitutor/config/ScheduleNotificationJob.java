@@ -1,94 +1,51 @@
 package com.vn.aitutor.config;
 
-import com.vn.aitutor.entity.Notification;
-import com.vn.aitutor.entity.ScheduleSlot;
-import com.vn.aitutor.repository.NotificationRepository;
-import com.vn.aitutor.repository.ScheduleSlotRepository;
-import com.vn.aitutor.service.system.IMailService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-
+import com.vn.aitutor.service.system.notification.ClassReminderService;
+import com.vn.aitutor.service.system.notification.NotificationCommands;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "app.notification.enabled", havingValue = "true", matchIfMissing = true)
 public class ScheduleNotificationJob {
+    private static final int BATCH_SIZE = 100;
+    private final ClassReminderService reminders;
+    private final Clock learningClock;
 
-    private final ScheduleSlotRepository scheduleSlotRepository;
-    private final NotificationRepository notificationRepository;
-    private final SimpMessagingTemplate messagingTemplate;
-    private final IMailService mailService;
-
-    @Scheduled(fixedRate = 60000) // Run every 60 seconds
+    @Scheduled(fixedDelayString = "${app.notification.reminder-scan-ms:60000}", scheduler = "notificationTaskScheduler")
     public void scanAndSendNotifications() {
-        ZoneId vnZone = ZoneId.of("Asia/Ho_Chi_Minh");
-        LocalTime now = LocalTime.now(vnZone).truncatedTo(ChronoUnit.MINUTES);
-        LocalTime targetTime = now.plusMinutes(15);
-        
-        // Day of week: 1 (Monday) to 7 (Sunday) in java.time.
-        // But our DB uses 2 to 8 (Monday to Sunday)
-        int dayOfWeek = LocalDate.now(vnZone).getDayOfWeek().getValue() + 1;
-
-        log.debug("Scanning for classes starting at {} on day {}", targetTime, dayOfWeek);
-
-        List<ScheduleSlot> upcomingSlots = scheduleSlotRepository
-                .findByDayOfWeekAndStartTimeAndSchedule_IsActiveTrue(dayOfWeek, targetTime);
-
-        for (ScheduleSlot slot : upcomingSlots) {
-            // Check student's study preferences to see if reminders are disabled
-            Object isReminderEnabledObj = slot.getSchedule().getStudent().getStudyPreferences().get("studyReminderEnabled");
-            if (isReminderEnabledObj != null && Boolean.FALSE.equals(isReminderEnabledObj)) {
-                log.debug("Skipping reminder for {} because studyReminderEnabled is false", slot.getSchedule().getStudent().getUser().getUsername());
-                continue;
-            }
-
-            String title = "Sắp đến giờ học: " + slot.getSubjectName();
-            String message = "Bạn có tiết học " + slot.getSubjectName() + " lúc " + slot.getStartTime() + ". Hãy chuẩn bị nhé!";
-            String link = "/student/chatbot?subject=" + slot.getSubjectName();
-
-            Notification notification = new Notification();
-            notification.setUser(slot.getSchedule().getStudent().getUser());
-            notification.setTitle(title);
-            notification.setMessage(message);
-            notification.setType("CLASS_REMINDER");
-            notification.setLink(link);
-            notification.setRead(false);
-
-            notificationRepository.save(notification);
-
-            // Push to user via WebSocket (Notification Bell)
-            messagingTemplate.convertAndSendToUser(
-                    slot.getSchedule().getStudent().getUser().getUsername(),
-                    "/queue/notifications",
-                    notification
-            );
-            
-            // Send reminder to student's registered account email
-            try {
-                String userEmail = slot.getSchedule().getStudent().getUser().getEmail();
-                String fullName = slot.getSchedule().getStudent().getUser().getFullName();
-                if (userEmail != null && !userEmail.isBlank()) {
-                    mailService.sendClassReminderEmail(
-                            userEmail,
-                            fullName != null ? fullName : "bạn",
-                            slot.getSubjectName(),
-                            slot.getStartTime().toString(),
-                            slot.getRoom()
-                    );
+        var now = learningClock.instant();
+        var end = now.plus(Duration.ofMinutes(15));
+        var localNow = now.atZone(NotificationCommands.REMINDER_ZONE);
+        var localEnd = end.atZone(NotificationCommands.REMINDER_ZONE);
+        for (LocalDate date = localNow.toLocalDate(); !date.isAfter(localEnd.toLocalDate()); date = date.plusDays(1)) {
+            LocalTime from = date.equals(localNow.toLocalDate()) ? localNow.toLocalTime() : LocalTime.MIN;
+            LocalTime until = date.equals(localEnd.toLocalDate()) ? localEnd.toLocalTime() : LocalTime.MAX;
+            UUID after = null;
+            while (true) {
+                var candidates = reminders.findCandidates(date, from, until, after, BATCH_SIZE);
+                if (candidates.isEmpty()) break;
+                for (var slot : candidates) {
+                    try {
+                        reminders.createIfEligible(slot, date, end);
+                    } catch (RuntimeException ex) {
+                        // One bad source must not stop other students; next scan retries eligible sources.
+                        log.warn("Could not create reminder for slot {} ({})", slot.slotId(), ex.getClass().getSimpleName());
+                    }
                 }
-            } catch (Exception emailEx) {
-                log.warn("Failed to send class reminder email to {}: {}", slot.getSchedule().getStudent().getUser().getEmail(), emailEx.getMessage());
+                after = candidates.get(candidates.size() - 1).slotId();
+                if (candidates.size() < BATCH_SIZE) break;
             }
-
-            log.info("Sent reminder notification (Bell & Email) to {} for subject {}", notification.getUser().getUsername(), slot.getSubjectName());
         }
     }
 }
