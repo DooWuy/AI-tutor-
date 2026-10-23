@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { ThemeToggle } from '../../../components/common/ThemeToggle';
+import { NotificationBell } from '../../../components/common/NotificationBell';
 import type { User } from '../../../types/auth';
 import { styles } from '../TeacherLayout.styles';
 
@@ -61,6 +62,7 @@ export function TeacherHeader({ user }: TeacherHeaderProps) {
           </div>
 
           <ThemeToggle />
+          <NotificationBell />
 
           <button
             type="button"

@@ -3,24 +3,20 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Bot } from 'lucide-react';
 import { styles } from './StudentHeader.styles';
 import { useAuth } from '../../../../context/AuthContext';
-import { useNotification } from '../../../../context/NotificationContext';
+import { NotificationBell } from '../../../../components/common/NotificationBell';
 import { ThemeToggle } from '../../../../components/common/ThemeToggle';
-import type { Notification as AppNotification } from '../../../../services/notificationApi';
 import { useStudentLearning } from '../../../../context/StudentLearningContext';
 
 export const StudentHeader: React.FC = () => {
   const { user, logout } = useAuth();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotification();
   const navigate = useNavigate();
   const location = useLocation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { profile: profileResource } = useStudentLearning();
   const studentProfile = profileResource.data;
   
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const notifRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const fullName = studentProfile?.fullName || user?.fullName || 'Người dùng';
@@ -29,15 +25,12 @@ export const StudentHeader: React.FC = () => {
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setIsDropdownOpen(false); setIsNotificationOpen(false); setIsMobileMenuOpen(false);
+        setIsDropdownOpen(false); setIsMobileMenuOpen(false);
       }
     }
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
-      }
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setIsNotificationOpen(false);
       }
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
         setIsMobileMenuOpen(false);
@@ -51,20 +44,6 @@ export const StudentHeader: React.FC = () => {
   const handleLogout = async () => {
     await logout();
     navigate('/login');
-  };
-
-  const handleNotificationClick = async (notification: AppNotification) => {
-    if (!notification.isRead) {
-      await markAsRead(notification.id);
-    }
-    setIsNotificationOpen(false);
-    if (notification.link) {
-      navigate(notification.link);
-    }
-  };
-
-  const handleMarkAllAsRead = async () => {
-    await markAllAsRead();
   };
 
   const getNavLinkClass = (path: string) => {
@@ -139,59 +118,8 @@ export const StudentHeader: React.FC = () => {
           {/* Theme Toggle */}
           <ThemeToggle />
 
-          {/* Notification Bell */}
-          <div className="relative" ref={notifRef}>
-            <button 
-              className={styles.notificationBtn} 
-              title="Thông báo"
-              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-            >
-              <span className="material-symbols-outlined">notifications</span>
-              {unreadCount > 0 && <span className={styles.notificationDot}></span>}
-            </button>
-            
-            {/* Notification Dropdown */}
-            {isNotificationOpen && (
-              <div className={styles.notificationDropdownMenu}>
-                <div className={styles.notificationHeader}>
-                  <span className={styles.notificationTitle}>Thông báo</span>
-                  {unreadCount > 0 && (
-                    <span 
-                      className={styles.notificationMarkAllBtn}
-                      onClick={handleMarkAllAsRead}
-                    >
-                      Đánh dấu đã đọc tất cả
-                    </span>
-                  )}
-                </div>
-                
-                <div className={styles.notificationList}>
-                  {notifications.length === 0 ? (
-                    <div className={styles.notificationEmpty}>
-                      <span className={styles.notificationEmptyIcon}>notifications_paused</span>
-                      <span>Bạn chưa có thông báo nào</span>
-                    </div>
-                  ) : (
-                    notifications.map(notification => (
-                      <div 
-                        key={notification.id}
-                        className={`${styles.notificationItem} ${!notification.isRead ? styles.notificationItemUnread : ''}`}
-                        onClick={() => handleNotificationClick(notification)}
-                      >
-                        {!notification.isRead && <span className={styles.notificationUnreadDot}></span>}
-                        <span className={styles.notificationItemTitle}>{notification.title}</span>
-                        <span className={styles.notificationItemMessage}>{notification.message}</span>
-                        <span className={styles.notificationItemTime}>
-                          {new Date(notification.createdAt).toLocaleString('vi-VN')}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-          
+          <NotificationBell />
+
           {/* Quick AI Scanner Button */}
           <button className={styles.scannerBtn} onClick={() => navigate('/student/timetable')}>
             <span className={styles.scannerIcon} style={{ fontVariationSettings: "'FILL' 1" }}>document_scanner</span>
