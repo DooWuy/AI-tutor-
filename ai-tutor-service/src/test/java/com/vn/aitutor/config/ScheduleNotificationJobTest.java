@@ -1,141 +1,38 @@
 package com.vn.aitutor.config;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import com.vn.aitutor.service.system.notification.ClassReminderService;
+import com.vn.aitutor.service.system.notification.ReminderSlot;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
+import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-
-import com.vn.aitutor.entity.*;
-import com.vn.aitutor.repository.NotificationRepository;
-import com.vn.aitutor.repository.ScheduleSlotRepository;
-import com.vn.aitutor.service.system.IMailService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-@ExtendWith(MockitoExtension.class)
 class ScheduleNotificationJobTest {
-
-    @Mock
-    private ScheduleSlotRepository scheduleSlotRepository;
-
-    @Mock
-    private NotificationRepository notificationRepository;
-
-    @Mock
-    private SimpMessagingTemplate messagingTemplate;
-
-    @Mock
-    private IMailService mailService;
-
-    private ScheduleNotificationJob job;
-
-    @BeforeEach
-    void setUp() {
-        job = new ScheduleNotificationJob(
-                scheduleSlotRepository,
-                notificationRepository,
-                messagingTemplate,
-                mailService
-        );
+    @Test void scansBothSundayAndMondayWithoutTruncatingClock() {
+        var reminders = mock(ClassReminderService.class);
+        Instant now = Instant.parse("2026-10-25T16:55:12Z"); // Sunday 23:55:12
+        var job = new ScheduleNotificationJob(reminders, Clock.fixed(now, ZoneOffset.UTC));
+        when(reminders.findCandidates(any(), any(), any(), isNull(), eq(100))).thenReturn(List.of());
+        job.scanAndSendNotifications();
+        verify(reminders).findCandidates(LocalDate.of(2026, 10, 25), LocalTime.of(23, 55, 12), LocalTime.MAX, null, 100);
+        verify(reminders).findCandidates(LocalDate.of(2026, 10, 26), LocalTime.MIN, LocalTime.of(0, 10, 12), null, 100);
     }
 
-    @Test
-    void scanAndSendNotifications_whenUpcomingSlotsExist_savesNotificationSendsWsAndEmail() {
-        ZoneId vnZone = ZoneId.of("Asia/Ho_Chi_Minh");
-        LocalTime now = LocalTime.now(vnZone).truncatedTo(ChronoUnit.MINUTES);
-        LocalTime targetTime = now.plusMinutes(15);
-        int dayOfWeek = LocalDate.now(vnZone).getDayOfWeek().getValue() + 1;
-
-        User user = new User();
-        user.setId(UUID.randomUUID());
-        user.setUsername("student1");
-        user.setEmail("student1@example.com");
-        user.setFullName("Nguyễn Văn An");
-
-        Student student = new Student();
-        student.setUser(user);
-        Map<String, Object> prefs = new HashMap<>();
-        prefs.put("studyReminderEnabled", true);
-        student.setStudyPreferences(prefs);
-
-        Schedule schedule = new Schedule();
-        schedule.setStudent(student);
-
-        ScheduleSlot slot = new ScheduleSlot();
-        slot.setSchedule(schedule);
-        slot.setSubjectName("Toán");
-        slot.setStartTime(targetTime);
-        slot.setRoom("Phòng 202");
-
-        when(scheduleSlotRepository.findByDayOfWeekAndStartTimeAndSchedule_IsActiveTrue(dayOfWeek, targetTime))
-                .thenReturn(List.of(slot));
-
-        job.scanAndSendNotifications();
-
-        ArgumentCaptor<Notification> notifCaptor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCaptor.capture());
-        Notification saved = notifCaptor.getValue();
-        assertEquals("Sắp đến giờ học: Toán", saved.getTitle());
-        assertEquals("CLASS_REMINDER", saved.getType());
-        assertFalse(saved.isRead());
-
-        verify(messagingTemplate).convertAndSendToUser(
-                eq("student1"),
-                eq("/queue/notifications"),
-                any(Notification.class)
-        );
-
-        verify(mailService).sendClassReminderEmail(
-                eq("student1@example.com"),
-                eq("Nguyễn Văn An"),
-                eq("Toán"),
-                eq(targetTime.toString()),
-                eq("Phòng 202")
-        );
-    }
-
-    @Test
-    void scanAndSendNotifications_whenReminderDisabled_skips() {
-        ZoneId vnZone = ZoneId.of("Asia/Ho_Chi_Minh");
-        LocalTime now = LocalTime.now(vnZone).truncatedTo(ChronoUnit.MINUTES);
-        LocalTime targetTime = now.plusMinutes(15);
-        int dayOfWeek = LocalDate.now(vnZone).getDayOfWeek().getValue() + 1;
-
-        User user = new User();
-        user.setUsername("student2");
-
-        Student student = new Student();
-        student.setUser(user);
-        Map<String, Object> prefs = new HashMap<>();
-        prefs.put("studyReminderEnabled", false);
-        student.setStudyPreferences(prefs);
-
-        Schedule schedule = new Schedule();
-        schedule.setStudent(student);
-
-        ScheduleSlot slot = new ScheduleSlot();
-        slot.setSchedule(schedule);
-        slot.setSubjectName("Lý");
-
-        when(scheduleSlotRepository.findByDayOfWeekAndStartTimeAndSchedule_IsActiveTrue(dayOfWeek, targetTime))
-                .thenReturn(List.of(slot));
-
-        job.scanAndSendNotifications();
-
-        verify(notificationRepository, never()).save(any());
-        verify(messagingTemplate, never()).convertAndSendToUser(any(), any(), any());
-        verify(mailService, never()).sendClassReminderEmail(any(), any(), any(), any(), any());
+    @Test void oneSlotFailureDoesNotStopOtherRecipients() {
+        var reminders = mock(ClassReminderService.class);
+        Instant now = Instant.parse("2026-10-21T00:00:00Z");
+        var one = new ReminderSlot(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 4, LocalTime.of(7, 10), "Toán", null);
+        var two = new ReminderSlot(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 4, LocalTime.of(7, 15), "Văn", null);
+        when(reminders.findCandidates(any(), any(), any(), isNull(), eq(100))).thenReturn(List.of(one, two));
+        when(reminders.createIfEligible(eq(one), any(), any())).thenThrow(new IllegalStateException());
+        new ScheduleNotificationJob(reminders, Clock.fixed(now, ZoneOffset.UTC)).scanAndSendNotifications();
+        verify(reminders).createIfEligible(two, LocalDate.of(2026, 10, 21), now.plusSeconds(900));
     }
 }
