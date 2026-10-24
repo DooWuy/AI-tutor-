@@ -15,8 +15,10 @@ public class StudentStudyClassCard {
     private UUID enrollmentId;
     private EnrollmentStatus enrollmentStatus;
     private Instant requestedAt;
+    private Instant reviewedAt;
     private UUID classId;
     private String name;
+    private String className;
     private String description;
     private String classCode;
     private StudyClassStatus classStatus;

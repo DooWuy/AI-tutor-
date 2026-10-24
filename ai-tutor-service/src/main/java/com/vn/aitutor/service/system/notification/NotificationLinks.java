@@ -13,6 +13,14 @@ public final class NotificationLinks {
         return "/student/timetable";
     }
 
+    public static String teacherStudyClass(UUID classId) {
+        return "/teacher/study-classes/" + Objects.requireNonNull(classId, "classId");
+    }
+
+    public static String studentStudyClass(UUID classId) {
+        return "/student/classes/" + Objects.requireNonNull(classId, "classId");
+    }
+
     public static String quiz(Role role, UUID quizId, String subject) {
         Objects.requireNonNull(role, "role");
         Objects.requireNonNull(quizId, "quizId");

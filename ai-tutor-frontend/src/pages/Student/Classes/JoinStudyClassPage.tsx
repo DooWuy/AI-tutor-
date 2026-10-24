@@ -340,14 +340,14 @@ export default function JoinStudyClassPage() {
               Bạn có chắc chắn muốn bắt đầu làm bài ngay bây giờ? Thời gian sẽ được đếm ngược ngay khi bạn xác nhận.
             </p>
             <div className="flex justify-end gap-3">
-              <button 
+              <button
                 onClick={() => setShowConfirmModal(false)}
                 className="px-4 py-2 border border-outline-variant text-on-surface-variant rounded-lg font-medium hover:bg-surface-container transition-colors"
                 disabled={starting}
               >
                 Hủy
               </button>
-              <button 
+              <button
                 onClick={() => void confirmStart()}
                 className="px-4 py-2 bg-primary text-on-primary rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
                 disabled={starting}
@@ -361,4 +361,3 @@ export default function JoinStudyClassPage() {
     </section>
   );
 }
-

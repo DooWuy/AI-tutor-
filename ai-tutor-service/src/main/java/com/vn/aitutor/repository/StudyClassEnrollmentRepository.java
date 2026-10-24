@@ -6,9 +6,11 @@ import com.vn.aitutor.entity.enums.EnrollmentStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -17,6 +19,15 @@ public interface StudyClassEnrollmentRepository extends JpaRepository<StudyClass
     long countByStudyClass_IdAndStatus(UUID classId, EnrollmentStatus status);
 
     Optional<StudyClassEnrollment> findByIdAndStudyClass_Id(UUID id, UUID classId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT e FROM StudyClassEnrollment e
+            JOIN FETCH e.student s JOIN FETCH s.user
+            WHERE e.id = :id AND e.studyClass.id = :classId
+            """)
+    Optional<StudyClassEnrollment> findByIdAndStudyClassIdForUpdate(
+            @Param("id") UUID id, @Param("classId") UUID classId);
 
     Optional<StudyClassEnrollment> findByStudyClass_IdAndStudent_Id(UUID classId, UUID studentId);
 
@@ -31,6 +42,16 @@ public interface StudyClassEnrollmentRepository extends JpaRepository<StudyClass
             order by e.requestedAt desc
             """)
     List<StudyClassEnrollment> findMine(@Param("studentId") UUID studentId);
+
+    @Query("""
+            select e from StudyClassEnrollment e
+            join fetch e.studyClass c
+            join fetch c.teacher t
+            join fetch t.user
+            where e.student.id = :studentId and c.id = :classId
+            """)
+    Optional<StudyClassEnrollment> findStudentEnrollment(
+            @Param("studentId") UUID studentId, @Param("classId") UUID classId);
 
     @Query("""
             select e from StudyClassEnrollment e

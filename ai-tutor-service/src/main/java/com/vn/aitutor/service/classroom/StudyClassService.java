@@ -8,6 +8,7 @@ import com.vn.aitutor.dto.response.classroom.StudyClassJoinResponse;
 import com.vn.aitutor.dto.response.classroom.StudyClassListResponse;
 import com.vn.aitutor.dto.response.classroom.StudyClassResponse;
 import com.vn.aitutor.dto.response.classroom.StudyMemberResponse;
+import com.vn.aitutor.dto.response.classroom.StudentStudyClassResponse;
 import com.vn.aitutor.entity.Student;
 import com.vn.aitutor.entity.StudyClass;
 import com.vn.aitutor.entity.StudyClassEnrollment;
@@ -25,6 +26,8 @@ import com.vn.aitutor.repository.StudyClassEnrollmentRepository;
 import com.vn.aitutor.repository.StudyClassRepository;
 import com.vn.aitutor.repository.TeacherRepository;
 import com.vn.aitutor.security.principal.UserPrincipal;
+import com.vn.aitutor.service.system.notification.NotificationCommands;
+import com.vn.aitutor.service.system.notification.NotificationCreationService;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Instant;
@@ -52,6 +55,7 @@ public class StudyClassService {
     private final StudyClassEnrollmentRepository enrollmentRepository;
     private final TeacherRepository teacherRepository;
     private final StudentRepository studentRepository;
+    private final NotificationCreationService notificationCreationService;
     private final Clock learningClock;
 
     @Transactional
@@ -148,10 +152,29 @@ public class StudyClassService {
     }
 
     @Transactional
+    public List<StudentStudyClassResponse> listForStudent(UserPrincipal principal) {
+        Student student = requireStudent(principal);
+        dissolveExpired();
+        return enrollmentRepository.findMine(student.getId()).stream()
+                .map(this::toStudentClass)
+                .toList();
+    }
+
+    @Transactional
+    public StudentStudyClassResponse getForStudent(UserPrincipal principal, UUID classId) {
+        Student student = requireStudent(principal);
+        dissolveExpired();
+        return enrollmentRepository.findStudentEnrollment(student.getId(), classId)
+                .map(this::toStudentClass)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp học thêm"));
+    }
+
+    @Transactional
     public StudyMemberResponse act(UserPrincipal principal, UUID classId, UUID requestId, EnrollmentActionRequest request) {
         dissolveExpired();
-        StudyClass studyClass = requireOwned(requireTeacher(principal), classId);
-        StudyClassEnrollment enrollment = enrollmentRepository.findByIdAndStudyClass_Id(requestId, classId)
+        Teacher teacher = requireTeacher(principal);
+        StudyClass studyClass = requireOwnedForUpdate(teacher, classId);
+        StudyClassEnrollment enrollment = enrollmentRepository.findByIdAndStudyClassIdForUpdate(requestId, classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu gia nhập"));
         if (enrollment.getStatus() != EnrollmentStatus.PENDING) {
             throw new ResourceBadRequestException("Yêu cầu này đã được xử lý");
@@ -172,7 +195,11 @@ public class StudyClassService {
             throw new ResourceBadRequestException("Hành động chỉ được là approve hoặc reject");
         }
         enrollment.setReviewedAt(learningClock.instant());
-        return toMember(enrollmentRepository.save(enrollment));
+        StudyClassEnrollment saved = enrollmentRepository.saveAndFlush(enrollment);
+        notificationCreationService.create(NotificationCommands.studyClassJoinResult(
+                saved.getStudent().getUser().getId(), studyClass.getId(), saved.getId(),
+                studyClass.getName(), saved.getStatus(), saved.getRequestedAt()));
+        return toMember(saved);
     }
 
     @Transactional
@@ -183,7 +210,7 @@ public class StudyClassService {
         if (code.length() != 6) {
             throw new ResourceBadRequestException("Mã lớp gồm 6 ký tự");
         }
-        StudyClass studyClass = studyClassRepository.findByClassCode(code)
+        StudyClass studyClass = studyClassRepository.findByClassCodeForUpdate(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp với mã này"));
         if (studyClass.getStatus() != StudyClassStatus.ACTIVE) {
             throw new ResourceBadRequestException("Lớp đã giải tán");
@@ -191,27 +218,38 @@ public class StudyClassService {
         StudyClassEnrollment existing = enrollmentRepository
                 .findByStudyClass_IdAndStudent_Id(studyClass.getId(), student.getId())
                 .orElse(null);
+        StudyClassEnrollment enrollment;
         if (existing == null) {
-            StudyClassEnrollment enrollment = new StudyClassEnrollment();
+            enrollment = new StudyClassEnrollment();
             enrollment.setStudyClass(studyClass);
             enrollment.setStudent(student);
             enrollment.setStatus(EnrollmentStatus.PENDING);
             enrollment.setRequestedAt(learningClock.instant());
-            enrollmentRepository.save(enrollment);
         } else if (existing.getStatus() == EnrollmentStatus.PENDING) {
             throw new ResourceConflictException("Bạn đã gửi yêu cầu vào lớp này");
         } else if (existing.getStatus() == EnrollmentStatus.APPROVED) {
             throw new ResourceConflictException("Bạn đã là thành viên của lớp này");
         } else {
+            enrollment = existing;
             existing.setStatus(EnrollmentStatus.PENDING);
-            existing.setRequestedAt(learningClock.instant());
+            Instant requestedAt = learningClock.instant();
+            if (!requestedAt.isAfter(existing.getRequestedAt())) {
+                requestedAt = existing.getRequestedAt().plusNanos(1_000);
+            }
+            existing.setRequestedAt(requestedAt);
             existing.setReviewedAt(null);
-            enrollmentRepository.save(existing);
         }
+        StudyClassEnrollment saved = enrollmentRepository.saveAndFlush(enrollment);
+        notificationCreationService.create(NotificationCommands.studyClassJoinRequested(
+                studyClass.getTeacher().getUser().getId(), studyClass.getId(), saved.getId(),
+                student.getId(), studyClass.getName(), student.getUser().getFullName(), saved.getRequestedAt()));
         return StudyClassJoinResponse.builder()
+                .enrollmentId(saved.getId())
+                .classId(studyClass.getId())
                 .className(studyClass.getName())
                 .classCode(studyClass.getClassCode())
                 .status(EnrollmentStatus.PENDING)
+                .requestedAt(saved.getRequestedAt())
                 .build();
     }
 
@@ -267,6 +305,15 @@ public class StudyClassService {
 
     private StudyClass requireOwned(Teacher teacher, UUID classId) {
         StudyClass studyClass = studyClassRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp học thêm"));
+        if (!studyClass.getTeacher().getId().equals(teacher.getId())) {
+            throw new ResourceForbiddenException("Giáo viên không quản lý lớp học thêm này");
+        }
+        return studyClass;
+    }
+
+    private StudyClass requireOwnedForUpdate(Teacher teacher, UUID classId) {
+        StudyClass studyClass = studyClassRepository.findByIdForUpdate(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp học thêm"));
         if (!studyClass.getTeacher().getId().equals(teacher.getId())) {
             throw new ResourceForbiddenException("Giáo viên không quản lý lớp học thêm này");
@@ -355,6 +402,24 @@ public class StudyClassService {
                 .studentCode(student.getStudentCode())
                 .status(enrollment.getStatus())
                 .requestedAt(enrollment.getRequestedAt())
+                .build();
+    }
+
+    private StudentStudyClassResponse toStudentClass(StudyClassEnrollment enrollment) {
+        StudyClass studyClass = enrollment.getStudyClass();
+        return StudentStudyClassResponse.builder()
+                .enrollmentId(enrollment.getId())
+                .classId(studyClass.getId())
+                .className(studyClass.getName())
+                .description(studyClass.getDescription())
+                .classCode(studyClass.getClassCode())
+                .teacherName(studyClass.getTeacher().getUser().getFullName())
+                .classStatus(studyClass.getStatus())
+                .enrollmentStatus(enrollment.getStatus())
+                .requestedAt(enrollment.getRequestedAt())
+                .reviewedAt(enrollment.getReviewedAt())
+                .startDate(studyClass.getStartDate())
+                .endDate(studyClass.getEndDate())
                 .build();
     }
 
