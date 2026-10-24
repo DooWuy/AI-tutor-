@@ -101,9 +101,14 @@ public class StudyClassService {
     }
 
     @Transactional
-    public StudyClassResponse get(UserPrincipal principal, UUID classId) {
+    public StudyClass owned(UserPrincipal principal, UUID classId) {
         dissolveExpired();
-        return toResponse(requireOwned(requireTeacher(principal), classId), true);
+        return requireOwned(requireTeacher(principal), classId);
+    }
+
+    @Transactional
+    public StudyClassResponse get(UserPrincipal principal, UUID classId) {
+        return toResponse(owned(principal, classId), true);
     }
 
     @Transactional
@@ -150,7 +155,7 @@ public class StudyClassService {
     public List<StudentStudyClassResponse> listForStudent(UserPrincipal principal) {
         Student student = requireStudent(principal);
         dissolveExpired();
-        return enrollmentRepository.findStudentEnrollments(student.getId()).stream()
+        return enrollmentRepository.findMine(student.getId()).stream()
                 .map(this::toStudentClass)
                 .toList();
     }

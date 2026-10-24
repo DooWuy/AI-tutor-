@@ -30,12 +30,16 @@ import com.vn.aitutor.repository.QuizAttemptRepository;
 import com.vn.aitutor.repository.QuizClassAssignmentRepository;
 import com.vn.aitutor.repository.QuizQuestionRepository;
 import com.vn.aitutor.repository.QuizRepository;
+import com.vn.aitutor.repository.QuizStudyClassAssignmentRepository;
 import com.vn.aitutor.repository.SchoolClassRepository;
+import com.vn.aitutor.repository.StudyClassRepository;
 import com.vn.aitutor.repository.TeacherClassAssignmentRepository;
 import com.vn.aitutor.repository.TeacherRepository;
 import com.vn.aitutor.repository.UserRepository;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.quiz.QuestionComposer.ComposeRequest;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -62,6 +66,9 @@ class QuizManagementServiceTest {
     @Mock private TeacherRepository teacherRepository;
     @Mock private TeacherClassAssignmentRepository assignmentRepository;
     @Mock private QuizClassAssignmentRepository quizClassAssignmentRepository;
+    @Mock private QuizStudyClassAssignmentRepository quizStudyClassAssignmentRepository;
+    @Mock private StudyClassRepository studyClassRepository;
+    @Mock private Clock learningClock;
 
     private QuizManagementService service;
     private Quiz quiz;
@@ -81,7 +88,10 @@ class QuizManagementServiceTest {
                 schoolClassRepository,
                 teacherRepository,
                 assignmentRepository,
-                quizClassAssignmentRepository);
+                quizClassAssignmentRepository,
+                quizStudyClassAssignmentRepository,
+                studyClassRepository,
+                learningClock);
         quiz = new Quiz();
         quiz.setId(UUID.randomUUID());
         quiz.setTitle("Đề kiểm tra");
@@ -199,6 +209,58 @@ class QuizManagementServiceTest {
         verify(quizClassAssignmentRepository).save(any(QuizClassAssignment.class));
         assertEquals("PUBLISHED", published.getStatus());
         assertEquals("12A1", published.getClasses().get(0).getName());
+    }
+
+    @Test
+    void publishRejectsEndBeforeStart() {
+        UserPrincipal teacher = principal(Role.TEACHER);
+        UUID classId = UUID.randomUUID();
+        Teacher profile = new Teacher();
+        profile.setId(UUID.randomUUID());
+        when(quizAccess.require(quiz.getId(), teacher)).thenReturn(quiz);
+        when(quizQuestionRepository.countByQuizId(quiz.getId())).thenReturn(1L);
+        when(teacherRepository.findByUserId(teacher.getUsers().getId())).thenReturn(Optional.of(profile));
+        when(schoolClassRepository.findById(classId)).thenReturn(Optional.of(schoolClass(classId, "12")));
+        when(assignmentRepository.existsByTeacher_IdAndSchoolClass_Id(profile.getId(), classId)).thenReturn(true);
+        Instant start = Instant.parse("2026-10-20T01:00:00Z");
+        Instant end = Instant.parse("2026-10-19T01:00:00Z");
+
+        ResourceBadRequestException error = assertThrows(
+                ResourceBadRequestException.class,
+                () -> service.publish(quiz.getId(), List.of(classId), List.of(), start, end, teacher));
+
+        assertEquals("Thời gian kết thúc phải sau thời gian bắt đầu", error.getMessage());
+        verify(quizClassAssignmentRepository, never()).deleteByQuizId(any());
+    }
+
+    @Test
+    void publishStoresAvailabilityWindow() {
+        UserPrincipal teacher = principal(Role.TEACHER);
+        UUID classId = UUID.randomUUID();
+        Teacher profile = new Teacher();
+        profile.setId(UUID.randomUUID());
+        SchoolClass schoolClass = schoolClass(classId, "12");
+        schoolClass.setName("12A1");
+        QuizClassAssignment stored = new QuizClassAssignment();
+        stored.setQuiz(quiz);
+        stored.setSchoolClass(schoolClass);
+        when(quizAccess.require(quiz.getId(), teacher)).thenReturn(quiz);
+        when(quizQuestionRepository.countByQuizId(quiz.getId())).thenReturn(1L);
+        when(teacherRepository.findByUserId(teacher.getUsers().getId())).thenReturn(Optional.of(profile));
+        when(schoolClassRepository.findById(classId)).thenReturn(Optional.of(schoolClass));
+        when(assignmentRepository.existsByTeacher_IdAndSchoolClass_Id(profile.getId(), classId)).thenReturn(true);
+        when(userRepository.getReferenceById(teacher.getUsers().getId())).thenReturn(teacher.getUsers());
+        when(quizRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId())).thenReturn(List.of());
+        when(quizAttemptRepository.countByQuizId(quiz.getId())).thenReturn(0L);
+        when(quizClassAssignmentRepository.findByQuizIdIn(any())).thenReturn(List.of(stored));
+        Instant start = Instant.parse("2026-10-20T01:00:00Z");
+        Instant end = Instant.parse("2026-10-20T03:30:00Z");
+
+        QuizResponse published = service.publish(quiz.getId(), List.of(classId), List.of(), start, end, teacher);
+
+        assertEquals(start, published.getAvailableFrom());
+        assertEquals(end, published.getAvailableUntil());
     }
 
     @Test

@@ -5,11 +5,11 @@
 ### Đã hoàn thành
 
 - [x] TASK-01 — Mở rộng schema và notification contract.
-  - Thêm migration V5 mở rộng `notifications.source_type` với `STUDY_CLASS_ENROLLMENT`.
+  - Thêm migration V7 mở rộng `notifications.source_type` với `STUDY_CLASS_ENROLLMENT`.
   - Thêm ba notification type cho yêu cầu, chấp nhận và từ chối tham gia lớp.
   - Tách validation theo nhóm reminder, quiz và study class; study class chỉ dùng WebSocket,
     bắt buộc occurrence từ `requestedAt` và không có expiry.
-  - Kiểm chứng migration từ V2 qua V5 và khả năng đọc notification legacy bằng PostgreSQL thật.
+  - Kiểm chứng migration từ V2 qua V7 và khả năng đọc notification legacy bằng PostgreSQL thật.
 - [x] TASK-02 — Xây dựng command và link notification lớp học.
   - Thêm command gửi yêu cầu tới giáo viên và command trả kết quả tới học sinh.
   - Chuẩn hóa metadata, nội dung tiếng Việt, link theo role và event key chống trùng theo chu kỳ.

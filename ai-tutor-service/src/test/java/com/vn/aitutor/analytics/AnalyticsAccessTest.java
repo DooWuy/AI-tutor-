@@ -14,6 +14,8 @@ import com.vn.aitutor.exception.ResourceNotFoundException;
 import com.vn.aitutor.repository.ChatSessionRepository;
 import com.vn.aitutor.repository.QuizAttemptRepository;
 import com.vn.aitutor.repository.SchoolClassRepository;
+import com.vn.aitutor.repository.StudyClassEnrollmentRepository;
+import com.vn.aitutor.repository.StudyClassRepository;
 import com.vn.aitutor.repository.StudentRepository;
 import com.vn.aitutor.repository.TeacherClassAssignmentRepository;
 import com.vn.aitutor.repository.TeacherRepository;
@@ -54,6 +56,12 @@ class AnalyticsAccessTest {
     private ChatSessionRepository chatSessionRepository;
 
     @Mock
+    private StudyClassRepository studyClassRepository;
+
+    @Mock
+    private StudyClassEnrollmentRepository enrollmentRepository;
+
+    @Mock
     private AnalyticsAccess analyticsAccess;
 
     @InjectMocks
@@ -63,14 +71,15 @@ class AnalyticsAccessTest {
 
     @BeforeEach
     void setUp() {
-        access = new AnalyticsAccess(schoolClassRepository, teacherRepository, assignmentRepository);
+        access = new AnalyticsAccess(
+                schoolClassRepository, teacherRepository, assignmentRepository, studyClassRepository, enrollmentRepository);
     }
 
     @Test
     void summaryRefusesWhenAccessRefuses() {
         UUID classId = UUID.randomUUID();
         UserPrincipal principal = principal(Role.TEACHER);
-        when(analyticsAccess.requireReadableClass(principal, classId))
+        when(analyticsAccess.requireScope(principal, classId))
                 .thenThrow(new ResourceForbiddenException("Giáo viên không được phân quyền xem lớp học này"));
 
         assertThrows(

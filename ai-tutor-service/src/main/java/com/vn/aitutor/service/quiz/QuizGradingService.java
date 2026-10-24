@@ -22,11 +22,16 @@ public class QuizGradingService {
     public boolean correct(QuizQuestion question, String value) {
         if (value == null || value.isBlank()) return false;
         QuestionType type = question.getType();
-        if (type == QuestionType.FILL_BLANK)
-            return normalize(value).equals(normalize(question.getCorrectOptionKey()));
+        if (type == QuestionType.FILL_BLANK) {
+            String expected = question.getCorrectText() != null && !question.getCorrectText().isBlank()
+                    ? question.getCorrectText()
+                    : question.getCorrectOptionKey();
+            return normalize(value).equals(normalize(expected));
+        }
         if (type == QuestionType.MULTI_SELECT)
             return choiceKeys(value).equals(choiceKeys(question.getCorrectOptionKey()));
-        return value.equals(question.getCorrectOptionKey());
+        String expectedKey = question.getCorrectOptionKey() == null ? "" : question.getCorrectOptionKey().trim();
+        return value.trim().equalsIgnoreCase(expectedKey);
     }
     public static Set<String> choiceKeys(String raw) {
         if (raw == null || raw.isBlank()) return Set.of();

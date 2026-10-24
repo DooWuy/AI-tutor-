@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { questionBankApi, quizAdminApi } from '../../services/assessmentApi';
 import type { GenerationJob, QuestionItem, QuizDraft, QuizItem, SkillItem } from '../../types/assessment';
-import { questionTypeLabel, subjectLabel } from '../../types/assessment';
+import { assignedClassLabels, formatQuizWindow, questionTypeLabel, subjectLabel } from '../../types/assessment';
 import { ErrorBanner, Field, Modal, PrimaryButton, inputClass, useAssessmentBase } from './assessmentUi';
 import { PublishQuizModal } from './PublishQuizModal';
 import { QuestionView } from './MathContent';
@@ -277,8 +277,11 @@ export default function QuizEditorPage() {
               </PrimaryButton>
             </div>
           </div>
-          {(quiz.classes || []).length > 0 ? (
-            <p className="text-sm text-on-surface-variant">Đang giao cho: {quiz.classes?.map((item) => item.name).join(', ')}</p>
+          {assignedClassLabels(quiz).length > 0 ? (
+            <p className="text-sm text-on-surface-variant">Đang giao cho: {assignedClassLabels(quiz).join(', ')}</p>
+          ) : null}
+          {quiz.status === 'PUBLISHED' ? (
+            <p className="text-sm text-on-surface-variant">{formatQuizWindow(quiz.availableFrom, quiz.availableUntil)}</p>
           ) : null}
           {publishOpen ? (
             <PublishQuizModal

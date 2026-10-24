@@ -1,5 +1,6 @@
 import type { ApiResponse } from '../types/auth';
 import type { XpAwardStatus } from '../types/gamification';
+import { getStoredSession } from './authApi';
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:8088/api/v1').replace(/\/$/, '');
 
 export interface StudentQuizGenerateRequest {
@@ -17,7 +18,7 @@ export interface StudentQuizDto {
   status: string;
 }
 
-export type QuestionType = 'MULTIPLE_CHOICE' | 'MULTI_SELECT' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'SHORT_ANSWER';
+export type QuestionType = 'MULTIPLE_CHOICE' | 'MULTI_SELECT' | 'TRUE_FALSE' | 'FILL_BLANK' | 'FILL_IN_BLANK' | 'SHORT_ANSWER';
 export interface QuizQuestion { id: string; questionText: string; type: QuestionType; options: { key: string; content: string }[]; orderIndex: number }
 export interface QuizContent { id: string; title: string; subject: string; duration: number; questions: QuizQuestion[] }
 export interface QuizAnswer { questionId: string; value: string | null }
@@ -30,8 +31,12 @@ export class QuizApiError extends Error {
   constructor(message: string, status: number) { super(message); this.status = status; }
 }
 async function request<T>(path: string, body?: unknown, method = body === undefined ? 'GET' : 'POST'): Promise<T> {
+  const token = getStoredSession()?.accessToken;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
   const response = await fetch(`${BASE_URL}${path}`, { method, credentials: 'include', signal: AbortSignal.timeout(15000),
-    ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) });
+    headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const payload: ApiResponse<T> | null = response.headers.get('content-type')?.includes('application/json') ? await response.json() : null;
   if (!response.ok || !payload?.success || (payload.data === undefined && method !== 'PATCH'))
     throw new QuizApiError(payload?.message || 'Không thể hoàn thành thao tác. Vui lòng thử lại.', response.status);

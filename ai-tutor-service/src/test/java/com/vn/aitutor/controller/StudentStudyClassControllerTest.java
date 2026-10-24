@@ -5,12 +5,14 @@ import static org.mockito.Mockito.*;
 
 import com.vn.aitutor.dto.request.classroom.StudyClassJoinRequest;
 import com.vn.aitutor.dto.response.ApiResponse;
+import com.vn.aitutor.dto.response.StudentStudyClassCard;
 import com.vn.aitutor.dto.response.classroom.StudyClassJoinResponse;
 import com.vn.aitutor.dto.response.classroom.StudentStudyClassResponse;
 import com.vn.aitutor.entity.User;
 import com.vn.aitutor.entity.enums.EnrollmentStatus;
 import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.security.principal.UserPrincipal;
+import com.vn.aitutor.service.classroom.StudyClassClassroomService;
 import com.vn.aitutor.service.classroom.StudyClassService;
 import java.time.Instant;
 import java.util.List;
@@ -30,12 +32,15 @@ class StudentStudyClassControllerTest {
     @Mock
     private StudyClassService studyClassService;
 
+    @Mock
+    private StudyClassClassroomService studyClassClassroomService;
+
     private StudentStudyClassController controller;
     private UserPrincipal studentPrincipal;
 
     @BeforeEach
     void setUp() {
-        controller = new StudentStudyClassController(studyClassService);
+        controller = new StudentStudyClassController(studyClassService, studyClassClassroomService);
         User user = new User();
         user.setId(UUID.randomUUID());
         user.setRole(Role.STUDENT);
@@ -78,31 +83,31 @@ class StudentStudyClassControllerTest {
 
     @Test
     void list_returnsOnlyCurrentStudentsEnrollments() {
-        var item = StudentStudyClassResponse.builder()
+        var item = StudentStudyClassCard.builder()
                 .enrollmentId(UUID.randomUUID())
                 .classId(UUID.randomUUID())
-                .className("Lớp Toán 5A")
+                .name("Lớp Toán 5A")
                 .enrollmentStatus(EnrollmentStatus.APPROVED)
                 .build();
-        when(studyClassService.listForStudent(studentPrincipal)).thenReturn(List.of(item));
+        when(studyClassClassroomService.myClasses(studentPrincipal)).thenReturn(List.of(item));
 
-        var response = controller.list(studentPrincipal);
+        var response = controller.mine(studentPrincipal);
 
         assertTrue(response.getBody().isSuccess());
         assertEquals(1, response.getBody().getData().size());
         assertEquals(item.getEnrollmentId(), response.getBody().getData().get(0).getEnrollmentId());
-        verify(studyClassService).listForStudent(studentPrincipal);
+        verify(studyClassClassroomService).myClasses(studentPrincipal);
     }
 
     @Test
     void list_returnsAnEmptyArrayWhenStudentHasNoEnrollments() {
-        when(studyClassService.listForStudent(studentPrincipal)).thenReturn(List.of());
+        when(studyClassClassroomService.myClasses(studentPrincipal)).thenReturn(List.of());
 
-        var response = controller.list(studentPrincipal);
+        var response = controller.mine(studentPrincipal);
 
         assertTrue(response.getBody().isSuccess());
         assertTrue(response.getBody().getData().isEmpty());
-        verify(studyClassService).listForStudent(studentPrincipal);
+        verify(studyClassClassroomService).myClasses(studentPrincipal);
     }
 
     @Test

@@ -8,7 +8,6 @@ import com.vn.aitutor.analytics.TopicText;
 import com.vn.aitutor.dto.response.analytics.AppliedFiltersDto;
 import com.vn.aitutor.dto.response.analytics.KnowledgeGapItemDto;
 import com.vn.aitutor.dto.response.analytics.KnowledgeGapsResponse;
-import com.vn.aitutor.entity.SchoolClass;
 import com.vn.aitutor.entity.enums.ReportPeriod;
 import com.vn.aitutor.entity.enums.SubjectCode;
 import com.vn.aitutor.repository.ChatMessageRepository;
@@ -55,9 +54,11 @@ public class KnowledgeGapServiceImpl implements IKnowledgeGapService {
             ReportPeriod period,
             LocalDate from,
             LocalDate to) {
-        SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, classId);
+        ReadableClass readable = analyticsAccess.requireScope(principal, classId);
         ResolvedScope scope = resolve(subject, period, from, to);
-        int classSize = (int) studentRepository.countActiveByClassId(classId);
+        int classSize = readable.studyClass()
+                ? analyticsAccess.countApprovedMembers(readable.id())
+                : (int) studentRepository.countActiveByClassId(classId);
         List<RankedGap> ranked = rank(classId, scope, classSize);
         List<ChatSnippetRow> messages = messages(classId, scope);
         Map<String, Integer> asking = askingCounts(ranked, messages);
@@ -80,7 +81,7 @@ public class KnowledgeGapServiceImpl implements IKnowledgeGapService {
                     .build());
         }
         return KnowledgeGapsResponse.builder()
-                .filters(filters(schoolClass, scope))
+                .filters(filters(readable, scope))
                 .classSize(classSize)
                 .analyzedAt(Instant.now())
                 .gaps(items)
@@ -191,10 +192,10 @@ public class KnowledgeGapServiceImpl implements IKnowledgeGapService {
         return new ResolvedScope(subjectFilter, subjectCode, resolved, range);
     }
 
-    private AppliedFiltersDto filters(SchoolClass schoolClass, ResolvedScope scope) {
+    private AppliedFiltersDto filters(ReadableClass readable, ResolvedScope scope) {
         return AppliedFiltersDto.builder()
-                .classId(schoolClass.getId())
-                .className(schoolClass.getName())
+                .classId(readable.id())
+                .className(readable.name())
                 .subject(scope.subjectCode())
                 .period(scope.period().name())
                 .from(scope.range().from())

@@ -12,12 +12,15 @@ import com.vn.aitutor.entity.QuestionChoice;
 import com.vn.aitutor.entity.Quiz;
 import com.vn.aitutor.entity.QuizClassAssignment;
 import com.vn.aitutor.entity.QuizQuestion;
+import com.vn.aitutor.entity.QuizStudyClassAssignment;
 import com.vn.aitutor.entity.SchoolClass;
+import com.vn.aitutor.entity.StudyClass;
 import com.vn.aitutor.entity.Teacher;
 import com.vn.aitutor.entity.User;
 import com.vn.aitutor.entity.enums.QuestionType;
 import com.vn.aitutor.entity.enums.QuizDifficulty;
 import com.vn.aitutor.entity.enums.QuizStatus;
+import com.vn.aitutor.entity.enums.StudyClassStatus;
 import com.vn.aitutor.entity.enums.ReviewStatus;
 import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.entity.enums.SubjectCode;
@@ -32,12 +35,17 @@ import com.vn.aitutor.repository.QuizAttemptRepository;
 import com.vn.aitutor.repository.QuizClassAssignmentRepository;
 import com.vn.aitutor.repository.QuizQuestionRepository;
 import com.vn.aitutor.repository.QuizRepository;
+import com.vn.aitutor.repository.QuizStudyClassAssignmentRepository;
 import com.vn.aitutor.repository.SchoolClassRepository;
+import com.vn.aitutor.repository.StudyClassRepository;
 import com.vn.aitutor.repository.TeacherClassAssignmentRepository;
 import com.vn.aitutor.repository.TeacherRepository;
 import com.vn.aitutor.repository.UserRepository;
 import com.vn.aitutor.security.principal.UserPrincipal;
 import com.vn.aitutor.service.quiz.QuestionComposer.ComposeRequest;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -67,7 +75,12 @@ public class QuizManagementService {
     private final SchoolClassRepository schoolClassRepository;
     private final TeacherRepository teacherRepository;
     private final TeacherClassAssignmentRepository assignmentRepository;
+    private static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+
     private final QuizClassAssignmentRepository quizClassAssignmentRepository;
+    private final QuizStudyClassAssignmentRepository quizStudyClassAssignmentRepository;
+    private final StudyClassRepository studyClassRepository;
+    private final Clock learningClock;
 
     @Transactional(readOnly = true)
     public List<QuizResponse> list(String subject, String gradeLevel, String status, UserPrincipal principal) {
@@ -79,9 +92,11 @@ public class QuizManagementService {
         Map<UUID, Long> questions = ids.isEmpty() ? Map.of() : counts(quizQuestionRepository.countGrouped(ids));
         Map<UUID, Long> attempts = ids.isEmpty() ? Map.of() : counts(quizAttemptRepository.countGrouped(ids));
         Map<UUID, List<QuizClassRef>> classes = classesOf(ids);
+        Map<UUID, List<QuizClassRef>> studyClasses = studyClassesOf(ids);
         return quizzes.stream()
                 .map(quiz -> toResponse(quiz, questions.getOrDefault(quiz.getId(), 0L).intValue(),
-                        attempts.getOrDefault(quiz.getId(), 0L), null, classes.getOrDefault(quiz.getId(), List.of())))
+                        attempts.getOrDefault(quiz.getId(), 0L), null, classes.getOrDefault(quiz.getId(), List.of()),
+                        studyClasses.getOrDefault(quiz.getId(), List.of())))
                 .toList();
     }
 
@@ -110,14 +125,74 @@ public class QuizManagementService {
     }
 
     @Transactional
+    public List<QuizClassRef> listStudyPublishTargets(UserPrincipal principal) {
+        studyClassRepository.dissolveExpired(LocalDate.now(learningClock.withZone(ZONE)), learningClock.instant());
+        User user = principal.getUsers();
+        Teacher teacher = null;
+        if (user.getRole() == Role.TEACHER) {
+            teacher = teacherRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new ResourceForbiddenException("Tài khoản không gắn với hồ sơ giáo viên"));
+        } else if (user.getRole() != Role.ADMIN) {
+            throw new ResourceForbiddenException("Bạn không có quyền phát hành đề thi");
+        }
+        List<StudyClass> rows = teacher == null
+                ? studyClassRepository.findAllByOrderByNameAsc()
+                : studyClassRepository.findByTeacher_IdOrderByCreatedAtDesc(teacher.getId());
+        return rows.stream()
+                .filter(item -> item.getStatus() == StudyClassStatus.ACTIVE)
+                .map(item -> QuizClassRef.builder()
+                        .id(item.getId())
+                        .name(item.getName())
+                        .classCode(item.getClassCode())
+                        .build())
+                .toList();
+    }
+
+    @Transactional
     public QuizResponse publish(UUID quizId, List<UUID> classIds, UserPrincipal principal) {
+        return publish(quizId, classIds, List.of(), null, null, principal);
+    }
+
+    @Transactional
+    public QuizResponse publish(UUID quizId, List<UUID> classIds, List<UUID> studyClassIds, UserPrincipal principal) {
+        return publish(quizId, classIds, studyClassIds, null, null, principal);
+    }
+
+    @Transactional
+    public QuizResponse publish(
+            UUID quizId,
+            List<UUID> classIds,
+            List<UUID> studyClassIds,
+            java.time.Instant availableFrom,
+            java.time.Instant availableUntil,
+            UserPrincipal principal) {
+        if (hasId(studyClassIds)) {
+            studyClassRepository.dissolveExpired(LocalDate.now(learningClock.withZone(ZONE)), learningClock.instant());
+        }
         Quiz quiz = quizAccess.require(quizId, principal);
         if (quizQuestionRepository.countByQuizId(quizId) == 0) {
             throw new ResourceBadRequestException("Đề thi cần ít nhất một câu hỏi trước khi phát hành");
         }
         List<SchoolClass> targets = resolveClasses(quiz, classIds, principal);
+        List<StudyClass> studyTargets = resolveStudyClasses(studyClassIds, principal);
+        if (targets.isEmpty() && studyTargets.isEmpty()) {
+            throw new ResourceBadRequestException("Chọn ít nhất một lớp để phát hành");
+        }
+        applyWindow(quiz, availableFrom, availableUntil);
         replaceAssignments(quiz, targets, principal.getUsers());
+        replaceStudyAssignments(quiz, studyTargets, principal.getUsers());
         return changeStatus(quiz, QuizStatus.PUBLISHED);
+    }
+
+    private void applyWindow(Quiz quiz, java.time.Instant availableFrom, java.time.Instant availableUntil) {
+        if (availableFrom != null && availableUntil != null && !availableUntil.isAfter(availableFrom)) {
+            throw new ResourceBadRequestException("Thời gian kết thúc phải sau thời gian bắt đầu");
+        }
+        if (availableFrom == null && availableUntil != null && !availableUntil.isAfter(learningClock.instant())) {
+            throw new ResourceBadRequestException("Thời gian kết thúc phải sau thời điểm hiện tại");
+        }
+        quiz.setAvailableFrom(availableFrom);
+        quiz.setAvailableUntil(availableUntil);
     }
 
     @Transactional
@@ -383,17 +458,9 @@ public class QuizManagementService {
     }
 
     private List<SchoolClass> resolveClasses(Quiz quiz, List<UUID> classIds, UserPrincipal principal) {
-        if (classIds == null || classIds.isEmpty()) {
-            throw new ResourceBadRequestException("Chọn ít nhất một lớp để phát hành");
-        }
-        LinkedHashSet<UUID> distinct = new LinkedHashSet<>();
-        for (UUID classId : classIds) {
-            if (classId != null) {
-                distinct.add(classId);
-            }
-        }
+        LinkedHashSet<UUID> distinct = distinctIds(classIds);
         if (distinct.isEmpty()) {
-            throw new ResourceBadRequestException("Chọn ít nhất một lớp để phát hành");
+            return List.of();
         }
         User user = principal.getUsers();
         Teacher teacher = null;
@@ -419,6 +486,34 @@ public class QuizManagementService {
         return targets;
     }
 
+    private List<StudyClass> resolveStudyClasses(List<UUID> classIds, UserPrincipal principal) {
+        LinkedHashSet<UUID> distinct = distinctIds(classIds);
+        if (distinct.isEmpty()) {
+            return List.of();
+        }
+        User user = principal.getUsers();
+        Teacher teacher = null;
+        if (user.getRole() == Role.TEACHER) {
+            teacher = teacherRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new ResourceForbiddenException("Tài khoản không gắn với hồ sơ giáo viên"));
+        } else if (user.getRole() != Role.ADMIN) {
+            throw new ResourceForbiddenException("Bạn không có quyền phát hành đề thi");
+        }
+        List<StudyClass> targets = new ArrayList<>();
+        for (UUID classId : distinct) {
+            StudyClass studyClass = studyClassRepository.findById(classId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp học thêm"));
+            if (studyClass.getStatus() != StudyClassStatus.ACTIVE) {
+                throw new ResourceBadRequestException("Lớp học thêm đã giải tán");
+            }
+            if (teacher != null && (studyClass.getTeacher() == null || !teacher.getId().equals(studyClass.getTeacher().getId()))) {
+                throw new ResourceForbiddenException("Giáo viên không quản lý lớp học thêm này");
+            }
+            targets.add(studyClass);
+        }
+        return targets;
+    }
+
     private void replaceAssignments(Quiz quiz, List<SchoolClass> targets, User actor) {
         quizClassAssignmentRepository.deleteByQuizId(quiz.getId());
         User assignedBy = userRepository.getReferenceById(actor.getId());
@@ -431,12 +526,25 @@ public class QuizManagementService {
         }
     }
 
+    private void replaceStudyAssignments(Quiz quiz, List<StudyClass> targets, User actor) {
+        quizStudyClassAssignmentRepository.deleteByQuizId(quiz.getId());
+        User assignedBy = userRepository.getReferenceById(actor.getId());
+        for (StudyClass studyClass : targets) {
+            QuizStudyClassAssignment row = new QuizStudyClassAssignment();
+            row.setQuiz(quiz);
+            row.setStudyClass(studyClass);
+            row.setAssignedBy(assignedBy);
+            quizStudyClassAssignmentRepository.save(row);
+        }
+    }
+
     private QuizResponse detail(Quiz quiz) {
         List<QuizQuestionResponse> questions = quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId()).stream()
                 .map(this::toQuestion)
                 .toList();
         List<QuizClassRef> classes = classesOf(List.of(quiz.getId())).getOrDefault(quiz.getId(), List.of());
-        return toResponse(quiz, questions.size(), quizAttemptRepository.countByQuizId(quiz.getId()), questions, classes);
+        List<QuizClassRef> studyClasses = studyClassesOf(List.of(quiz.getId())).getOrDefault(quiz.getId(), List.of());
+        return toResponse(quiz, questions.size(), quizAttemptRepository.countByQuizId(quiz.getId()), questions, classes, studyClasses);
     }
 
     private Map<UUID, List<QuizClassRef>> classesOf(Collection<UUID> ids) {
@@ -462,12 +570,36 @@ public class QuizManagementService {
         return map;
     }
 
+    private Map<UUID, List<QuizClassRef>> studyClassesOf(Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        List<QuizStudyClassAssignment> rows = quizStudyClassAssignmentRepository.findByQuizIdIn(ids);
+        if (rows == null || rows.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, List<QuizClassRef>> map = new LinkedHashMap<>();
+        for (QuizStudyClassAssignment row : rows) {
+            if (row.getQuiz() == null || row.getStudyClass() == null) {
+                continue;
+            }
+            map.computeIfAbsent(row.getQuiz().getId(), ignored -> new ArrayList<>())
+                    .add(QuizClassRef.builder()
+                            .id(row.getStudyClass().getId())
+                            .name(row.getStudyClass().getName())
+                            .classCode(row.getStudyClass().getClassCode())
+                            .build());
+        }
+        return map;
+    }
+
     private QuizResponse toResponse(
             Quiz quiz,
             int questionCount,
             long attemptCount,
             List<QuizQuestionResponse> questions,
-            List<QuizClassRef> classes) {
+            List<QuizClassRef> classes,
+            List<QuizClassRef> studyClasses) {
         return QuizResponse.builder()
                 .id(quiz.getId())
                 .title(quiz.getTitle())
@@ -487,6 +619,9 @@ public class QuizManagementService {
                 .createdAt(quiz.getCreatedAt())
                 .questions(questions)
                 .classes(classes == null ? List.of() : classes)
+                .studyClasses(studyClasses == null ? List.of() : studyClasses)
+                .availableFrom(quiz.getAvailableFrom())
+                .availableUntil(quiz.getAvailableUntil())
                 .build();
     }
 
@@ -531,5 +666,22 @@ public class QuizManagementService {
 
     private boolean blank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private boolean hasId(List<UUID> ids) {
+        return !distinctIds(ids).isEmpty();
+    }
+
+    private LinkedHashSet<UUID> distinctIds(List<UUID> ids) {
+        LinkedHashSet<UUID> distinct = new LinkedHashSet<>();
+        if (ids == null) {
+            return distinct;
+        }
+        for (UUID id : ids) {
+            if (id != null) {
+                distinct.add(id);
+            }
+        }
+        return distinct;
     }
 }

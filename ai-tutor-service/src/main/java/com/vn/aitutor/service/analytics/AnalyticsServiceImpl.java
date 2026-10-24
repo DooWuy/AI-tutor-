@@ -12,9 +12,11 @@ import com.vn.aitutor.dto.response.analytics.ScoreTrendPoint;
 import com.vn.aitutor.dto.response.analytics.StudyTimePoint;
 import com.vn.aitutor.dto.response.analytics.SubjectOptionDto;
 import com.vn.aitutor.entity.SchoolClass;
+import com.vn.aitutor.entity.StudyClass;
 import com.vn.aitutor.entity.Teacher;
 import com.vn.aitutor.entity.TeacherClassAssignment;
 import com.vn.aitutor.entity.User;
+import com.vn.aitutor.entity.enums.StudyClassStatus;
 import com.vn.aitutor.entity.enums.ReportPeriod;
 import com.vn.aitutor.entity.enums.Role;
 import com.vn.aitutor.entity.enums.SubjectCode;
@@ -23,6 +25,7 @@ import com.vn.aitutor.repository.ChatSessionRepository;
 import com.vn.aitutor.repository.QuizAttemptRepository;
 import com.vn.aitutor.repository.SchoolClassRepository;
 import com.vn.aitutor.repository.StudentRepository;
+import com.vn.aitutor.repository.StudyClassRepository;
 import com.vn.aitutor.repository.TeacherClassAssignmentRepository;
 import com.vn.aitutor.repository.TeacherRepository;
 import com.vn.aitutor.repository.projection.DaySecondsRow;
@@ -62,6 +65,7 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
     private final StudentRepository studentRepository;
     private final QuizAttemptRepository quizAttemptRepository;
     private final ChatSessionRepository chatSessionRepository;
+    private final StudyClassRepository studyClassRepository;
 
     @Override
     public AnalyticsFiltersResponse getFilters(UserPrincipal principal) {
@@ -122,14 +126,19 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
                         .name(code.getDisplayName())
                         .build()));
 
+        List<ClassOptionDto> studyClasses = studyOptions(user);
+        List<ClassOptionDto> allClasses = new ArrayList<>(classes);
+        allClasses.addAll(studyClasses);
         UUID defaultClassId = classes.stream()
                 .filter(ClassOptionDto::isHomeroom)
                 .map(ClassOptionDto::getId)
                 .findFirst()
-                .orElseGet(() -> classes.isEmpty() ? null : classes.get(0).getId());
+                .orElseGet(() -> !classes.isEmpty()
+                        ? classes.get(0).getId()
+                        : (allClasses.isEmpty() ? null : allClasses.get(0).getId()));
 
         return AnalyticsFiltersResponse.builder()
-                .classes(classes)
+                .classes(allClasses)
                 .subjects(subjects)
                 .defaultClassId(defaultClassId)
                 .defaultPeriod(ReportPeriod.LAST_7_DAYS.name())
@@ -144,14 +153,16 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
             ReportPeriod period,
             LocalDate from,
             LocalDate to) {
-        SchoolClass schoolClass = analyticsAccess.requireReadableClass(principal, classId);
+        ReadableClass scope = analyticsAccess.requireScope(principal, classId);
 
         String subjectFilter = SubjectCode.normalizeFilter(subject);
         ReportPeriod resolvedPeriod = period == null ? ReportPeriod.LAST_7_DAYS : period;
         Instant now = Instant.now();
         AcademicCalendar.DateRange range = academicCalendar.resolve(resolvedPeriod, from, to, now);
 
-        int studentCount = (int) studentRepository.countActiveByClassId(classId);
+        int studentCount = scope.studyClass()
+                ? analyticsAccess.countApprovedMembers(scope.id())
+                : (int) studentRepository.countActiveByClassId(classId);
 
         ScoreSumCountRow scoreRow = quizAttemptRepository.sumScores(
                 classId, range.from(), range.to(), subjectFilter);
@@ -186,8 +197,8 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
 
         return DashboardSummaryResponse.builder()
                 .filters(AppliedFiltersDto.builder()
-                        .classId(schoolClass.getId())
-                        .className(schoolClass.getName())
+                        .classId(scope.id())
+                        .className(scope.name())
                         .subject(subjectCode)
                         .period(resolvedPeriod.name())
                         .from(range.from())
@@ -203,6 +214,30 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
                 .scoreTrend(scoreTrend)
                 .studyTimeByWeekday(studyTime)
                 .build();
+    }
+
+    private List<ClassOptionDto> studyOptions(User user) {
+        List<StudyClass> rows;
+        if (user.getRole() == Role.ADMIN) {
+            rows = studyClassRepository.findAllByOrderByNameAsc();
+        } else if (user.getRole() == Role.TEACHER) {
+            Teacher teacher = teacherRepository.findByUserId(user.getId()).orElse(null);
+            rows = teacher == null ? List.of() : studyClassRepository.findByTeacher_IdOrderByCreatedAtDesc(teacher.getId());
+        } else {
+            rows = List.of();
+        }
+        if (rows == null) {
+            return List.of();
+        }
+        return rows.stream()
+                .map(item -> ClassOptionDto.builder()
+                        .id(item.getId())
+                        .name(item.getStatus() == StudyClassStatus.DISSOLVED ? item.getName() + " (đã giải tán)" : item.getName())
+                        .gradeLevel("Lớp học thêm")
+                        .homeroom(false)
+                        .studyClass(true)
+                        .build())
+                .toList();
     }
 
     private int countAtRisk(List<StudentScoreRow> rows, Instant now) {

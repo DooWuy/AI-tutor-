@@ -28,4 +28,7 @@ public class QuizResponse {
     private Instant createdAt;
     private List<QuizQuestionResponse> questions;
     private List<QuizClassRef> classes;
+    private List<QuizClassRef> studyClasses;
+    private Instant availableFrom;
+    private Instant availableUntil;
 }

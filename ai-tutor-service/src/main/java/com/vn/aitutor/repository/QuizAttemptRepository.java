@@ -39,7 +39,15 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
                     JOIN quizzes q ON q.id = qa.quiz_id
                     JOIN students s ON s.id = qa.student_id
                     JOIN users u ON u.id = s.user_id
-                    WHERE s.class_id = :classId
+                    WHERE (
+                      s.class_id = :classId
+                      OR EXISTS (
+                        SELECT 1 FROM study_class_enrollments sce
+                        WHERE sce.class_id = :classId
+                          AND sce.student_id = s.id
+                          AND sce.status = 'APPROVED'
+                      )
+                    )
                       AND u.is_deleted = FALSE
                       AND u.is_active = TRUE
                       AND qa.submitted_at >= :fromTs
@@ -63,7 +71,15 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
                     JOIN quizzes q ON q.id = qa.quiz_id
                     JOIN students s ON s.id = qa.student_id
                     JOIN users u ON u.id = s.user_id
-                    WHERE s.class_id = :classId
+                    WHERE (
+                      s.class_id = :classId
+                      OR EXISTS (
+                        SELECT 1 FROM study_class_enrollments sce
+                        WHERE sce.class_id = :classId
+                          AND sce.student_id = s.id
+                          AND sce.status = 'APPROVED'
+                      )
+                    )
                       AND u.is_deleted = FALSE
                       AND u.is_active = TRUE
                       AND qa.submitted_at >= :fromTs
@@ -88,7 +104,15 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
                     JOIN quizzes q ON q.id = qa.quiz_id
                     JOIN students s ON s.id = qa.student_id
                     JOIN users u ON u.id = s.user_id
-                    WHERE s.class_id = :classId
+                    WHERE (
+                      s.class_id = :classId
+                      OR EXISTS (
+                        SELECT 1 FROM study_class_enrollments sce
+                        WHERE sce.class_id = :classId
+                          AND sce.student_id = s.id
+                          AND sce.status = 'APPROVED'
+                      )
+                    )
                       AND u.is_deleted = FALSE
                       AND u.is_active = TRUE
                       AND qa.submitted_at >= :fromTs
@@ -111,7 +135,15 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
                     JOIN quizzes q ON q.id = qa.quiz_id
                     JOIN students s ON s.id = qa.student_id
                     JOIN users u ON u.id = s.user_id
-                    WHERE s.class_id = :classId
+                    WHERE (
+                      s.class_id = :classId
+                      OR EXISTS (
+                        SELECT 1 FROM study_class_enrollments sce
+                        WHERE sce.class_id = :classId
+                          AND sce.student_id = s.id
+                          AND sce.status = 'APPROVED'
+                      )
+                    )
                       AND u.is_deleted = FALSE
                       AND u.is_active = TRUE
                       AND qa.submitted_at >= :fromTs
@@ -146,7 +178,15 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
                           AND (:subject IS NULL OR q.subject = :subject)
                         GROUP BY qa.student_id
                     ) agg ON agg.student_id = s.id
-                    WHERE s.class_id = :classId
+                    WHERE (
+                      s.class_id = :classId
+                      OR EXISTS (
+                        SELECT 1 FROM study_class_enrollments sce
+                        WHERE sce.class_id = :classId
+                          AND sce.student_id = s.id
+                          AND sce.status = 'APPROVED'
+                      )
+                    )
                       AND u.is_deleted = FALSE
                       AND u.is_active = TRUE
                     """,
@@ -166,6 +206,15 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
     List<QuizAttempt> findByClassAndQuiz(@Param("classId") UUID classId, @Param("quizId") UUID quizId);
 
     long countByQuizId(UUID quizId);
+
+    @Query("""
+            select a from QuizAttempt a
+            where a.student.id = :studentId
+              and a.quiz.id in :quizIds
+              and a.submittedAt is not null
+            order by a.submittedAt desc
+            """)
+    List<QuizAttempt> findSubmittedForStudent(@Param("studentId") UUID studentId, @Param("quizIds") Collection<UUID> quizIds);
 
     @Query("select a.quiz.id, count(a) from QuizAttempt a where a.quiz.id in :quizIds group by a.quiz.id")
     List<Object[]> countGrouped(@Param("quizIds") Collection<UUID> quizIds);
@@ -196,8 +245,16 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, UUID> 
                     JOIN quizzes q ON q.id = qa.quiz_id
                     JOIN students s ON s.id = qa.student_id
                     JOIN users u ON u.id = s.user_id
-                    JOIN school_classes sc ON sc.id = s.class_id
-                    WHERE s.class_id = :classId
+                    LEFT JOIN school_classes sc ON sc.id = s.class_id
+                    WHERE (
+                      s.class_id = :classId
+                      OR EXISTS (
+                        SELECT 1 FROM study_class_enrollments sce
+                        WHERE sce.class_id = :classId
+                          AND sce.student_id = s.id
+                          AND sce.status = 'APPROVED'
+                      )
+                    )
                       AND u.is_deleted = FALSE
                       AND u.is_active = TRUE
                       AND qa.submitted_at >= :fromTs

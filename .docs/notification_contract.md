@@ -106,7 +106,7 @@ Command nội bộ tạo bằng `NotificationCommands.classReminder(...)`, `quiz
 ## 4. Schema và delivery lifecycle
 
 Flyway `V3__notification_delivery_foundation.sql` chỉ thêm schema; không sửa V1/V2.
-Flyway `V5__study_class_notification_contract.sql` chỉ thay check constraint source type để
+Flyway `V7__study_class_notification_contract.sql` chỉ thay check constraint source type để
 chấp nhận `STUDY_CLASS_ENROLLMENT`; không sửa hoặc backfill notification/delivery hiện có.
 
 - `notifications`: thêm `event_key`, `source_type`, `source_id`, `occurrence_at`, `metadata` JSONB.
@@ -178,8 +178,8 @@ type/source/channel, metadata, link, nội dung, event key theo chu kỳ và cá
 
 ### Kiểm chứng TASK-01 và TASK-02 ngày 24/10/2026
 
-- `NotificationPersistenceIntegrationTest` nâng database có legacy row từ V2 qua V5 trên
-  PostgreSQL Testcontainer, xác nhận đủ 5 migration, legacy type/metadata còn đọc được,
+- `NotificationPersistenceIntegrationTest` nâng database có legacy row từ V2 qua V7 trên
+  PostgreSQL Testcontainer, xác nhận đủ 7 migration, legacy type/metadata còn đọc được,
   source `STUDY_CLASS_ENROLLMENT` và `occurrence_at` được lưu, chỉ sinh một delivery WebSocket.
 - Lệnh kiểm tra tập trung:
   `./gradlew.bat test --tests '*NotificationContractTest' --tests '*NotificationPersistenceIntegrationTest'`
@@ -195,7 +195,7 @@ từ client:
 
 | Endpoint | `ApiResponse.data` | Quy tắc |
 |---|---|---|
-| `GET /api/v1/student/study-classes` | Mảng enrollment mới nhất trước | Chỉ enrollment của student hiện tại; fetch class/teacher/user trong cùng query |
+| `GET /api/v1/student/study-classes` | Mảng class card mới nhất trước | Chỉ enrollment của student hiện tại; gồm trạng thái, overview lớp và quiz đã phát hành |
 | `GET /api/v1/student/study-classes/{classId}` | Một enrollment + class overview | Không có enrollment của chính student thì trả `404`, kể cả class ID tồn tại |
 | `POST /api/v1/student/study-classes/join` | Kết quả join | Giữ `className`, `classCode`, `status`; thêm `enrollmentId`, `classId`, `requestedAt` |
 
@@ -219,7 +219,7 @@ chu kỳ trước ít nhất một microsecond, kể cả khi clock không tiế
 - Lệnh tập trung:
   `./gradlew.bat test --tests '*StudyClassServiceTest' --tests '*StudentStudyClassControllerTest' --tests '*StudyClassControllerTest' --tests '*StudyClassNotificationIntegrationTest'`
   — 4 suites, 34 tests pass, 0 failed, 0 errors, 0 skipped.
-- `StudyClassNotificationIntegrationTest` chạy Flyway V1–V5 và service/repository thật trên
+- `StudyClassNotificationIntegrationTest` chạy Flyway V1–V7 và service/repository thật trên
   PostgreSQL Testcontainer; kiểm read model ownership, join + teacher notification, rollback join,
   rollback approve, duplicate join đồng thời, hai approve tranh suất cuối và rejoin sau reject.
 - Nhóm lớp học + notification mở rộng cũng `BUILD SUCCESSFUL` với lệnh

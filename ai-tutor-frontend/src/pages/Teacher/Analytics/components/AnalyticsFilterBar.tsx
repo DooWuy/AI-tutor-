@@ -59,7 +59,7 @@ export function AnalyticsFilterBar({
             ) : (
               classes.map((cls) => (
                 <option key={cls.id} value={cls.id}>
-                  {cls.name} {cls.isHomeroom ? '(Chủ nhiệm)' : ''}
+                  {cls.studyClass ? `${cls.name} (Lớp học thêm)` : `${cls.name}${cls.isHomeroom ? ' (Chủ nhiệm)' : ''}`}
                 </option>
               ))
             )}

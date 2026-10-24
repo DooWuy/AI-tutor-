@@ -251,7 +251,7 @@ class StudyClassServiceTest {
         enrollment.setStudent(student);
         enrollment.setReviewedAt(Instant.parse("2026-10-15T04:00:00Z"));
         when(studentRepository.findByUserId(student.getUser().getId())).thenReturn(Optional.of(student));
-        when(enrollmentRepository.findStudentEnrollments(student.getId())).thenReturn(List.of(enrollment));
+        when(enrollmentRepository.findMine(student.getId())).thenReturn(List.of(enrollment));
         when(enrollmentRepository.findStudentEnrollment(student.getId(), studyClass.getId()))
                 .thenReturn(Optional.of(enrollment));
 

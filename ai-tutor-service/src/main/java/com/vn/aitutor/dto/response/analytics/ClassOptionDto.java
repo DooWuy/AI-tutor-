@@ -13,4 +13,7 @@ public class ClassOptionDto {
     private String gradeLevel;
     @JsonProperty("isHomeroom")
     private boolean homeroom;
+
+    @JsonProperty("studyClass")
+    private boolean studyClass;
 }
