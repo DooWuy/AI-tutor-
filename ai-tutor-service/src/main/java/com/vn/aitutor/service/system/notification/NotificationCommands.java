@@ -3,6 +3,7 @@ package com.vn.aitutor.service.system.notification;
 import com.vn.aitutor.entity.enums.NotificationChannel;
 import com.vn.aitutor.entity.enums.NotificationSourceType;
 import com.vn.aitutor.entity.enums.NotificationType;
+import com.vn.aitutor.entity.enums.EnrollmentStatus;
 import com.vn.aitutor.entity.enums.Role;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -60,10 +61,79 @@ public final class NotificationCommands {
                 Set.of(NotificationChannel.WEBSOCKET), null);
     }
 
+    public static NotificationCommand studyClassJoinRequested(UUID teacherUserId, UUID classId,
+            UUID enrollmentId, UUID studentId, String className, String studentName, Instant requestedAt) {
+        String safeClassName = requireStudyClassEvent(classId, enrollmentId, className, requestedAt);
+        Objects.requireNonNull(studentId, "studentId");
+        String safeStudentName = requireText(studentName, 255, "studentName");
+        Map<String, Object> metadata = studyClassMetadata(
+                classId, enrollmentId, safeClassName, EnrollmentStatus.PENDING);
+        metadata.put("studentId", studentId.toString());
+        metadata.put("studentName", safeStudentName);
+        return new NotificationCommand(teacherUserId, NotificationType.STUDY_CLASS_JOIN_REQUESTED,
+                studyClassEventKey(NotificationType.STUDY_CLASS_JOIN_REQUESTED, enrollmentId, requestedAt),
+                NotificationSourceType.STUDY_CLASS_ENROLLMENT, enrollmentId, requestedAt,
+                title("Yêu cầu tham gia " + safeClassName),
+                safeStudentName + " đã gửi yêu cầu tham gia lớp " + safeClassName + ".",
+                NotificationLinks.teacherStudyClass(classId), metadata,
+                Set.of(NotificationChannel.WEBSOCKET), null);
+    }
+
+    public static NotificationCommand studyClassJoinResult(UUID studentUserId, UUID classId,
+            UUID enrollmentId, String className, EnrollmentStatus status, Instant requestedAt) {
+        String safeClassName = requireStudyClassEvent(classId, enrollmentId, className, requestedAt);
+        if (status != EnrollmentStatus.APPROVED && status != EnrollmentStatus.REJECTED) {
+            throw new IllegalArgumentException("Study class result status must be APPROVED or REJECTED");
+        }
+        NotificationType type = status == EnrollmentStatus.APPROVED
+                ? NotificationType.STUDY_CLASS_JOIN_APPROVED
+                : NotificationType.STUDY_CLASS_JOIN_REJECTED;
+        boolean approved = status == EnrollmentStatus.APPROVED;
+        return new NotificationCommand(studentUserId, type,
+                studyClassEventKey(type, enrollmentId, requestedAt),
+                NotificationSourceType.STUDY_CLASS_ENROLLMENT, enrollmentId, requestedAt,
+                approved ? title("Đã được duyệt vào lớp " + safeClassName)
+                        : title("Yêu cầu vào lớp " + safeClassName + " bị từ chối"),
+                approved ? "Bạn đã được chấp nhận vào lớp " + safeClassName + "."
+                        : "Giáo viên đã từ chối yêu cầu tham gia lớp " + safeClassName + ".",
+                NotificationLinks.studentStudyClass(classId),
+                studyClassMetadata(classId, enrollmentId, safeClassName, status),
+                Set.of(NotificationChannel.WEBSOCKET), null);
+    }
+
+    private static Map<String, Object> studyClassMetadata(UUID classId, UUID enrollmentId,
+            String className, EnrollmentStatus status) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("classId", classId.toString());
+        metadata.put("enrollmentId", enrollmentId.toString());
+        metadata.put("className", requireText(className, 64, "className"));
+        metadata.put("enrollmentStatus", status.name());
+        return metadata;
+    }
+
+    private static String requireStudyClassEvent(UUID classId, UUID enrollmentId,
+            String className, Instant requestedAt) {
+        Objects.requireNonNull(classId, "classId");
+        Objects.requireNonNull(enrollmentId, "enrollmentId");
+        Objects.requireNonNull(requestedAt, "requestedAt");
+        return requireText(className, 64, "className");
+    }
+
+    private static String studyClassEventKey(NotificationType type, UUID enrollmentId, Instant requestedAt) {
+        return type + ":" + enrollmentId + ":" + requestedAt;
+    }
+
     private static void requireSubject(String subject) {
         if (subject == null || subject.isBlank() || subject.length() > 255) {
             throw new IllegalArgumentException("Invalid notification subject");
         }
+    }
+
+    private static String requireText(String value, int maxLength, String name) {
+        if (value == null || value.isBlank() || value.length() > maxLength) {
+            throw new IllegalArgumentException("Invalid notification " + name);
+        }
+        return value.trim();
     }
 
     private static String title(String value) {

@@ -31,19 +31,35 @@ public record NotificationCommand(
         }
         metadata = Map.copyOf(Objects.requireNonNull(metadata, "metadata"));
         channels = Set.copyOf(Objects.requireNonNull(channels, "channels"));
-        Set<NotificationChannel> expected = type == NotificationType.CLASS_REMINDER
-                ? Set.of(NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL)
-                : Set.of(NotificationChannel.WEBSOCKET);
+        Set<NotificationChannel> expected = switch (type) {
+            case CLASS_REMINDER -> Set.of(NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL);
+            case QUIZ_GENERATED, QUIZ_GENERATION_FAILED,
+                    STUDY_CLASS_JOIN_REQUESTED, STUDY_CLASS_JOIN_APPROVED,
+                    STUDY_CLASS_JOIN_REJECTED -> Set.of(NotificationChannel.WEBSOCKET);
+        };
         if (!channels.equals(expected)) {
             throw new IllegalArgumentException("Channels do not match the notification type");
         }
-        if (type == NotificationType.CLASS_REMINDER) {
-            Objects.requireNonNull(occurrenceAt, "occurrenceAt");
-            if (sourceType != NotificationSourceType.SCHEDULE_SLOT || !occurrenceAt.equals(expiresAt)) {
-                throw new IllegalArgumentException("Class reminders must expire at the slot occurrence");
+        switch (type) {
+            case CLASS_REMINDER -> {
+                Objects.requireNonNull(occurrenceAt, "occurrenceAt");
+                if (sourceType != NotificationSourceType.SCHEDULE_SLOT || !occurrenceAt.equals(expiresAt)) {
+                    throw new IllegalArgumentException("Class reminders must expire at the slot occurrence");
+                }
             }
-        } else if (sourceType == NotificationSourceType.SCHEDULE_SLOT || expiresAt != null) {
-            throw new IllegalArgumentException("Quiz notifications require a quiz/job source and no expiry");
+            case QUIZ_GENERATED, QUIZ_GENERATION_FAILED -> {
+                if ((sourceType != NotificationSourceType.QUIZ
+                        && sourceType != NotificationSourceType.GENERATION_JOB)
+                        || occurrenceAt != null || expiresAt != null) {
+                    throw new IllegalArgumentException("Quiz notifications require a quiz/job source and no occurrence or expiry");
+                }
+            }
+            case STUDY_CLASS_JOIN_REQUESTED, STUDY_CLASS_JOIN_APPROVED, STUDY_CLASS_JOIN_REJECTED -> {
+                if (sourceType != NotificationSourceType.STUDY_CLASS_ENROLLMENT
+                        || occurrenceAt == null || expiresAt != null) {
+                    throw new IllegalArgumentException("Study class notifications require an enrollment occurrence and no expiry");
+                }
+            }
         }
     }
 

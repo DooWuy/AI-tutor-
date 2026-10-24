@@ -6,6 +6,7 @@ import com.vn.aitutor.entity.Notification;
 import com.vn.aitutor.entity.NotificationDelivery;
 import com.vn.aitutor.entity.User;
 import com.vn.aitutor.entity.enums.Role;
+import com.vn.aitutor.entity.enums.EnrollmentStatus;
 import com.vn.aitutor.entity.enums.NotificationChannel;
 import com.vn.aitutor.service.system.NotificationService;
 import com.vn.aitutor.config.NotificationDeliveryJob;
@@ -96,8 +97,28 @@ class NotificationPersistenceIntegrationTest {
             assertEquals(java.util.Map.of(), dto.metadata());
             assertNull(legacy.getEventKey());
             assertEquals(0, deliveryCount(LEGACY_ID));
-            assertEquals(4, jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class));
+            assertEquals(5, jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class));
         } finally { entityManager.close(); }
+    }
+
+    @Test void migrationAcceptsStudyClassSourceAndPreservesLegacyRows() {
+        UUID classId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        Instant requestedAt = Instant.parse("2026-10-24T08:15:30Z");
+        var command = NotificationCommands.studyClassJoinResult(userId, classId, enrollmentId,
+                "Lớp Toán 5A", EnrollmentStatus.APPROVED, requestedAt);
+
+        var created = service.create(command);
+
+        assertTrue(created.created());
+        assertEquals("STUDY_CLASS_ENROLLMENT", jdbc.queryForObject(
+                "SELECT source_type FROM notifications WHERE id = ?", String.class, created.notification().id()));
+        assertEquals(requestedAt, jdbc.queryForObject(
+                "SELECT occurrence_at FROM notifications WHERE id = ?", java.sql.Timestamp.class,
+                created.notification().id()).toInstant());
+        assertEquals(1, deliveryCount(created.notification().id()));
+        assertEquals("LEGACY_TYPE", jdbc.queryForObject(
+                "SELECT type FROM notifications WHERE id = ?", String.class, LEGACY_ID));
     }
 
     @Test void persistsReminderAndBothDeliveriesWithJpaCompatibleMappings() {

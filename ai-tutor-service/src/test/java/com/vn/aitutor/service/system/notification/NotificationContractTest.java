@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.vn.aitutor.dto.response.notification.NotificationResponse;
 import com.vn.aitutor.entity.Notification;
 import com.vn.aitutor.entity.User;
+import com.vn.aitutor.entity.enums.EnrollmentStatus;
 import com.vn.aitutor.entity.enums.NotificationChannel;
+import com.vn.aitutor.entity.enums.NotificationSourceType;
 import com.vn.aitutor.entity.enums.NotificationType;
 import com.vn.aitutor.entity.enums.Role;
 import java.time.Instant;
@@ -117,5 +119,83 @@ class NotificationContractTest {
                 "A".repeat(255), Instant.now(), null);
         assertEquals(255, reminder.title().length());
         assertThrows(UnsupportedOperationException.class, () -> reminder.metadata().put("subject", "changed"));
+    }
+
+    @Test void studyClassJoinRequestUsesTeacherRecipientAndTrustedMetadata() {
+        UUID classId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        Instant requestedAt = Instant.parse("2026-10-24T08:15:30Z");
+
+        var command = NotificationCommands.studyClassJoinRequested(userId, classId, enrollmentId,
+                studentId, "  Lớp Toán 5A  ", "  Nguyễn An  ", requestedAt);
+
+        assertEquals(userId, command.userId());
+        assertEquals(NotificationType.STUDY_CLASS_JOIN_REQUESTED, command.type());
+        assertEquals(NotificationSourceType.STUDY_CLASS_ENROLLMENT, command.sourceType());
+        assertEquals(enrollmentId, command.sourceId());
+        assertEquals(requestedAt, command.occurrenceAt());
+        assertNull(command.expiresAt());
+        assertEquals(Set.of(NotificationChannel.WEBSOCKET), command.channels());
+        assertEquals("/teacher/study-classes/" + classId, command.link());
+        assertEquals(classId.toString(), command.metadata().get("classId"));
+        assertEquals(enrollmentId.toString(), command.metadata().get("enrollmentId"));
+        assertEquals(studentId.toString(), command.metadata().get("studentId"));
+        assertEquals("Lớp Toán 5A", command.metadata().get("className"));
+        assertEquals("Nguyễn An", command.metadata().get("studentName"));
+        assertEquals("PENDING", command.metadata().get("enrollmentStatus"));
+        assertFalse(command.metadata().containsKey("email"));
+        assertTrue(command.title().contains("Lớp Toán 5A"));
+        assertTrue(command.message().contains("Nguyễn An"));
+    }
+
+    @Test void studyClassResultDistinguishesApprovalRejectionAndRequestCycles() {
+        UUID classId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        Instant firstRequest = Instant.parse("2026-10-24T08:15:30Z");
+        Instant nextRequest = firstRequest.plusSeconds(60);
+
+        var approved = NotificationCommands.studyClassJoinResult(userId, classId, enrollmentId,
+                "Lớp Toán 5A", EnrollmentStatus.APPROVED, firstRequest);
+        var approvedReplay = NotificationCommands.studyClassJoinResult(userId, classId, enrollmentId,
+                "Lớp Toán 5A", EnrollmentStatus.APPROVED, firstRequest);
+        var rejected = NotificationCommands.studyClassJoinResult(userId, classId, enrollmentId,
+                "Lớp Toán 5A", EnrollmentStatus.REJECTED, firstRequest);
+        var nextCycle = NotificationCommands.studyClassJoinResult(userId, classId, enrollmentId,
+                "Lớp Toán 5A", EnrollmentStatus.APPROVED, nextRequest);
+
+        assertEquals(NotificationType.STUDY_CLASS_JOIN_APPROVED, approved.type());
+        assertEquals(NotificationType.STUDY_CLASS_JOIN_REJECTED, rejected.type());
+        assertEquals(approved.eventKey(), approvedReplay.eventKey());
+        assertNotEquals(approved.eventKey(), rejected.eventKey());
+        assertNotEquals(approved.eventKey(), nextCycle.eventKey());
+        assertTrue(approved.eventKey().contains(enrollmentId.toString()));
+        assertTrue(approved.eventKey().contains(firstRequest.toString()));
+        assertEquals("/student/classes/" + classId, approved.link());
+        assertEquals("APPROVED", approved.metadata().get("enrollmentStatus"));
+        assertEquals("REJECTED", rejected.metadata().get("enrollmentStatus"));
+        assertTrue(approved.message().contains("được chấp nhận"));
+        assertTrue(rejected.message().contains("từ chối"));
+        assertThrows(IllegalArgumentException.class, () -> NotificationCommands.studyClassJoinResult(
+                userId, classId, enrollmentId, "Lớp Toán 5A", EnrollmentStatus.PENDING, firstRequest));
+    }
+
+    @Test void notificationCommandRejectsMismatchedStudyClassContracts() {
+        UUID enrollmentId = UUID.randomUUID();
+        Instant requestedAt = Instant.parse("2026-10-24T08:15:30Z");
+        Map<String, Object> metadata = Map.of("enrollmentId", enrollmentId.toString());
+
+        assertThrows(IllegalArgumentException.class, () -> new NotificationCommand(userId,
+                NotificationType.STUDY_CLASS_JOIN_REQUESTED, "event", NotificationSourceType.STUDY_CLASS_ENROLLMENT,
+                enrollmentId, requestedAt, "Title", "Message", "/teacher/classes", metadata,
+                Set.of(NotificationChannel.WEBSOCKET, NotificationChannel.EMAIL), null));
+        assertThrows(IllegalArgumentException.class, () -> new NotificationCommand(userId,
+                NotificationType.STUDY_CLASS_JOIN_APPROVED, "event", NotificationSourceType.STUDY_CLASS_ENROLLMENT,
+                enrollmentId, null, "Title", "Message", "/student/classes", metadata,
+                Set.of(NotificationChannel.WEBSOCKET), null));
+        assertThrows(IllegalArgumentException.class, () -> new NotificationCommand(userId,
+                NotificationType.QUIZ_GENERATED, "event", NotificationSourceType.STUDY_CLASS_ENROLLMENT,
+                enrollmentId, null, "Title", "Message", "/teacher/quizzes/1", metadata,
+                Set.of(NotificationChannel.WEBSOCKET), null));
     }
 }

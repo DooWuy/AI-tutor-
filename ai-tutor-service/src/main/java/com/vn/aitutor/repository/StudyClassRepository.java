@@ -8,9 +8,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 public interface StudyClassRepository extends JpaRepository<StudyClass, UUID> {
 
@@ -19,6 +21,14 @@ public interface StudyClassRepository extends JpaRepository<StudyClass, UUID> {
     boolean existsByClassCode(String classCode);
 
     Optional<StudyClass> findByClassCode(String classCode);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM StudyClass c JOIN FETCH c.teacher t JOIN FETCH t.user WHERE c.id = :id")
+    Optional<StudyClass> findByIdForUpdate(@Param("id") UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM StudyClass c JOIN FETCH c.teacher t JOIN FETCH t.user WHERE c.classCode = :classCode")
+    Optional<StudyClass> findByClassCodeForUpdate(@Param("classCode") String classCode);
 
     List<StudyClass> findByTeacher_IdOrderByCreatedAtDesc(UUID teacherId);
 

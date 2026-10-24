@@ -11,6 +11,9 @@ bảo mật subscription, cả hai quiz producers và chuông dùng chung đã t
 | `CLASS_REMINDER` | Tiết học còn trong `(now, now + 15 phút]` | User của học sinh sở hữu lịch | `WEBSOCKET`, `EMAIL` | `/student/timetable` |
 | `QUIZ_GENERATED` | Tạo quiz thành công | Người yêu cầu tạo quiz | `WEBSOCKET` | Student: `/student/practice/{subject}`; Teacher/Admin: `/{role}/quizzes/{quizId}` |
 | `QUIZ_GENERATION_FAILED` | Tạo quiz thất bại cuối cùng | Người yêu cầu tạo quiz | `WEBSOCKET` | Như quiz thành công |
+| `STUDY_CLASS_JOIN_REQUESTED` | Học sinh gửi hoặc gửi lại yêu cầu tham gia lớp | User của giáo viên sở hữu lớp | `WEBSOCKET` | `/teacher/study-classes/{classId}` |
+| `STUDY_CLASS_JOIN_APPROVED` | Giáo viên chấp nhận yêu cầu | User của học sinh trong enrollment | `WEBSOCKET` | `/student/classes/{classId}` |
+| `STUDY_CLASS_JOIN_REJECTED` | Giáo viên từ chối yêu cầu | User của học sinh trong enrollment | `WEBSOCKET` | `/student/classes/{classId}` |
 
 - Tài khoản phải hoạt động, chưa xóa. Học sinh chỉ nhận nhắc từ lịch đang active của mình.
 - `studyPreferences.studyReminderEnabled` mặc định bật; giá trị boolean `false` tắt cả
@@ -54,9 +57,11 @@ Mỗi notification đã lưu dùng cùng một DTO cho hai transport:
 - `metadata` luôn là JSON object; bản ghi cũ có `{}`. Trường tùy chọn được bỏ khi không có.
 - Reminder metadata: `scheduleId`, `slotId`, `subject`, `startsAt`, tùy chọn `room`.
 - Quiz metadata: `quizId`, tùy chọn `subject`, và `jobId` khi đi qua generation job.
+- Study class metadata chung: `classId`, `enrollmentId`, `className`, `enrollmentStatus`.
+  Yêu cầu gửi tới giáo viên có thêm `studentId`, `studentName`; không chứa email.
 - Không serialize user, source nội bộ, event key, delivery, lease, email hoặc exception.
 - Kiểu thông báo mới dùng `NotificationType`; type của bản ghi cũ giữ nguyên chuỗi để
-  tránh lỗi đọc dữ liệu lịch sử. Frontend có union cho ba type và chấp nhận legacy string.
+  tránh lỗi đọc dữ liệu lịch sử. Frontend tiếp tục chấp nhận legacy string trong giai đoạn mở rộng contract.
 - `link` của dữ liệu cũ được giữ nguyên, có thể null. Thông báo mới luôn dùng link nội bộ.
 
 Backend contract: `NotificationResponse`. Frontend contract: `src/types/notification.ts`,
@@ -68,17 +73,21 @@ thiếu contract, kể cả signal từ backend cũ trong thời gian rollout; p
 
 ## 3. Chống trùng và transaction
 
-Command nội bộ tạo bằng `NotificationCommands.classReminder(...)` hoặc `quizResult(...)`.
+Command nội bộ tạo bằng `NotificationCommands.classReminder(...)`, `quizResult(...)`,
+`studyClassJoinRequested(...)` hoặc `studyClassJoinResult(...)`.
 
 | Nguồn | Event key | Source |
 |---|---|---|
 | Tiết học lặp theo tuần | `CLASS_REMINDER:{slotId}:{yyyy-MM-dd tại Việt Nam}` | `SCHEDULE_SLOT`, slot ID |
 | Quiz học sinh | `{type}:QUIZ:{quizId}` | `QUIZ`, quiz ID |
 | Job Teacher/Admin | `{type}:GENERATION_JOB:{jobId}` | `GENERATION_JOB`, job ID |
+| Một chu kỳ xin vào lớp | `{type}:{enrollmentId}:{requestedAt}` | `STUDY_CLASS_ENROLLMENT`, enrollment ID |
 
 - Unique `(user_id, event_key)`: cùng event có thể gửi cho nhiều user, mỗi user chỉ có một bản ghi.
 - Một slot chỉ nhắc một lần/ngày; không gửi lại nếu đổi giờ sau khi đã tạo reminder ngày đó.
   Delivery chứa giờ cũ bị hủy ở T5 nếu slot đổi giờ. Slot ID mới là một nguồn mới.
+- Với enrollment, `requestedAt` được lưu vào `occurrence_at`. Retry cùng type/enrollment/requestedAt
+  dùng lại notification cũ; lần xin lại sau khi bị từ chối phải có `requestedAt` mới nên tạo event mới.
 - Retry cùng event trả lại DTO ban đầu với `created=false`; không sửa payload, thêm kênh,
   reset attempt hoặc tự đưa delivery thất bại về pending. Command đầu tiên thắng.
 - `NotificationCreationService.create` dùng `@Transactional(REQUIRED)`: tham gia transaction
@@ -97,6 +106,8 @@ Command nội bộ tạo bằng `NotificationCommands.classReminder(...)` hoặc
 ## 4. Schema và delivery lifecycle
 
 Flyway `V3__notification_delivery_foundation.sql` chỉ thêm schema; không sửa V1/V2.
+Flyway `V5__study_class_notification_contract.sql` chỉ thay check constraint source type để
+chấp nhận `STUDY_CLASS_ENROLLMENT`; không sửa hoặc backfill notification/delivery hiện có.
 
 - `notifications`: thêm `event_key`, `source_type`, `source_id`, `occurrence_at`, `metadata` JSONB.
   Bản ghi cũ có source/key null và metadata `{}`, không tự tạo delivery để tránh gửi lại lịch sử.
@@ -104,7 +115,7 @@ Flyway `V3__notification_delivery_foundation.sql` chỉ thêm schema; không s�
   channel/status, `attempt_count`, `next_attempt_at`, `lease_token`, `lease_until`,
   `expires_at`, `last_error_code`, `sent_at`, `created_at`, `updated_at`.
 - Delivery mới là `PENDING`, attempt 0, next attempt bằng thời điểm tạo; lease/sent/error null.
-  Reminder hết hạn tại `occurrence_at`; quiz không có expiry.
+  Reminder hết hạn tại `occurrence_at`; quiz và notification enrollment không có expiry.
 - Unique `(notification_id, channel)`; check channel/status hợp lệ, attempt không âm;
   chỉ `PROCESSING` có đủ lease token/deadline, chỉ `SENT` có `sent_at`.
 - Index: feed `(user_id, created_at DESC, id DESC)`, unread feed partial, pending theo
@@ -162,7 +173,60 @@ lease/reclaim/stale token, SKIP LOCKED, hai worker, toàn bộ khoảng retry, l
 source bị sửa/xóa/vô hiệu hóa và 105 slot được hai scanner quét đồng thời.
 
 `NotificationContractTest` kiểm JSON `isRead`, metadata/legacy, links theo role/URL encoding,
-event keys theo ngày Việt Nam, outcome quiz và giới hạn title.
+event keys theo ngày Việt Nam, outcome quiz, giới hạn title và contract enrollment gồm recipient,
+type/source/channel, metadata, link, nội dung, event key theo chu kỳ và các tổ hợp bị từ chối.
+
+### Kiểm chứng TASK-01 và TASK-02 ngày 24/10/2026
+
+- `NotificationPersistenceIntegrationTest` nâng database có legacy row từ V2 qua V5 trên
+  PostgreSQL Testcontainer, xác nhận đủ 5 migration, legacy type/metadata còn đọc được,
+  source `STUDY_CLASS_ENROLLMENT` và `occurrence_at` được lưu, chỉ sinh một delivery WebSocket.
+- Lệnh kiểm tra tập trung:
+  `./gradlew.bat test --tests '*NotificationContractTest' --tests '*NotificationPersistenceIntegrationTest'`
+  — `BUILD SUCCESSFUL`, không skipped.
+- Lệnh hồi quy:
+  `./gradlew.bat test --tests '*Notification*' --tests '*WebSocket*Test' --tests '*GenerationWorkerTest' --tests '*GenerationJobServiceTest'`
+  — 15 test suites, 92 tests pass, 0 failed, 0 errors, 0 skipped.
+
+### Contract TASK-03 và TASK-04
+
+API student đều yêu cầu `ROLE_STUDENT` và resolve student từ principal, không nhận student ID
+từ client:
+
+| Endpoint | `ApiResponse.data` | Quy tắc |
+|---|---|---|
+| `GET /api/v1/student/study-classes` | Mảng enrollment mới nhất trước | Chỉ enrollment của student hiện tại; fetch class/teacher/user trong cùng query |
+| `GET /api/v1/student/study-classes/{classId}` | Một enrollment + class overview | Không có enrollment của chính student thì trả `404`, kể cả class ID tồn tại |
+| `POST /api/v1/student/study-classes/join` | Kết quả join | Giữ `className`, `classCode`, `status`; thêm `enrollmentId`, `classId`, `requestedAt` |
+
+Read model student gồm `enrollmentId`, `classId`, `className`, `description`, `classCode`,
+`teacherName`, `classStatus`, `enrollmentStatus`, `requestedAt`, `reviewedAt`, `startDate`,
+`endDate`. Không trả danh sách thành viên, email học sinh khác hoặc dữ liệu quản trị lớp.
+
+Join và action dùng cùng thứ tự khóa: khóa pessimistic `study_classes` trước, sau đó mới đọc/khóa
+enrollment. Join khóa theo class code; approve/reject khóa theo class ID rồi khóa enrollment.
+Nhờ đó duplicate join được tuần tự hóa, action chỉ chuyển một lần khỏi `PENDING`, và hai approve
+tranh suất cuối không thể cùng nhìn thấy sĩ số cũ.
+
+Enrollment được `saveAndFlush` trước khi tạo notification để có ID/FK chắc chắn. Lời gọi
+`NotificationCreationService.create` tham gia transaction hiện tại: lỗi insert notification hoặc
+delivery rollback cả join/action; transport WebSocket vẫn do worker chạy sau commit nên không nằm
+trong transaction HTTP. Lần xin lại sau `REJECTED` xóa `reviewedAt` và đặt `requestedAt` lớn hơn
+chu kỳ trước ít nhất một microsecond, kể cả khi clock không tiến, để event key luôn mới.
+
+### Kiểm chứng TASK-03 và TASK-04 ngày 24/10/2026
+
+- Lệnh tập trung:
+  `./gradlew.bat test --tests '*StudyClassServiceTest' --tests '*StudentStudyClassControllerTest' --tests '*StudyClassControllerTest' --tests '*StudyClassNotificationIntegrationTest'`
+  — 4 suites, 34 tests pass, 0 failed, 0 errors, 0 skipped.
+- `StudyClassNotificationIntegrationTest` chạy Flyway V1–V5 và service/repository thật trên
+  PostgreSQL Testcontainer; kiểm read model ownership, join + teacher notification, rollback join,
+  rollback approve, duplicate join đồng thời, hai approve tranh suất cuối và rejoin sau reject.
+- Nhóm lớp học + notification mở rộng cũng `BUILD SUCCESSFUL` với lệnh
+  `./gradlew.bat test --tests '*StudyClass*Test' --tests '*StudyClassNotificationIntegrationTest' --tests '*Notification*Test'`.
+- Full backend suite chạy 428 tests: 427 pass, 1 lỗi ngoài phạm vi, 33 skipped. Lỗi duy nhất là
+  `SampleTextbookSplitTest` vẫn tìm PDF ở `docs/` trong khi worktree hiện đã chuyển tài liệu sang
+  `.docs/`; TASK-03/04 không sửa hoặc hoàn tác thay đổi đường dẫn tài liệu này.
 
 `NotificationDeliverySenderTest` kiểm DTO queue cá nhân, địa chỉ email tài khoản,
 propagate lỗi SMTP/broker và chặn I/O khi hết lease/deadline. Transport trong integration
