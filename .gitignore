@@ -1,6 +1,6 @@
 .env
-!/docs/issus53_update_profile_student.md
-!/docs/
+!/.docs/issus53_update_profile_student.md
+!/.docs/
 !/ai-tutor-frontend/.env.local
 ollama_data/
-!/docs/issue5_Progress_&_Gamification.md
+!/.docs/issue5_Progress_&_Gamification.md

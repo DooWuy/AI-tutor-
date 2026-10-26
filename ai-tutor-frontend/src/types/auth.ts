@@ -13,8 +13,8 @@ export interface RegisterData {
   password: string;
   confirmPassword: string;
   fullName: string;
-  phoneNumber?: string;
+  phoneNumber: string;
   schoolName: string;
   gradeLevel: string;
-  className?: string;
+  className: string;
 }

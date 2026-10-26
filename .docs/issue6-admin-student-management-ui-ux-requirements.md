@@ -6,9 +6,9 @@ Tài liệu này mô tả yêu cầu màn hình, luồng tương tác và tiêu 
 
 Thiết kế cần bám theo:
 
-- `docs/issue6-admin-dashboard-student-management.md`
-- `docs/AI_Tutor_SRS_MVP.md`
-- `docs/DESIGN.md` với style "Fidelity Modern"
+- ``
+- ``
+- `` với style "Fidelity Modern"
 
 ## 2. Nguyên tắc thiết kế
 
@@ -23,7 +23,7 @@ Thiết kế cần bám theo:
 
 ## 3. Design system cần dùng
 
-Theo `docs/DESIGN.md`:
+Theo ``:
 
 - Font: `Inter`.
 - Primary: `#1275e2`.

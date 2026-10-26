@@ -1,6 +1,6 @@
 # Báo Cáo Trạng Thái Các Chức Năng (Feature Status)
 
-Dựa trên yêu cầu gốc trong file `docs/ai.md` (User Story: Luyện tập và Làm Trắc nghiệm), dưới đây là trạng thái hiện tại của các chức năng trong dự án.
+Dựa trên yêu cầu gốc trong file `` (User Story: Luyện tập và Làm Trắc nghiệm), dưới đây là trạng thái hiện tại của các chức năng trong dự án.
 
 > **Cập nhật lần cuối:** 08/10/2026
 

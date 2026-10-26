@@ -2,24 +2,13 @@ import { useState, useMemo, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bot } from 'lucide-react';
 import { ThemeToggle } from '../../components/common/ThemeToggle';
-import { register } from '../../services/authApi';
+import { useAuth } from '../../context/AuthContext';
 import type { RegisterData } from '../../types/auth';
 import { styles } from './RegisterPage.styles';
 
-const ACCESS_TOKEN_KEY = 'ai-tutor.access-token';
-const USER_KEY = 'ai-tutor.user';
-
-function persistSession(session: any) {
-  for (const storage of [localStorage, sessionStorage]) {
-    storage.removeItem(ACCESS_TOKEN_KEY);
-    storage.removeItem(USER_KEY);
-  }
-  localStorage.setItem(ACCESS_TOKEN_KEY, session.accessToken);
-  localStorage.setItem(USER_KEY, JSON.stringify(session.user));
-}
-
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { register } = useAuth();
   
   const [formData, setFormData] = useState<RegisterData>({
     fullName: '',
@@ -43,10 +32,10 @@ export default function RegisterPage() {
   const passwordScore = useMemo(() => {
     let score = 0;
     const val = formData.password;
-    if (val.length >= 6) score++;
-    if (val.length >= 8 && /[A-Z]/.test(val)) score++;
+    if (val.length >= 8) score++;
+    if (/[a-z]/.test(val) && /[A-Z]/.test(val)) score++;
     if (/\d/.test(val)) score++;
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(val)) score++;
+    if (/[!@#$%^&*()_+=-]/.test(val)) score++;
     return score;
   }, [formData.password]);
 
@@ -69,11 +58,18 @@ export default function RegisterPage() {
   function validate() {
     const errors: Partial<Record<keyof RegisterData | 'terms', string>> = {};
     if (!formData.fullName.trim()) errors.fullName = 'Vui lòng nhập họ và tên.';
+    else if (!/^[\p{L}0-9]+( [\p{L}0-9]+)*$/u.test(formData.fullName.trim())) errors.fullName = 'Họ và tên chỉ được chứa chữ cái, số và một khoảng trắng giữa các từ.';
     if (!formData.username.trim()) errors.username = 'Vui lòng nhập tên đăng nhập.';
+    else if (!/^[a-zA-Z0-9_]+$/.test(formData.username.trim())) errors.username = 'Tên đăng nhập chỉ được chứa chữ cái, số và dấu gạch dưới.';
     if (!formData.email.trim()) errors.email = 'Vui lòng nhập email.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) errors.email = 'Email không hợp lệ.';
+    if (!formData.phoneNumber?.trim()) errors.phoneNumber = 'Vui lòng nhập số điện thoại.';
+    else if (!/^(0|\+84)(\s|\.)?((3[2-9])|(5[689])|(7[06-9])|(8[1-689])|(9[0-46-9]))(\d)(\s|\.)?(\d{3})(\s|\.)?(\d{3})$/.test(formData.phoneNumber.trim())) errors.phoneNumber = 'Số điện thoại không hợp lệ.';
     if (!formData.schoolName.trim()) errors.schoolName = 'Vui lòng nhập tên trường.';
+    if (!formData.className?.trim()) errors.className = 'Vui lòng nhập tên lớp.';
     if (!formData.password) errors.password = 'Vui lòng nhập mật khẩu.';
-    else if (formData.password.length < 8) errors.password = 'Mật khẩu phải từ 8 ký tự.';
+    else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+=-]).{8,}$/.test(formData.password)) errors.password = 'Mật khẩu phải từ 8 ký tự, gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt (!@#$%^&*()_+=-).';
+    if (!formData.confirmPassword) errors.confirmPassword = 'Vui lòng xác nhận mật khẩu.';
     if (formData.password !== formData.confirmPassword) errors.confirmPassword = 'Mật khẩu không khớp.';
     if (!termsAgreed) errors.terms = 'Bạn cần đồng ý với điều khoản dịch vụ.';
     
@@ -88,9 +84,16 @@ export default function RegisterPage() {
     
     setIsSubmitting(true);
     try {
-      const nextSession = await register(formData);
-      persistSession(nextSession);
-      navigate('/');
+      await register({
+        ...formData,
+        fullName: formData.fullName.trim(),
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        schoolName: formData.schoolName.trim(),
+        className: formData.className.trim(),
+      });
+      navigate('/student/dashboard', { replace: true });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
@@ -176,11 +179,12 @@ export default function RegisterPage() {
                     </div>
 
                     <div>
-                      <label className={styles.form.field} htmlFor="phoneNumber">Số điện thoại</label>
+                      <label className={styles.form.field} htmlFor="phoneNumber">Số điện thoại *</label>
                       <div className={styles.form.inputWrapper}>
                         <span className={styles.form.inputIcon}>call</span>
                         <input className={styles.form.input(!!fieldErrors.phoneNumber)} id="phoneNumber" value={formData.phoneNumber} onChange={handleChange('phoneNumber')} placeholder="0912345678" type="tel" />
                       </div>
+                      {fieldErrors.phoneNumber && <p className={styles.form.errorText}>{fieldErrors.phoneNumber}</p>}
                     </div>
 
                     <div className="sm:col-span-2">
@@ -214,11 +218,12 @@ export default function RegisterPage() {
                     </div>
 
                     <div>
-                      <label className={styles.form.field} htmlFor="className">Tên lớp</label>
+                      <label className={styles.form.field} htmlFor="className">Tên lớp *</label>
                       <div className={styles.form.inputWrapper}>
                         <span className={styles.form.inputIcon}>class</span>
                         <input className={styles.form.input(!!fieldErrors.className)} id="className" value={formData.className} onChange={handleChange('className')} placeholder="10A1" type="text" />
                       </div>
+                      {fieldErrors.className && <p className={styles.form.errorText}>{fieldErrors.className}</p>}
                     </div>
 
                     <div>

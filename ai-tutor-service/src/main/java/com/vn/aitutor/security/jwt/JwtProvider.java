@@ -13,6 +13,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 
 @Component
@@ -40,6 +41,7 @@ public class JwtProvider {
         claims.put("email", users.getEmail());
         claims.put("type", "access");
         return Jwts.builder()
+                .setId(UUID.randomUUID().toString())
                 .setSubject(users.getUsername())
                 .setIssuedAt(now)
                 .setExpiration(expireDate)
@@ -57,6 +59,7 @@ public class JwtProvider {
         claims.put("email", user.getEmail());
         claims.put("type", "refresh");
         return Jwts.builder()
+                .setId(UUID.randomUUID().toString())
                 .setSubject(user.getUsername())
                 .setIssuedAt(now)
                 .setExpiration(expireDate)
