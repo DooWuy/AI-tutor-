@@ -3,28 +3,33 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
-  BarChart3,
+  ChartNoAxesCombined,
+  Award,
   BookOpen,
   CalendarDays,
   Check,
   Clock3,
+  Crown,
   Flame,
   MessageCircle,
+  Medal,
   MoveUpRight,
   RotateCcw,
   Sparkles,
   Target,
   TrendingUp,
+  Trophy,
   Zap,
 } from "lucide-react";
 import { useStudentLearning } from "../../../context/StudentLearningContext";
 import { useAuth } from "../../../context/AuthContext";
 import { ResourceState, number, dayLabel } from "../Progress/ProgressComponents";
+import type { LeaderboardEntry } from "../../../types/gamification";
 import "./Home.css";
 
 export const DashboardPage = () => {
   const { user } = useAuth();
-  const { profile, progress, refresh } = useStudentLearning();
+  const { profile, progress, GLOBAL, refresh } = useStudentLearning();
   const name = (profile.data?.fullName || user?.fullName || "bạn").trim();
   const data = progress.data;
   const today = data?.dailyActivity.at(-1);
@@ -36,13 +41,38 @@ export const DashboardPage = () => {
   )[0];
 
   const [chartMetric, setChartMetric] = useState<"xpEarned" | "studyMinutes">("xpEarned");
-  const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null);
-
   const days = data?.dailyActivity || [];
   const maxMetricVal = Math.max(1, ...days.map((d) => d[chartMetric]));
   const weekTotalXp = days.reduce((sum, d) => sum + d.xpEarned, 0);
   const weekTotalMinutes = days.reduce((sum, d) => sum + d.studyMinutes, 0);
   const weekTotalQuizzes = days.reduce((sum, d) => sum + d.quizCount, 0);
+  const chartPoints = days.map((day, index) => {
+    const x = days.length > 1 ? (index / (days.length - 1)) * 100 : 50;
+    const y = 92 - (day[chartMetric] / maxMetricVal) * 72;
+    return { x, y };
+  });
+  const chartLine = chartPoints.map(({ x, y }) => `${x},${y}`).join(" ");
+  const chartArea = chartPoints.length
+    ? `0,92 ${chartLine} 100,92`
+    : "0,92 100,92";
+
+  const compactLeaderboard = GLOBAL.data?.entries.slice(0, 5) || [];
+
+  const RankingRow = ({ entry, me = false }: { entry: LeaderboardEntry; me?: boolean }) => (
+    <div className={`home-ranking-row ${me ? "is-me" : ""}`}>
+      <span className={`home-ranking-place place-${entry.rank}`}>
+        {entry.rank === 1 ? <Crown size={13} aria-hidden="true" /> : entry.rank === 2 ? <Medal size={13} aria-hidden="true" /> : entry.rank === 3 ? <Award size={13} aria-hidden="true" /> : `#${entry.rank}`}
+      </span>
+      <span className="home-ranking-avatar">
+        {entry.avatarUrl ? <img src={entry.avatarUrl} alt="" loading="lazy" /> : entry.displayName.trim().charAt(0).toUpperCase() || "?"}
+      </span>
+      <span className="home-ranking-name">
+        <strong>{entry.displayName}</strong>
+        <small>Cấp {number(entry.currentLevel)}</small>
+      </span>
+      <strong className="home-ranking-xp">{number(entry.totalXp)} <small>XP</small></strong>
+    </div>
+  );
 
   return (
     <div className="home-page learning-page">
@@ -254,7 +284,7 @@ export const DashboardPage = () => {
               <div className="home-section-heading">
                 <div className="home-heading-with-icon">
                   <span className="home-mini-icon purple">
-                    <BarChart3 size={17} aria-hidden="true" />
+                    <ChartNoAxesCombined size={17} aria-hidden="true" />
                   </span>
                   <div>
                     <h2 id="home-rhythm-title">Nhịp học 7 ngày qua</h2>
@@ -296,43 +326,33 @@ export const DashboardPage = () => {
                 </Link>
               </div>
 
-              <div className="home-interactive-bars" aria-label="Biểu đồ cột 7 ngày">
-                {days.map((day, idx) => {
-                  const val = day[chartMetric];
-                  const heightPercent = Math.max(8, Math.round((val / maxMetricVal) * 100));
-                  const isToday = idx === days.length - 1;
-                  const isHovered = activeDayIndex === idx;
-
-                  return (
-                    <div
-                      key={day.date}
-                      className={`home-bar-col ${isToday ? "is-today" : ""} ${isHovered ? "is-hovered" : ""}`}
-                      onMouseEnter={() => setActiveDayIndex(idx)}
-                      onMouseLeave={() => setActiveDayIndex(null)}
-                      tabIndex={0}
-                      role="button"
-                      aria-label={`${dayLabel(day.date)}: ${number(val)} ${chartMetric === "xpEarned" ? "XP" : "phút"}`}
-                    >
-                      {/* Floating tooltip on hover */}
-                      <div className="home-bar-tooltip">
-                        <span className="home-tooltip-date">{dayLabel(day.date)}</span>
-                        <strong>{number(val)} {chartMetric === "xpEarned" ? "XP" : "phút"}</strong>
-                        <small>{day.quizCount} quiz</small>
-                      </div>
-
-                      <div className="home-bar-val-text">{number(val)}</div>
-                      <div className="home-bar-track">
-                        <div
-                          className="home-bar-fill"
-                          style={{ height: `${heightPercent}%` }}
-                        />
-                      </div>
-                      <span className="home-bar-date-label">
-                        {isToday ? "Hôm nay" : dayLabel(day.date)}
-                      </span>
-                    </div>
-                  );
-                })}
+              <div className="home-line-chart-wrap">
+                <div className="home-line-chart-y-labels" aria-hidden="true">
+                  <span>{number(maxMetricVal)}</span>
+                  <span>{number(Math.round(maxMetricVal / 2))}</span>
+                  <span>0</span>
+                </div>
+                <svg className="home-line-chart" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={`Biểu đồ ${chartMetric === "xpEarned" ? "XP nhận được" : "phút học"} trong 7 ngày`}>
+                  <defs>
+                    <linearGradient id="home-chart-fill" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.28" />
+                      <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <line x1="0" y1="20" x2="100" y2="20" className="home-chart-grid-line" />
+                  <line x1="0" y1="56" x2="100" y2="56" className="home-chart-grid-line" />
+                  <line x1="0" y1="92" x2="100" y2="92" className="home-chart-grid-line" />
+                  <polygon points={chartArea} className="home-chart-area" />
+                  <polyline points={chartLine} className="home-chart-line" />
+                  {chartPoints.map(({ x, y }, idx) => (
+                    <circle key={days[idx].date} cx={x} cy={y} r="2.3" className="home-chart-point">
+                      <title>{dayLabel(days[idx].date)}: {number(days[idx][chartMetric])} {chartMetric === "xpEarned" ? "XP" : "phút"} · {days[idx].quizCount} quiz</title>
+                    </circle>
+                  ))}
+                </svg>
+                <div className="home-line-chart-labels">
+                  {days.map((day, idx) => <span key={day.date} className={idx === days.length - 1 ? "is-today" : ""}>{idx === days.length - 1 ? "Hôm nay" : dayLabel(day.date)}</span>)}
+                </div>
               </div>
             </section>
 
@@ -521,6 +541,34 @@ export const DashboardPage = () => {
                 <MoveUpRight size={16} aria-hidden="true" />
               </div>
             </Link>
+
+            <section className="home-leaderboard" aria-labelledby="home-leaderboard-title">
+              <div className="home-leaderboard-heading">
+                <div className="home-heading-with-icon">
+                  <span className="home-mini-icon gold"><Trophy size={17} aria-hidden="true" /></span>
+                  <div>
+                    <h2 id="home-leaderboard-title">Bảng xếp hạng</h2>
+                    <span className="home-subtitle">Thi đua cùng bạn bè</span>
+                  </div>
+                </div>
+                <Link to="/student/progress" aria-label="Xem bảng xếp hạng đầy đủ"><ArrowUpRight size={16} aria-hidden="true" /></Link>
+              </div>
+              {GLOBAL.loading ? (
+                <div className="home-ranking-loading" role="status">Đang tải bảng xếp hạng…</div>
+              ) : GLOBAL.error ? (
+                <div className="home-ranking-loading">Chưa thể tải bảng xếp hạng.</div>
+              ) : GLOBAL.data ? (
+                <>
+                  <div className="home-ranking-list">
+                    {compactLeaderboard.map((entry) => <RankingRow key={entry.rank} entry={entry} />)}
+                  </div>
+                  <div className="home-ranking-me">
+                    <span>Vị trí của bạn</span>
+                    <RankingRow entry={GLOBAL.data.me} me />
+                  </div>
+                </>
+              ) : null}
+            </section>
           </aside>
         </div>
       )}

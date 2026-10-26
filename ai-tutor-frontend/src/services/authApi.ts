@@ -10,8 +10,12 @@ export function getStoredSession(): AuthSession | null {
     const rawUser = storage.getItem(USER_KEY)
     if (!rawUser) continue
     const rawToken = storage.getItem(ACCESS_TOKEN_KEY) || ''
-    try { return { accessToken: rawToken, user: JSON.parse(rawUser) as import('../types/auth').User } }
-    catch { storage.removeItem(USER_KEY) }
+    try {
+      const user = JSON.parse(rawUser) as import('../types/auth').User | null
+      if (rawToken && user?.userId && user.role) return { accessToken: rawToken, user }
+    } catch { /* Discard malformed stored sessions. */ }
+    storage.removeItem(USER_KEY)
+    storage.removeItem(ACCESS_TOKEN_KEY)
   }
   return null
 }
@@ -73,7 +77,7 @@ export async function logout(): Promise<void> {
 export async function register(data: import('../types/auth').RegisterData): Promise<AuthSession> {
   let response: Response
   try {
-    response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
   } catch {
     throw new Error('Không thể kết nối tới máy chủ. Hãy kiểm tra kết nối mạng.')
   }

@@ -220,6 +220,6 @@ flowchart TD
 
 ## 🏁 V. Kết luận
 
-* Tài liệu `docs/iss10.md` là một User Story **hoàn toàn mới và chưa được hiện thực hóa** trong hệ thống (ngoại trừ cấu trúc bảng `skills` và `audit_logs` ở mức tối giản từ trước).
+* Tài liệu `` là một User Story **hoàn toàn mới và chưa được hiện thực hóa** trong hệ thống (ngoại trừ cấu trúc bảng `skills` và `audit_logs` ở mức tối giản từ trước).
 * Cả **4 phân hệ nghiệp vụ** (CRUD kỹ năng, Liên kết bài học, Cấu hình toàn cục, Giám sát lỗi & Chế độ bảo trì) đều **cần được xây dựng từ Backend đến Frontend**.
 * Toàn bộ mã nguồn hiện tại của dự án hoàn toàn sạch sẽ, kiến trúc Spring Boot + React Vite + PostgreSQL sẵn sàng để bắt đầu triển khai Issue 10 theo đúng kế hoạch kỹ thuật trên.

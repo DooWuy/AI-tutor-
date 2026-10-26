@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { User, AuthSession, LoginCredentials } from '../types/auth';
-import { getStoredSession, persistSession, clearSession, login as apiLogin, logout as apiLogout } from '../services/authApi';
+import type { User, AuthSession, LoginCredentials, RegisterData } from '../types/auth';
+import { getStoredSession, persistSession, clearSession, login as apiLogin, register as apiRegister, logout as apiLogout } from '../services/authApi';
 
 export interface AuthContextType {
   user: User | null;
@@ -8,6 +8,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginCredentials, remember?: boolean) => Promise<AuthSession>;
+  register: (data: RegisterData) => Promise<AuthSession>;
   logout: () => Promise<void>;
   updateUser: (partialUser: Partial<User>) => void;
   refreshSession: () => void;
@@ -36,6 +37,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const authSession = await apiLogin(credentials);
       persistSession(authSession, remember);
+      setSession(authSession);
+      return authSession;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const register = useCallback(async (data: RegisterData): Promise<AuthSession> => {
+    setIsLoading(true);
+    try {
+      const authSession = await apiRegister(data);
+      persistSession(authSession, true);
       setSession(authSession);
       return authSession;
     } finally {
@@ -77,10 +90,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isAuthenticated: Boolean(session?.accessToken && session?.user),
     isLoading,
     login,
+    register,
     logout,
     updateUser,
     refreshSession,
-  }), [session, isLoading, login, logout, updateUser, refreshSession]);
+  }), [session, isLoading, login, register, logout, updateUser, refreshSession]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -586,4 +586,4 @@ Then bảng không vỡ layout, có horizontal scroll khi thiếu chiều ngang,
 
 Yêu cầu màn hình và tính năng cho đội thiết kế UI/UX nằm tại:
 
-- `docs/issue6-admin-student-management-ui-ux-requirements.md`
+- ``

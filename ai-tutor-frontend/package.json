@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:auth": "node --test tests/auth.test.mjs",
     "test:notifications": "node --test tests/notificationApi.test.mjs tests/notificationStore.test.mjs tests/notificationConnection.test.mjs tests/notificationProvider.test.mjs tests/notificationBell.test.mjs",
     "preview:notifications": "node tests/notification-preview.mjs"
   },
