@@ -25,7 +25,42 @@ import { useStudentLearning } from "../../../context/StudentLearningContext";
 import { useAuth } from "../../../context/AuthContext";
 import { ResourceState, number, dayLabel } from "../Progress/ProgressComponents";
 import type { LeaderboardEntry } from "../../../types/gamification";
-import "./Home.css";
+import { styles } from "./DashboardPage.styles";
+
+interface RankingRowProps {
+  entry: LeaderboardEntry;
+  me?: boolean;
+}
+
+const RankingRow = ({ entry, me = false }: RankingRowProps) => (
+  <div className={styles.leaderboard.row(me)}>
+    <span className={styles.leaderboard.place(entry.rank)}>
+      {entry.rank === 1 ? (
+        <Crown size={14} aria-hidden="true" />
+      ) : entry.rank === 2 ? (
+        <Medal size={14} aria-hidden="true" />
+      ) : entry.rank === 3 ? (
+        <Award size={14} aria-hidden="true" />
+      ) : (
+        `#${entry.rank}`
+      )}
+    </span>
+    <span className={styles.leaderboard.avatar}>
+      {entry.avatarUrl ? (
+        <img src={entry.avatarUrl} alt="" loading="lazy" className={styles.leaderboard.avatarImg} />
+      ) : (
+        entry.displayName.trim().charAt(0).toUpperCase() || "?"
+      )}
+    </span>
+    <span className={styles.leaderboard.nameCol}>
+      <strong className={styles.leaderboard.displayName}>{entry.displayName}</strong>
+      <small className={styles.leaderboard.levelText}>Cấp {number(entry.currentLevel)}</small>
+    </span>
+    <strong className={styles.leaderboard.xp}>
+      {number(entry.totalXp)} <small className="text-[10px] text-on-surface-variant font-normal">XP</small>
+    </strong>
+  </div>
+);
 
 export const DashboardPage = () => {
   const { user } = useAuth();
@@ -58,158 +93,133 @@ export const DashboardPage = () => {
 
   const compactLeaderboard = GLOBAL.data?.entries.slice(0, 5) || [];
 
-  const RankingRow = ({ entry, me = false }: { entry: LeaderboardEntry; me?: boolean }) => (
-    <div className={`home-ranking-row ${me ? "is-me" : ""}`}>
-      <span className={`home-ranking-place place-${entry.rank}`}>
-        {entry.rank === 1 ? <Crown size={13} aria-hidden="true" /> : entry.rank === 2 ? <Medal size={13} aria-hidden="true" /> : entry.rank === 3 ? <Award size={13} aria-hidden="true" /> : `#${entry.rank}`}
-      </span>
-      <span className="home-ranking-avatar">
-        {entry.avatarUrl ? <img src={entry.avatarUrl} alt="" loading="lazy" /> : entry.displayName.trim().charAt(0).toUpperCase() || "?"}
-      </span>
-      <span className="home-ranking-name">
-        <strong>{entry.displayName}</strong>
-        <small>Cấp {number(entry.currentLevel)}</small>
-      </span>
-      <strong className="home-ranking-xp">{number(entry.totalXp)} <small>XP</small></strong>
-    </div>
-  );
-
   return (
-    <div className="home-page learning-page">
-      <header className="home-heading">
+    <div className={styles.page}>
+      <header className={styles.heading.wrapper}>
         <div>
-          <p className="learning-eyebrow">
+          <p className={styles.heading.eyebrow}>
             <Sparkles size={14} aria-hidden="true" />
             GÓC HỌC TẬP THÔNG MINH
           </p>
-          <h1>
+          <h1 className={styles.heading.title}>
             Chào {name}
-            <span className="home-wave">.</span>
+            <span className={styles.heading.wave}>.</span>
           </h1>
-          <p>Mỗi câu hỏi hôm nay là một bước tiến vững chắc cho ngày mai.</p>
+          <p className={styles.heading.subtitle}>Mỗi câu hỏi hôm nay là một bước tiến vững chắc cho ngày mai.</p>
         </div>
-        <div className="home-header-actions">
-          <Link to="/student/progress" className="home-overview-link">
+        <div className="flex items-center gap-3">
+          <Link to="/student/progress" className={styles.heading.actionLink}>
             <span>Hành trình học tập</span>
             <ArrowUpRight size={17} aria-hidden="true" />
           </Link>
         </div>
       </header>
 
-      <section className="home-hero" aria-labelledby="home-start-title">
-        <div className="home-hero-copy">
-          <div className="home-hero-tags">
-            <span className="home-hero-label">
-              <span className="home-pulse-dot" />
+      <section className={styles.hero.section} aria-labelledby="home-start-title">
+        <div className={styles.hero.left}>
+          <div className={styles.hero.tags}>
+            <span className={styles.hero.label}>
+              <span className={styles.hero.pulseDot} />
               MỖI NGÀY MỘT BƯỚC TIẾN
             </span>
             {data && data.summary.currentStreak > 0 && (
-              <span className="home-hero-streak-badge">
+              <span className={styles.hero.streakBadge}>
                 <Flame size={13} aria-hidden="true" />
                 {data.summary.currentStreak} ngày liên tiếp
               </span>
             )}
           </div>
-          <h2 id="home-start-title">
+          <h2 id="home-start-title" className={styles.hero.title}>
             Một bài luyện nhỏ.
             <br />
             Một bước tiến mới.
           </h2>
-          <p>
-            Chọn môn bạn muốn chinh phục, thử sức với bộ câu hỏi ngắn và củng cố
-            kiến thức ngay sau mỗi câu trả lời.
+          <p className={styles.hero.desc}>
+            Chọn môn bạn muốn chinh phục, thử sức với bộ câu hỏi ngắn và củng cố kiến thức ngay sau mỗi câu trả lời.
           </p>
-          <div className="home-hero-cta-group">
-            <Link to="/student/practice" className="home-start-button">
+          <div className={styles.hero.ctaGroup}>
+            <Link to="/student/practice" className={styles.hero.primaryBtn}>
               <span>Bắt đầu luyện tập ngay</span>
               <ArrowRight size={18} aria-hidden="true" />
             </Link>
-            <Link to="/student/chat" className="home-hero-secondary-button">
+            <Link to="/student/chat" className={styles.hero.secondaryBtn}>
               <MessageCircle size={16} aria-hidden="true" />
               <span>Hỏi gia sư AI</span>
             </Link>
           </div>
-          <span className="home-hero-foot">
-            <Check size={14} aria-hidden="true" />
+          <span className={styles.hero.foot}>
+            <Check size={14} aria-hidden="true" className="text-emerald-400 shrink-0" />
             Theo nhịp độ của riêng bạn. Học chủ động, không áp lực.
           </span>
         </div>
-        <div className="home-hero-art" aria-hidden="true">
-          <div className="home-orbit orbit-outer" />
-          <div className="home-orbit orbit-inner" />
-          <div className="home-book">
-            <BookOpen strokeWidth={1.2} />
-            <span>HỌC • HIỂU • TIẾN BỘ</span>
+        <div className={styles.hero.artWrapper} aria-hidden="true">
+          <div className={styles.hero.bookCard}>
+            <BookOpen size={48} strokeWidth={1.5} className="text-blue-100" />
+            <span className={styles.hero.bookText}>HỌC • HIỂU • TIẾN BỘ</span>
+            <span className={styles.hero.artNote}>Khởi đầu từ sự tò mò.</span>
           </div>
-          <span className="home-art-spark">
-            <Sparkles size={25} />
-          </span>
-          <span className="home-art-check">
-            <Check size={20} />
-          </span>
-          <span className="home-art-note">Khởi đầu từ sự tò mò.</span>
         </div>
       </section>
 
       {/* Quick Action Prompts for UX Efficiency */}
-      <div className="home-quick-prompts" aria-label="Gợi ý truy cập nhanh">
-        <span className="home-quick-label">
-          <Target size={14} aria-hidden="true" /> Lối tắt học nhanh:
+      <div className={styles.quickPrompts.wrapper} aria-label="Gợi ý truy cập nhanh">
+        <span className={styles.quickPrompts.label}>
+          <Target size={14} aria-hidden="true" className="text-primary" /> Lối tắt học nhanh:
         </span>
-        <div className="home-quick-chips">
-          <Link to="/student/practice" className="home-prompt-chip">
-            <BookOpen size={14} aria-hidden="true" />
+        <div className={styles.quickPrompts.chips}>
+          <Link to="/student/practice" className={styles.quickPrompts.chip}>
+            <BookOpen size={14} aria-hidden="true" className="text-primary" />
             <span>Luyện đề thi thử</span>
           </Link>
-          <Link to="/student/chat" className="home-prompt-chip">
-            <MessageCircle size={14} aria-hidden="true" />
+          <Link to="/student/chat" className={styles.quickPrompts.chip}>
+            <MessageCircle size={14} aria-hidden="true" className="text-primary" />
             <span>Giải thích bài khó với AI</span>
           </Link>
-          <Link to="/student/timetable" className="home-prompt-chip">
-            <CalendarDays size={14} aria-hidden="true" />
+          <Link to="/student/timetable" className={styles.quickPrompts.chip}>
+            <CalendarDays size={14} aria-hidden="true" className="text-primary" />
             <span>Lịch học tuần này</span>
           </Link>
-          <Link to="/student/progress" className="home-prompt-chip">
-            <TrendingUp size={14} aria-hidden="true" />
+          <Link to="/student/progress" className={styles.quickPrompts.chip}>
+            <TrendingUp size={14} aria-hidden="true" className="text-primary" />
             <span>Xem xếp hạng thi đua</span>
           </Link>
         </div>
       </div>
 
-      <nav className="home-shortcuts" aria-label="Công cụ học tập">
-        <Link to="/student/chat" className="home-shortcut">
-          <span className="home-tool-icon home-tool-ai">
+      <nav className={styles.shortcuts.grid} aria-label="Công cụ học tập">
+        <Link to="/student/chat" className={styles.shortcuts.card}>
+          <span className={styles.shortcuts.iconWrapper("bg-blue-500/10", "text-primary")}>
             <MessageCircle size={22} aria-hidden="true" />
           </span>
-          <div>
-            <h2>Có câu hỏi khó?</h2>
-            <p>Cùng gia sư AI giải đáp và gỡ từng nút thắt tư duy.</p>
+          <div className={styles.shortcuts.content}>
+            <h2 className={styles.shortcuts.title}>Có câu hỏi khó?</h2>
+            <p className={styles.shortcuts.text}>Cùng gia sư AI giải đáp và gỡ từng nút thắt tư duy.</p>
           </div>
-          <span className="home-shortcut-arrow">
+          <span className={styles.shortcuts.arrow}>
             <ArrowUpRight size={18} aria-hidden="true" />
           </span>
         </Link>
-        <Link to="/student/timetable" className="home-shortcut">
-          <span className="home-tool-icon home-tool-calendar">
+        <Link to="/student/timetable" className={styles.shortcuts.card}>
+          <span className={styles.shortcuts.iconWrapper("bg-purple-500/10", "text-purple-600 dark:text-purple-400")}>
             <CalendarDays size={22} aria-hidden="true" />
           </span>
-          <div>
-            <h2>Sắp xếp buổi học</h2>
-            <p>Xem thời khóa biểu và nhắc nhở học tập thông minh.</p>
+          <div className={styles.shortcuts.content}>
+            <h2 className={styles.shortcuts.title}>Sắp xếp buổi học</h2>
+            <p className={styles.shortcuts.text}>Xem thời khóa biểu và nhắc nhở học tập thông minh.</p>
           </div>
-          <span className="home-shortcut-arrow">
+          <span className={styles.shortcuts.arrow}>
             <ArrowUpRight size={18} aria-hidden="true" />
           </span>
         </Link>
-        <Link to="/student/progress" className="home-shortcut">
-          <span className="home-tool-icon home-tool-progress">
+        <Link to="/student/progress" className={styles.shortcuts.card}>
+          <span className={styles.shortcuts.iconWrapper("bg-emerald-500/10", "text-emerald-600 dark:text-emerald-400")}>
             <TrendingUp size={22} aria-hidden="true" />
           </span>
-          <div>
-            <h2>Nhìn lại hành trình</h2>
-            <p>Theo dõi điểm số, chuỗi streak và bảng xếp hạng.</p>
+          <div className={styles.shortcuts.content}>
+            <h2 className={styles.shortcuts.title}>Nhìn lại hành trình</h2>
+            <p className={styles.shortcuts.text}>Theo dõi điểm số, chuỗi streak và bảng xếp hạng.</p>
           </div>
-          <span className="home-shortcut-arrow">
+          <span className={styles.shortcuts.arrow}>
             <ArrowUpRight size={18} aria-hidden="true" />
           </span>
         </Link>
@@ -222,21 +232,21 @@ export const DashboardPage = () => {
       />
 
       {data && (
-        <div className="home-bottom-grid">
-          <div className="home-study-column">
+        <div className={styles.grid.layout}>
+          <div className={styles.grid.studyCol}>
             {/* Today's Overview Stats */}
-            <section className="home-today" aria-labelledby="home-today-title">
-              <div className="home-section-heading">
-                <div className="home-heading-with-icon">
-                  <span className="home-mini-icon blue">
-                    <Clock3 size={17} aria-hidden="true" />
+            <section className={styles.today.card} aria-labelledby="home-today-title">
+              <div className={styles.today.header}>
+                <div className={styles.today.headingGroup}>
+                  <span className={styles.today.iconWrapper}>
+                    <Clock3 size={18} aria-hidden="true" />
                   </span>
                   <div>
-                    <h2 id="home-today-title">Hôm nay của bạn</h2>
-                    <span className="home-subtitle">Hoạt động đã ghi nhận trong ngày</span>
+                    <h2 id="home-today-title" className={styles.today.title}>Hôm nay của bạn</h2>
+                    <span className={styles.today.subtitle}>Hoạt động đã ghi nhận trong ngày</span>
                   </div>
                 </div>
-                <span className="home-date-badge">
+                <span className={styles.today.dateBadge}>
                   {today
                     ? new Date(`${today.date}T12:00:00`).toLocaleDateString(
                         "vi-VN",
@@ -245,63 +255,59 @@ export const DashboardPage = () => {
                     : ""}
                 </span>
               </div>
-              <div className="home-today-stats">
-                <div className="home-stat-box">
-                  <span className="home-stat-icon-wrapper">
-                    <BookOpen size={18} aria-hidden="true" />
-                  </span>
-                  <div className="home-stat-numbers">
-                    <strong>{number(today?.quizCount ?? 0)}</strong>
-                    <span className="home-stat-unit">lượt</span>
+              <div className={styles.today.statsGrid}>
+                <div className={styles.today.statBox}>
+                  <BookOpen size={18} aria-hidden="true" className={styles.today.statIcon} />
+                  <div className={styles.today.statNumbers}>
+                    <strong className={styles.today.statValue}>{number(today?.quizCount ?? 0)}</strong>
+                    <span className={styles.today.statUnit}>lượt</span>
                   </div>
-                  <span>lượt quiz đã nộp</span>
+                  <span className={styles.today.statLabel}>lượt quiz đã nộp</span>
                 </div>
-                <div className="home-stat-box">
-                  <span className="home-stat-icon-wrapper">
-                    <Clock3 size={18} aria-hidden="true" />
-                  </span>
-                  <div className="home-stat-numbers">
-                    <strong>{number(today?.studyMinutes ?? 0)}</strong>
-                    <span className="home-stat-unit">phút</span>
+                <div className={styles.today.statBox}>
+                  <Clock3 size={18} aria-hidden="true" className={styles.today.statIcon} />
+                  <div className={styles.today.statNumbers}>
+                    <strong className={styles.today.statValue}>{number(today?.studyMinutes ?? 0)}</strong>
+                    <span className={styles.today.statUnit}>phút</span>
                   </div>
-                  <span>tập trung làm bài</span>
+                  <span className={styles.today.statLabel}>tập trung làm bài</span>
                 </div>
-                <div className="home-stat-box highlight-xp">
-                  <span className="home-stat-icon-wrapper">
-                    <Sparkles size={18} aria-hidden="true" />
-                  </span>
-                  <div className="home-stat-numbers">
-                    <strong>+{number(today?.xpEarned ?? 0)}</strong>
-                    <span className="home-stat-unit">XP</span>
+                <div className={styles.today.statBoxHighlight}>
+                  <Sparkles size={18} aria-hidden="true" className={styles.today.statIconHighlight} />
+                  <div className={styles.today.statNumbers}>
+                    <strong className={`${styles.today.statValue} text-amber-600 dark:text-amber-400`}>
+                      +{number(today?.xpEarned ?? 0)}
+                    </strong>
+                    <span className={styles.today.statUnit}>XP</span>
                   </div>
-                  <span>tích lũy hôm nay</span>
+                  <span className={styles.today.statLabel}>tích lũy hôm nay</span>
                 </div>
               </div>
             </section>
 
-            {/* NEW: Interactive Weekly Study Rhythm Mini-Chart on Home */}
-            <section className="home-chart-card" aria-labelledby="home-rhythm-title">
-              <div className="home-section-heading">
-                <div className="home-heading-with-icon">
-                  <span className="home-mini-icon purple">
-                    <ChartNoAxesCombined size={17} aria-hidden="true" />
+            {/* Interactive Weekly Study Rhythm Mini-Chart */}
+            <section className={styles.chartCard.card} aria-labelledby="home-rhythm-title">
+              <div className={styles.chartCard.header}>
+                <div className={styles.chartCard.headingGroup}>
+                  <span className={styles.chartCard.iconWrapper}>
+                    <ChartNoAxesCombined size={18} aria-hidden="true" />
                   </span>
                   <div>
-                    <h2 id="home-rhythm-title">Nhịp học 7 ngày qua</h2>
-                    <span className="home-subtitle">Đều đặn mỗi ngày để duy trì phong độ</span>
+                    <h2 id="home-rhythm-title" className={styles.chartCard.title}>Nhịp học 7 ngày qua</h2>
+                    <span className={styles.chartCard.subtitle}>Đều đặn mỗi ngày để duy trì phong độ</span>
                   </div>
                 </div>
-                <div className="home-chart-toggle-group" role="group" aria-label="Chọn chỉ số biểu đồ">
+                <div className={styles.chartCard.toggleGroup} role="group" aria-label="Chọn chỉ số biểu đồ">
                   <button
                     type="button"
-                    className={`home-chart-toggle-btn ${chartMetric === "xpEarned" ? "is-active" : ""}`}
+                    className={chartMetric === "xpEarned" ? styles.chartCard.toggleBtnActive : styles.chartCard.toggleBtnInactive}
                     onClick={() => setChartMetric("xpEarned")}
                   >
                     XP nhận
                   </button>
                   <button
                     type="button"
-                    className={`home-chart-toggle-btn ${chartMetric === "studyMinutes" ? "is-active" : ""}`}
+                    className={chartMetric === "studyMinutes" ? styles.chartCard.toggleBtnActive : styles.chartCard.toggleBtnInactive}
                     onClick={() => setChartMetric("studyMinutes")}
                   >
                     Phút học
@@ -309,76 +315,81 @@ export const DashboardPage = () => {
                 </div>
               </div>
 
-              <div className="home-mini-chart-summary">
-                <div className="home-mini-summary-item">
-                  <span>Tuần này:</span>
-                  <strong>
-                    {chartMetric === "xpEarned" ? `+${number(weekTotalXp)} XP` : `${number(weekTotalMinutes)} phút`}
-                  </strong>
+              <div className={styles.chartCard.summaryRow}>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className={styles.chartCard.summaryItem}>
+                    <span>Tuần này:</span>
+                    <strong className={styles.chartCard.summaryBold}>
+                      {chartMetric === "xpEarned" ? `+${number(weekTotalXp)} XP` : `${number(weekTotalMinutes)} phút`}
+                    </strong>
+                  </div>
+                  <div className={styles.chartCard.summaryItem}>
+                    <span>Đã nộp:</span>
+                    <strong className={styles.chartCard.summaryBold}>{number(weekTotalQuizzes)} lượt quiz</strong>
+                  </div>
                 </div>
-                <div className="home-mini-summary-item">
-                  <span>Đã nộp:</span>
-                  <strong>{number(weekTotalQuizzes)} lượt quiz</strong>
-                </div>
-                <Link to="/student/progress" className="home-chart-more-link">
+                <Link to="/student/progress" className={styles.chartCard.moreLink}>
                   <span>Chi tiết</span>
                   <ArrowRight size={13} aria-hidden="true" />
                 </Link>
               </div>
 
-              <div className="home-line-chart-wrap">
-                <div className="home-line-chart-y-labels" aria-hidden="true">
+              <div className={styles.chartCard.chartWrapper}>
+                <div className={styles.chartCard.yLabels} aria-hidden="true">
                   <span>{number(maxMetricVal)}</span>
                   <span>{number(Math.round(maxMetricVal / 2))}</span>
                   <span>0</span>
                 </div>
-                <svg className="home-line-chart" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={`Biểu đồ ${chartMetric === "xpEarned" ? "XP nhận được" : "phút học"} trong 7 ngày`}>
-                  <defs>
-                    <linearGradient id="home-chart-fill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.28" />
-                      <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <line x1="0" y1="20" x2="100" y2="20" className="home-chart-grid-line" />
-                  <line x1="0" y1="56" x2="100" y2="56" className="home-chart-grid-line" />
-                  <line x1="0" y1="92" x2="100" y2="92" className="home-chart-grid-line" />
-                  <polygon points={chartArea} className="home-chart-area" />
-                  <polyline points={chartLine} className="home-chart-line" />
-                  {chartPoints.map(({ x, y }, idx) => (
-                    <circle key={days[idx].date} cx={x} cy={y} r="2.3" className="home-chart-point">
-                      <title>{dayLabel(days[idx].date)}: {number(days[idx][chartMetric])} {chartMetric === "xpEarned" ? "XP" : "phút"} · {days[idx].quizCount} quiz</title>
-                    </circle>
-                  ))}
-                </svg>
-                <div className="home-line-chart-labels">
-                  {days.map((day, idx) => <span key={day.date} className={idx === days.length - 1 ? "is-today" : ""}>{idx === days.length - 1 ? "Hôm nay" : dayLabel(day.date)}</span>)}
+                <div className="min-w-0">
+                  <svg className={styles.chartCard.svg} viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={`Biểu đồ ${chartMetric === "xpEarned" ? "XP nhận được" : "phút học"} trong 7 ngày`}>
+                    <defs>
+                      <linearGradient id="home-chart-fill" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.28" />
+                        <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <line x1="0" y1="20" x2="100" y2="20" stroke="var(--color-outline-variant)" strokeWidth="0.45" strokeDasharray="1.5 1.5" className="opacity-65" />
+                    <line x1="0" y1="56" x2="100" y2="56" stroke="var(--color-outline-variant)" strokeWidth="0.45" strokeDasharray="1.5 1.5" className="opacity-65" />
+                    <line x1="0" y1="92" x2="100" y2="92" stroke="var(--color-outline-variant)" strokeWidth="0.45" strokeDasharray="1.5 1.5" className="opacity-65" />
+                    <polygon points={chartArea} fill="url(#home-chart-fill)" />
+                    <polyline points={chartLine} fill="none" stroke="var(--color-primary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                    {chartPoints.map(({ x, y }, idx) => (
+                      <circle key={days[idx].date} cx={x} cy={y} r="2.3" fill="var(--color-surface-container-lowest)" stroke="var(--color-primary)" strokeWidth="1.8" vectorEffect="non-scaling-stroke">
+                        <title>{dayLabel(days[idx].date)}: {number(days[idx][chartMetric])} {chartMetric === "xpEarned" ? "XP" : "phút"} · {days[idx].quizCount} quiz</title>
+                      </circle>
+                    ))}
+                  </svg>
+                  <div className={styles.chartCard.xLabels}>
+                    {days.map((day, idx) => (
+                      <span key={day.date} className={idx === days.length - 1 ? styles.chartCard.xLabelToday : ""}>
+                        {idx === days.length - 1 ? "Hôm nay" : dayLabel(day.date)}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </section>
 
             {/* Recent Quizzes List */}
-            <section
-              className="home-recent"
-              aria-labelledby="home-recent-title"
-            >
-              <div className="home-section-heading">
-                <div className="home-heading-with-icon">
-                  <span className="home-mini-icon green">
-                    <BookOpen size={17} aria-hidden="true" />
+            <section className={styles.recent.card} aria-labelledby="home-recent-title">
+              <div className={styles.recent.header}>
+                <div className={styles.recent.headingGroup}>
+                  <span className={styles.recent.iconWrapper}>
+                    <BookOpen size={18} aria-hidden="true" />
                   </span>
                   <div>
-                    <h2 id="home-recent-title">Bài luyện gần nhất</h2>
-                    <span className="home-subtitle">Mở lại để xem đáp án hoặc cải thiện điểm số</span>
+                    <h2 id="home-recent-title" className={styles.recent.title}>Bài luyện gần nhất</h2>
+                    <span className={styles.recent.subtitle}>Mở lại để xem đáp án hoặc cải thiện điểm số</span>
                   </div>
                 </div>
-                <Link to="/student/practice" className="home-view-all-link">
+                <Link to="/student/practice" className={styles.recent.viewAllLink}>
                   <span>Tất cả đề</span>
                   <ArrowRight size={14} aria-hidden="true" />
                 </Link>
               </div>
 
               {recent.length ? (
-                <ul className="home-recent-quiz-list">
+                <ul className={styles.recent.list}>
                   {recent.map((quiz) => {
                     const score = quiz.score;
                     const scoreClass =
@@ -391,24 +402,24 @@ export const DashboardPage = () => {
                             : "score-low";
 
                     return (
-                      <li key={quiz.attemptId} className="home-recent-item">
-                        <div className="home-recent-left">
-                          <span className="home-recent-icon">
+                      <li key={quiz.attemptId} className={styles.recent.item}>
+                        <div className={styles.recent.left}>
+                          <span className={styles.recent.itemIcon}>
                             <BookOpen size={18} aria-hidden="true" />
                           </span>
-                          <div className="home-recent-info">
-                            <strong>{quiz.title}</strong>
-                            <div className="home-recent-meta">
-                              <span className="home-subject-badge">
+                          <div className={styles.recent.info}>
+                            <strong className={styles.recent.itemTitle}>{quiz.title}</strong>
+                            <div className={styles.recent.meta}>
+                              <span className={styles.recent.subjectBadge}>
                                 {quiz.subject || "Luyện tập chung"}
                               </span>
                               {quiz.submittedAt && (
-                                <span className="home-time-text">
+                                <span className={styles.recent.timeText}>
                                   {new Date(quiz.submittedAt).toLocaleDateString("vi-VN")}
                                 </span>
                               )}
                               {quiz.xpEarned > 0 && (
-                                <span className="home-recent-xp">
+                                <span className={styles.recent.xpBadge}>
                                   +{number(quiz.xpEarned)} XP
                                 </span>
                               )}
@@ -416,13 +427,13 @@ export const DashboardPage = () => {
                           </div>
                         </div>
 
-                        <div className="home-recent-actions">
-                          <span className={`home-recent-score-pill ${scoreClass}`}>
+                        <div className={styles.recent.actions}>
+                          <span className={styles.recent.scorePill(scoreClass)}>
                             {score === null ? "—" : `${score.toFixed(1)}/10`}
                           </span>
                           <Link
                             to={`/student/quiz-results/${quiz.attemptId}`}
-                            className="home-recent-review-btn"
+                            className={styles.recent.reviewBtn}
                             title="Xem chi tiết kết quả"
                           >
                             <span>Xem lại</span>
@@ -431,7 +442,7 @@ export const DashboardPage = () => {
                           {quiz.quizId && (
                             <Link
                               to={`/student/quiz-attempt/${quiz.quizId}`}
-                              className="home-recent-retry-btn"
+                              className={styles.recent.retryBtn}
                               title="Làm lại đề này"
                             >
                               <RotateCcw size={14} aria-hidden="true" />
@@ -443,14 +454,14 @@ export const DashboardPage = () => {
                   })}
                 </ul>
               ) : (
-                <div className="home-first-quiz">
-                  <span className="home-recent-icon large">
+                <div className={styles.recent.emptyState}>
+                  <span className={styles.recent.emptyIcon}>
                     <BookOpen size={24} aria-hidden="true" />
                   </span>
                   <div>
-                    <h3>Trang đầu tiên đang chờ bạn</h3>
-                    <p>Hoàn thành bài luyện đầu tiên để ghi nhận điểm số và nhịp học của bạn tại đây.</p>
-                    <Link to="/student/practice" className="home-empty-cta-btn">
+                    <h3 className={styles.recent.emptyTitle}>Trang đầu tiên đang chờ bạn</h3>
+                    <p className={styles.recent.emptyDesc}>Hoàn thành bài luyện đầu tiên để ghi nhận điểm số và nhịp học của bạn tại đây.</p>
+                    <Link to="/student/practice" className={styles.recent.emptyBtn}>
                       <span>Chọn môn để bắt đầu</span>
                       <ArrowRight size={15} aria-hidden="true" />
                     </Link>
@@ -460,23 +471,23 @@ export const DashboardPage = () => {
             </section>
           </div>
 
-          <aside className="home-personal">
+          <aside className={styles.grid.personalCol}>
             {/* Streak Motivation Card */}
-            <section className="home-streak-note">
-              <div className="home-streak-header">
-                <span className="home-streak-symbol">
+            <section className={styles.streak.card}>
+              <div className={styles.streak.header}>
+                <span className={styles.streak.iconWrapper}>
                   <Flame size={24} aria-hidden="true" />
                 </span>
                 <div>
-                  <span className="home-small-label">GIỮ NHỊP HỌC TẬP</span>
-                  <h2>
+                  <span className={styles.streak.tag}>GIỮ NHỊP HỌC TẬP</span>
+                  <h2 className={styles.streak.title}>
                     {data.summary.currentStreak > 0
                       ? `${number(data.summary.currentStreak)} ngày giữ nhịp học!`
                       : "Bắt đầu nhịp học mới"}
                   </h2>
                 </div>
               </div>
-              <p>
+              <p className={styles.streak.desc}>
                 {today?.quizCount
                   ? "Tuyệt vời! Bạn đã hoàn thành mục tiêu học tập hôm nay. Duy trì đều đặn để tích lũy kiến thức sâu hơn."
                   : "Chỉ cần 1 bài quiz hôm nay để bảo vệ chuỗi học và tích lũy thêm XP!"}
@@ -484,21 +495,21 @@ export const DashboardPage = () => {
 
               {/* Recommended Focus Subject Card */}
               {focus && (
-                <div className="home-focus-subject">
-                  <div className="home-focus-label">
+                <div className={styles.streak.focusBox}>
+                  <div className={styles.streak.focusHeader}>
                     <Target size={13} aria-hidden="true" />
                     <span>Gợi ý môn cần củng cố</span>
                   </div>
-                  <strong>
+                  <strong className={styles.streak.focusSubject}>
                     Luyện thêm môn {focus.subject || "đã học"}
                   </strong>
-                  <p>
+                  <p className={styles.streak.focusStats}>
                     Điểm trung bình hiện tại: {focus.averageScore!.toFixed(1)}/10 qua{" "}
                     {number(focus.attemptCount)} lượt làm.
                   </p>
                   <Link
                     to={focus.subject ? `/student/practice/${encodeURIComponent(focus.subject)}` : "/student/practice"}
-                    className="home-focus-action-btn"
+                    className={styles.streak.focusBtn}
                   >
                     <span>Luyện môn này ngay</span>
                     <ArrowRight size={14} aria-hidden="true" />
@@ -508,62 +519,66 @@ export const DashboardPage = () => {
             </section>
 
             {/* Quick Progress Summary Card */}
-            <Link to="/student/progress" className="home-progress-link">
-              <div className="home-progress-link-header">
-                <span className="home-small-label">THÀNH TÍCH ĐÃ TÍCH LŨY</span>
-                <span className="home-level-pill">
+            <Link to="/student/progress" className={styles.progressLink.card}>
+              <div className={styles.progressLink.header}>
+                <span className={styles.progressLink.tag}>THÀNH TÍCH ĐÃ TÍCH LŨY</span>
+                <span className={styles.progressLink.levelPill}>
                   <Zap size={11} aria-hidden="true" />
                   Cấp {number(data.summary.currentLevel)}
                 </span>
               </div>
-              <div className="home-progress-main-stat">
-                <strong>
+              <div className={styles.progressLink.mainStat}>
+                <strong className={styles.progressLink.totalXp}>
                   {number(data.summary.totalXp)}
-                  <small> XP</small>
+                  <small className="text-xs font-semibold text-on-surface-variant"> XP</small>
                 </strong>
-                <span className="home-progress-next-hint">
+                <span className={styles.progressLink.nextHint}>
                   +{number(data.summary.xpToNextLevel)} XP lên Cấp {data.summary.currentLevel + 1}
                 </span>
               </div>
 
               {/* Progress Mini Track */}
-              <div className="home-mini-progress-track">
+              <div className={styles.progressLink.track}>
                 <div
-                  className="home-mini-progress-fill"
+                  className={styles.progressLink.fill}
                   style={{
                     width: `${Math.min(100, Math.max(5, (data.summary.xpInCurrentLevel / data.summary.xpPerLevel) * 100))}%`,
                   }}
                 />
               </div>
 
-              <div className="home-progress-link-footer">
+              <div className={styles.progressLink.footer}>
                 <span>Xem chi tiết tiến độ & xếp hạng</span>
                 <MoveUpRight size={16} aria-hidden="true" />
               </div>
             </Link>
 
-            <section className="home-leaderboard" aria-labelledby="home-leaderboard-title">
-              <div className="home-leaderboard-heading">
-                <div className="home-heading-with-icon">
-                  <span className="home-mini-icon gold"><Trophy size={17} aria-hidden="true" /></span>
+            <section className={styles.leaderboard.card} aria-labelledby="home-leaderboard-title">
+              <div className={styles.leaderboard.header}>
+                <div className={styles.leaderboard.headingGroup}>
+                  <span className={styles.leaderboard.iconWrapper}>
+                    <Trophy size={18} aria-hidden="true" />
+                  </span>
                   <div>
-                    <h2 id="home-leaderboard-title">Bảng xếp hạng</h2>
-                    <span className="home-subtitle">Thi đua cùng bạn bè</span>
+                    <h2 id="home-leaderboard-title" className={styles.leaderboard.title}>Bảng xếp hạng</h2>
+                    <span className={styles.leaderboard.subtitle}>Thi đua cùng bạn bè</span>
                   </div>
                 </div>
-                <Link to="/student/progress" aria-label="Xem bảng xếp hạng đầy đủ"><ArrowUpRight size={16} aria-hidden="true" /></Link>
+                <Link to="/student/progress" aria-label="Xem bảng xếp hạng đầy đủ" className={styles.leaderboard.viewAllLink}>
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </Link>
               </div>
               {GLOBAL.loading ? (
-                <div className="home-ranking-loading" role="status">Đang tải bảng xếp hạng…</div>
+                <div className={styles.leaderboard.loading} role="status">Đang tải bảng xếp hạng…</div>
               ) : GLOBAL.error ? (
-                <div className="home-ranking-loading">Chưa thể tải bảng xếp hạng.</div>
+                <div className={styles.leaderboard.loading}>Chưa thể tải bảng xếp hạng.</div>
               ) : GLOBAL.data ? (
                 <>
-                  <div className="home-ranking-list">
+                  <div className={styles.leaderboard.list}>
                     {compactLeaderboard.map((entry) => <RankingRow key={entry.rank} entry={entry} />)}
                   </div>
-                  <div className="home-ranking-me">
-                    <span>Vị trí của bạn</span>
+                  <div className={styles.leaderboard.meDivider}>
+                    <span className={styles.leaderboard.meLabel}>Vị trí của bạn</span>
                     <RankingRow entry={GLOBAL.data.me} me />
                   </div>
                 </>
@@ -575,3 +590,4 @@ export const DashboardPage = () => {
     </div>
   );
 };
+export default DashboardPage;

@@ -184,21 +184,21 @@ export function StudentManagementPage() {
   return (
     <section className="space-y-6 pb-12 font-sans" aria-labelledby="student-management-title">
       {/* Breadcrumb (Mục 5.1) */}
-      <nav className="flex items-center gap-2 text-xs text-[#717785]" aria-label="Breadcrumb">
-        <Link to="/admin" className="hover:text-[#005cb8]">Quản trị hệ thống</Link>
+      <nav className="flex items-center gap-2 text-xs text-on-surface-variant" aria-label="Breadcrumb">
+        <Link to="/admin" className="hover:text-primary">Quản trị hệ thống</Link>
         <span>/</span>
         <span>Học sinh</span>
         <span>/</span>
-        <strong className="text-[#181c22] font-semibold">Danh sách học sinh</strong>
+        <strong className="text-on-surface font-semibold">Danh sách học sinh</strong>
       </nav>
 
       {/* Page Header (Mục 5.1 & Mục 8 Text chuẩn) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 id="student-management-title" className="text-2xl sm:text-3xl font-bold text-[#181c22] tracking-tight">
+          <h1 id="student-management-title" className="text-2xl sm:text-3xl font-bold text-on-surface tracking-tight">
             Quản lý học sinh
           </h1>
-          <p className="text-xs sm:text-sm text-[#414753] mt-1">
+          <p className="text-xs sm:text-sm text-on-surface-variant mt-1">
             Theo dõi tài khoản, lớp học và tiến trình cơ bản của học sinh.
           </p>
         </div>
@@ -206,7 +206,7 @@ export function StudentManagementPage() {
         <button
           type="button"
           onClick={() => setIsAddOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#005cb8] hover:bg-[#1275e2] text-white text-xs font-bold rounded-lg shadow-sm transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:opacity-90 text-on-primary text-xs font-bold rounded-lg shadow-sm transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
         >
           <Plus size={16} />
           <span>Thêm học sinh</span>
@@ -214,28 +214,28 @@ export function StudentManagementPage() {
       </div>
 
       {/* Filter and Search Toolbar (Mục 5.1 & Mục 7.2) */}
-      <div className="rounded-xl border border-[#c1c6d5]/50 bg-white p-4 sm:p-5 shadow-2xs space-y-4">
+      <div className="rounded-xl border border-outline-variant/60 bg-surface-container-lowest p-4 sm:p-5 shadow-2xs space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {/* Search box (Mục 7.1) */}
           <div className="lg:col-span-2 space-y-1">
-            <label className="text-xs font-semibold text-[#414753]" htmlFor="search-input">
+            <label className="text-xs font-semibold text-on-surface-variant" htmlFor="search-input">
               Tìm kiếm
             </label>
             <div className="relative flex items-center">
-              <Search size={16} className="absolute left-3 text-[#717785] pointer-events-none" />
+              <Search size={16} className="absolute left-3 text-outline pointer-events-none" />
               <input
                 id="search-input"
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Tìm theo tên, email, username hoặc mã học sinh"
-                className="w-full h-10 pl-9 pr-8 text-xs bg-[#f1f3fc] border border-[#c1c6d5] rounded-lg text-[#181c22] font-normal transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                className="w-full h-10 pl-9 pr-8 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-normal transition-all focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 text-[#717785] hover:text-[#181c22] cursor-pointer"
+                  className="absolute right-2.5 text-outline hover:text-on-surface cursor-pointer"
                   aria-label="Xóa từ khóa"
                 >
                   <X size={14} />
@@ -246,7 +246,7 @@ export function StudentManagementPage() {
 
           {/* Status filter */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[#414753]" htmlFor="status-filter">
+            <label className="text-xs font-semibold text-on-surface-variant" htmlFor="status-filter">
               Trạng thái
             </label>
             <select
@@ -255,7 +255,7 @@ export function StudentManagementPage() {
               onChange={(e) =>
                 filter({ active: e.target.value === '' ? undefined : e.target.value === 'true' })
               }
-              className="w-full h-10 px-3 text-xs bg-[#f1f3fc] border border-[#c1c6d5] rounded-lg text-[#181c22] font-normal transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8] cursor-pointer"
+              className="w-full h-10 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-normal transition-all focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
             >
               <option value="">Tất cả</option>
               <option value="true">Đang hoạt động</option>
@@ -265,7 +265,7 @@ export function StudentManagementPage() {
 
           {/* School filter */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[#414753]" htmlFor="school-filter">
+            <label className="text-xs font-semibold text-on-surface-variant" htmlFor="school-filter">
               Trường
             </label>
             <input
@@ -274,13 +274,13 @@ export function StudentManagementPage() {
               value={school}
               onChange={(e) => setSchool(e.target.value)}
               placeholder="Nhập tên trường"
-              className="w-full h-10 px-3 text-xs bg-[#f1f3fc] border border-[#c1c6d5] rounded-lg text-[#181c22] font-normal transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+              className="w-full h-10 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-normal transition-all focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
           </div>
 
           {/* Grade filter */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[#414753]" htmlFor="grade-filter">
+            <label className="text-xs font-semibold text-on-surface-variant" htmlFor="grade-filter">
               Khối
             </label>
             <select
@@ -289,7 +289,7 @@ export function StudentManagementPage() {
               onChange={(e) =>
                 filter({ gradeLevel: e.target.value || undefined, classId: undefined })
               }
-              className="w-full h-10 px-3 text-xs bg-[#f1f3fc] border border-[#c1c6d5] rounded-lg text-[#181c22] font-normal transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8] cursor-pointer"
+              className="w-full h-10 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-normal transition-all focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
             >
               <option value="">Tất cả khối</option>
               {Array.from(
@@ -307,9 +307,9 @@ export function StudentManagementPage() {
         </div>
 
         {/* Class filter row & error retry */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[#c1c6d5]/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-outline-variant/30">
           <div className="flex items-center gap-3">
-            <label className="text-xs font-semibold text-[#414753] whitespace-nowrap" htmlFor="class-filter">
+            <label className="text-xs font-semibold text-on-surface-variant whitespace-nowrap" htmlFor="class-filter">
               Lớp:
             </label>
             <select
@@ -317,7 +317,7 @@ export function StudentManagementPage() {
               disabled={classesLoading || Boolean(classesError)}
               value={params.classId || ''}
               onChange={(e) => filter({ classId: e.target.value || undefined })}
-              className="h-9 px-3 text-xs bg-[#f1f3fc] border border-[#c1c6d5] rounded-lg text-[#181c22] font-normal transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8] cursor-pointer disabled:opacity-50 min-w-[180px]"
+              className="h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-normal transition-all focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer disabled:opacity-50 min-w-[180px]"
             >
               <option value="">{classesLoading ? 'Đang tải lớp…' : 'Tất cả lớp'}</option>
               {visibleClasses.map((item) => (
@@ -328,12 +328,12 @@ export function StudentManagementPage() {
             </select>
 
             {classesError && (
-              <span className="text-xs text-[#ba1a1a] flex items-center gap-1.5">
+              <span className="text-xs text-error flex items-center gap-1.5">
                 {classesError}
                 <button
                   type="button"
                   onClick={() => setClassRetry((v) => v + 1)}
-                  className="underline font-bold text-[#005cb8] hover:text-[#1275e2]"
+                  className="underline font-bold text-primary hover:opacity-80"
                 >
                   Thử lại
                 </button>
@@ -344,14 +344,14 @@ export function StudentManagementPage() {
           <div className="flex items-center gap-4 flex-wrap">
             {/* Filter status & Reset button */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#414753]">
+              <span className="text-xs text-on-surface-variant">
                 {filtered ? 'Đang áp dụng bộ lọc' : 'Tất cả học sinh'}
               </span>
               <button
                 type="button"
                 onClick={reset}
                 disabled={!filtered && sortIndex === 0}
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#005cb8] hover:underline disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <RotateCcw size={12} /> Xóa bộ lọc
               </button>
@@ -359,20 +359,20 @@ export function StudentManagementPage() {
 
             {/* Sort picker */}
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-[#717785]">Sắp xếp:</span>
-              <div className="flex items-center gap-1 bg-[#f1f3fc] border border-[#c1c6d5] rounded-lg px-2 py-1">
-                <ArrowUpDown size={12} className="text-[#717785]" />
+              <span className="text-outline">Sắp xếp:</span>
+              <div className="flex items-center gap-1 bg-surface-container-low border border-outline-variant rounded-lg px-2 py-1">
+                <ArrowUpDown size={12} className="text-outline" />
                 <select
                   value={sortIndex}
                   onChange={(e) => {
                     const opt = sortOptions[Number(e.target.value)];
                     filter({ sort: opt.sort, direction: opt.direction });
                   }}
-                  className="bg-transparent text-xs font-semibold text-[#181c22] focus:outline-none cursor-pointer"
+                  className="bg-transparent text-xs font-semibold text-on-surface focus:outline-none cursor-pointer"
                   aria-label="Sắp xếp danh sách"
                 >
                   {sortOptions.map((opt, i) => (
-                    <option key={opt.sort} value={i}>
+                    <option key={opt.sort} value={i} className="bg-surface-container-lowest text-on-surface">
                       {opt.label}
                     </option>
                   ))}
@@ -385,9 +385,9 @@ export function StudentManagementPage() {
 
       {/* Inline Error Block (Mục 5.1) */}
       {error && (
-        <div className="flex items-center justify-between p-4 rounded-xl border border-[#ba1a1a]/30 bg-[#ffdad6] text-[#93000a] text-xs font-medium" role="alert">
+        <div className="flex items-center justify-between p-4 rounded-xl border border-error/30 bg-error-container/20 text-error text-xs font-medium" role="alert">
           <div className="flex items-center gap-2">
-            <AlertCircle size={16} className="shrink-0 text-[#ba1a1a]" />
+            <AlertCircle size={16} className="shrink-0 text-error" />
             <div>
               <strong>Không thể tải danh sách học sinh.</strong>
               <span className="ml-1 text-[11px] opacity-80">{error}</span>
@@ -396,7 +396,7 @@ export function StudentManagementPage() {
           <button
             type="button"
             onClick={() => setRetry((v) => v + 1)}
-            className="px-3 py-1 bg-white border border-[#ba1a1a]/40 text-[#ba1a1a] hover:bg-[#ffdad6] font-bold rounded-lg transition-colors cursor-pointer"
+            className="px-3 py-1 bg-surface-container-lowest border border-error/40 text-error hover:bg-error-container/30 font-bold rounded-lg transition-colors cursor-pointer"
           >
             Thử lại
           </button>
@@ -404,11 +404,11 @@ export function StudentManagementPage() {
       )}
 
       {/* Table Card (Mục 5.1 Table columns & states) */}
-      <div className="rounded-xl border border-[#c1c6d5]/50 bg-white shadow-2xs overflow-hidden" aria-busy={busy}>
+      <div className="rounded-xl border border-outline-variant/60 bg-surface-container-lowest shadow-2xs overflow-hidden" aria-busy={busy}>
         {/* Table heading */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#c1c6d5]/40 bg-[#f9f9ff]">
-          <h2 className="text-sm font-bold text-[#181c22]">Danh sách học sinh</h2>
-          <span className="text-xs bg-[#f1f3fc] text-[#414753] border border-[#c1c6d5]/40 px-2.5 py-0.5 rounded-full" aria-live="polite">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant/40 bg-surface-container/30">
+          <h2 className="text-sm font-bold text-on-surface">Danh sách học sinh</h2>
+          <span className="text-xs bg-surface-container text-on-surface-variant border border-outline-variant/40 px-2.5 py-0.5 rounded-full" aria-live="polite">
             {busy ? 'Đang tải…' : error ? 'Chưa tải được dữ liệu' : `${number.format(total)} học sinh${filtered ? ' phù hợp' : ''}`}
           </span>
         </div>
@@ -416,7 +416,7 @@ export function StudentManagementPage() {
         {/* Scrollable table container */}
         <div className="overflow-x-auto scrollbar-thin" tabIndex={0} role="region" aria-label="Bảng danh sách học sinh">
           <table className="w-full text-left text-xs min-w-[1100px] border-collapse">
-            <thead className="bg-[#f1f3fc] border-b border-[#c1c6d5]/50 text-[#414753] font-bold">
+            <thead className="bg-surface-container/60 border-b border-outline-variant/50 text-on-surface-variant font-bold">
               <tr>
                 <th scope="col" className="py-3.5 px-6">Học sinh</th>
                 <th scope="col" className="py-3.5 px-4">Mã HS</th>
@@ -428,26 +428,26 @@ export function StudentManagementPage() {
                 <th scope="col" className="py-3.5 px-6 text-right">Hành động</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#c1c6d5]/30 text-[#181c22]">
+            <tbody className="divide-y divide-outline-variant/30 text-on-surface">
               {busy ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 bg-[#ebedf7] rounded-full" />
+                        <div className="h-9 w-9 bg-surface-container rounded-full" />
                         <div className="space-y-1.5">
-                          <div className="h-4 w-28 bg-[#ebedf7] rounded" />
-                          <div className="h-3 w-36 bg-[#ebedf7] rounded" />
+                          <div className="h-4 w-28 bg-surface-container rounded" />
+                          <div className="h-3 w-36 bg-surface-container rounded" />
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-4"><div className="h-4 w-20 bg-[#ebedf7] rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-24 bg-[#ebedf7] rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-20 bg-[#ebedf7] rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-24 bg-[#ebedf7] rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-5 w-20 bg-[#ebedf7] rounded-full" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-20 bg-[#ebedf7] rounded" /></td>
-                    <td className="py-4 px-6 text-right"><div className="h-6 w-24 ml-auto bg-[#ebedf7] rounded" /></td>
+                    <td className="py-4 px-4"><div className="h-4 w-20 bg-surface-container rounded" /></td>
+                    <td className="py-4 px-4"><div className="h-4 w-24 bg-surface-container rounded" /></td>
+                    <td className="py-4 px-4"><div className="h-4 w-20 bg-surface-container rounded" /></td>
+                    <td className="py-4 px-4"><div className="h-4 w-24 bg-surface-container rounded" /></td>
+                    <td className="py-4 px-4"><div className="h-5 w-20 bg-surface-container rounded-full" /></td>
+                    <td className="py-4 px-4"><div className="h-4 w-20 bg-surface-container rounded" /></td>
+                    <td className="py-4 px-6 text-right"><div className="h-6 w-24 ml-auto bg-surface-container rounded" /></td>
                   </tr>
                 ))
               ) : !error && data && data.content.length > 0 ? (
@@ -461,11 +461,11 @@ export function StudentManagementPage() {
                     .toUpperCase() || 'HS';
 
                   return (
-                    <tr key={student.studentId} className="hover:bg-[#f9f9ff] transition-colors">
+                    <tr key={student.studentId} className="hover:bg-surface-container/40 transition-colors">
                       {/* 1. Học sinh (Avatar, Tên, Email) */}
                       <td className="py-3.5 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-[#d6e3ff] text-[#00458d] flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden ring-1 ring-[#c1c6d5]/40 shadow-xs">
+                          <div className="h-9 w-9 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden ring-1 ring-outline-variant/40 shadow-xs">
                             {student.avatarUrl ? (
                               <img
                                 src={student.avatarUrl}
@@ -482,11 +482,11 @@ export function StudentManagementPage() {
                           <div>
                             <Link
                               to={`/admin/students/${student.studentId}`}
-                              className="font-bold text-[#181c22] hover:text-[#005cb8] hover:underline transition-colors block"
+                              className="font-bold text-on-surface hover:text-primary hover:underline transition-colors block"
                             >
                               {student.fullName}
                             </Link>
-                            <span className="text-[11px] text-[#717785] block truncate max-w-xs">{student.email}</span>
+                            <span className="text-[11px] text-on-surface-variant block truncate max-w-xs">{student.email}</span>
                           </div>
                         </div>
                       </td>
@@ -496,12 +496,12 @@ export function StudentManagementPage() {
                         <button
                           type="button"
                           onClick={() => handleCopyCode(student.studentCode)}
-                          className="group inline-flex items-center gap-1 font-mono text-[11px] font-semibold bg-[#f1f3fc] text-[#414753] hover:text-[#005cb8] px-2 py-0.5 rounded border border-[#c1c6d5]/40 transition-colors cursor-pointer"
+                          className="group inline-flex items-center gap-1 font-mono text-[11px] font-semibold bg-surface-container-low text-on-surface-variant hover:text-primary px-2 py-0.5 rounded border border-outline-variant/50 transition-colors cursor-pointer"
                           title="Sao chép mã học sinh"
                         >
                           <span>{student.studentCode}</span>
                           {copiedCode === student.studentCode ? (
-                            <Check size={11} className="text-[#166534]" />
+                            <Check size={11} className="text-emerald-500" />
                           ) : (
                             <Copy size={11} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                           )}
@@ -510,45 +510,45 @@ export function StudentManagementPage() {
 
                       {/* 3. Lớp / Trường */}
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-[#181c22]">
+                        <div className="font-bold text-on-surface">
                           {student.className || 'Chưa có lớp'}
                         </div>
-                        <div className="text-[11px] text-[#717785] mt-0.5">
+                        <div className="text-[11px] text-on-surface-variant mt-0.5">
                           {student.gradeLevel ? `Khối ${student.gradeLevel}` : '—'} · {student.schoolName || 'Chưa có trường'}
                         </div>
                       </td>
 
                       {/* 4. Tiến trình (XP, Level, Streak) */}
                       <td className="py-3.5 px-4">
-                        <strong className="text-xs font-bold text-[#005cb8]">
+                        <strong className="text-xs font-bold text-primary">
                           {number.format(student.totalXp)} XP
                         </strong>
-                        <div className="text-[11px] text-[#717785] mt-0.5 flex items-center gap-1">
+                        <div className="text-[11px] text-on-surface-variant mt-0.5 flex items-center gap-1">
                           <span>Lv.{student.currentLevel}</span>
                           <span>·</span>
-                          <span className="inline-flex items-center gap-0.5 text-[#9a4600] font-semibold">
+                          <span className="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-400 font-semibold">
                             <Flame size={11} /> {student.currentStreak} ngày
                           </span>
                         </div>
                       </td>
 
                       {/* 5. Hoạt động gần đây */}
-                      <td className="py-3.5 px-4 text-[#414753]">
+                      <td className="py-3.5 px-4 text-on-surface-variant">
                         {formatDate(student.lastActivityDate, 'Chưa có hoạt động')}
                       </td>
 
                       {/* 6. Trạng thái */}
                       <td className="py-3.5 px-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
                             student.active
-                              ? 'bg-[#e8f5ed] text-[#166534]'
-                              : 'bg-[#ffdad6] text-[#93000a]'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                           }`}
                         >
                           <span
                             className={`h-1.5 w-1.5 rounded-full ${
-                              student.active ? 'bg-emerald-500' : 'bg-[#ba1a1a]'
+                              student.active ? 'bg-emerald-500' : 'bg-rose-500'
                             }`}
                           />
                           {student.active ? 'Đang hoạt động' : 'Đang khóa'}
@@ -556,7 +556,7 @@ export function StudentManagementPage() {
                       </td>
 
                       {/* 7. Ngày tạo */}
-                      <td className="py-3.5 px-4 text-[#717785]">
+                      <td className="py-3.5 px-4 text-on-surface-variant">
                         {formatDate(student.createdAt)}
                       </td>
 
@@ -566,7 +566,7 @@ export function StudentManagementPage() {
                           {/* View Detail */}
                           <Link
                             to={`/admin/students/${student.studentId}`}
-                            className="grid h-8 w-8 place-items-center rounded-lg text-[#414753] hover:bg-[#d6e3ff] hover:text-[#005cb8] transition-colors"
+                            className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors"
                             title="Xem chi tiết"
                             aria-label={`Xem chi tiết ${student.fullName}`}
                           >
@@ -577,7 +577,7 @@ export function StudentManagementPage() {
                           <button
                             type="button"
                             onClick={() => setEditTarget(student)}
-                            className="grid h-8 w-8 place-items-center rounded-lg text-[#414753] hover:bg-[#d6e3ff] hover:text-[#005cb8] transition-colors cursor-pointer"
+                            className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors cursor-pointer"
                             title="Chỉnh sửa hồ sơ"
                             aria-label={`Chỉnh sửa ${student.fullName}`}
                           >
@@ -590,8 +590,8 @@ export function StudentManagementPage() {
                             onClick={() => setLockTarget(student)}
                             className={`grid h-8 w-8 place-items-center rounded-lg transition-colors cursor-pointer ${
                               student.active
-                                ? 'text-[#414753] hover:bg-[#ffdad6] hover:text-[#ba1a1a]'
-                                : 'text-[#414753] hover:bg-[#d6e3ff] hover:text-[#005cb8]'
+                                ? 'text-on-surface-variant hover:bg-rose-500/10 hover:text-rose-500'
+                                : 'text-on-surface-variant hover:bg-surface-container hover:text-primary'
                             }`}
                             title={student.active ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
                             aria-label={`${student.active ? 'Khóa' : 'Mở khóa'} ${student.fullName}`}
@@ -603,7 +603,7 @@ export function StudentManagementPage() {
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(student)}
-                            className="grid h-8 w-8 place-items-center rounded-lg text-[#ba1a1a] hover:bg-[#ffdad6] transition-colors cursor-pointer"
+                            className="grid h-8 w-8 place-items-center rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
                             title="Xóa mềm học sinh"
                             aria-label={`Xóa mềm ${student.fullName}`}
                           >
@@ -622,13 +622,13 @@ export function StudentManagementPage() {
         {/* Empty State (Mục 5.1 & Mục 8) */}
         {!busy && !error && data && data.content.length === 0 && (
           <div className="py-16 px-6 text-center space-y-3">
-            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#d6e3ff] text-[#005cb8] mx-auto">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary-fixed text-primary mx-auto">
               <GraduationCap size={28} />
             </div>
-            <h3 className="text-base font-bold text-[#181c22]">
+            <h3 className="text-base font-bold text-on-surface">
               {filtered ? 'Không tìm thấy học sinh phù hợp' : 'Chưa có học sinh'}
             </h3>
-            <p className="text-xs text-[#717785] max-w-sm mx-auto">
+            <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
               {filtered
                 ? 'Thử đổi từ khóa hoặc xóa bộ lọc đang áp dụng.'
                 : 'Tạo học sinh đầu tiên để bắt đầu quản lý tài khoản và hồ sơ học tập.'}
@@ -638,7 +638,7 @@ export function StudentManagementPage() {
                 <button
                   type="button"
                   onClick={reset}
-                  className="px-4 py-2 border border-[#c1c6d5] text-[#005cb8] hover:bg-[#f1f3fc] text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                  className="px-4 py-2 border border-outline-variant text-primary hover:bg-surface-container text-xs font-bold rounded-lg transition-colors cursor-pointer"
                 >
                   Xóa bộ lọc
                 </button>
@@ -646,7 +646,7 @@ export function StudentManagementPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(true)}
-                  className="px-4 py-2 bg-[#005cb8] hover:bg-[#1275e2] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-primary hover:opacity-90 text-on-primary text-xs font-bold rounded-lg transition-colors cursor-pointer"
                 >
                   Thêm học sinh
                 </button>
@@ -656,7 +656,7 @@ export function StudentManagementPage() {
         )}
 
         {/* Pagination Footer (Mục 7.3) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-3.5 border-t border-[#c1c6d5]/40 bg-[#f9f9ff] text-xs text-[#414753]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-3.5 border-t border-outline-variant/40 bg-surface-container/20 text-xs text-on-surface-variant">
           <div>
             {busy || error
               ? '—'
@@ -673,10 +673,10 @@ export function StudentManagementPage() {
               <select
                 value={size}
                 onChange={(e) => filter({ size: Number(e.target.value) as 10 | 20 | 50 })}
-                className="h-8 px-2 bg-white border border-[#c1c6d5] rounded-lg text-xs font-semibold focus:outline-none cursor-pointer"
+                className="h-8 px-2 bg-surface-container-low border border-outline-variant rounded-lg text-xs font-semibold text-on-surface focus:outline-none cursor-pointer"
               >
                 {[10, 20, 50].map((v) => (
-                  <option key={v} value={v}>
+                  <option key={v} value={v} className="bg-surface-container-lowest text-on-surface">
                     {v}
                   </option>
                 ))}
@@ -688,13 +688,13 @@ export function StudentManagementPage() {
                 type="button"
                 disabled={busy || Boolean(error) || !data?.hasPrevious}
                 onClick={() => setParams((p) => ({ ...p, page: page - 1 }))}
-                className="grid h-8 w-8 place-items-center rounded-lg border border-[#c1c6d5] bg-white hover:bg-[#d6e3ff] hover:text-[#005cb8] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="grid h-8 w-8 place-items-center rounded-lg border border-outline-variant bg-surface-container-low hover:bg-surface-container hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer text-on-surface"
                 aria-label="Trang trước"
               >
                 <ChevronLeft size={16} />
               </button>
 
-              <span className="px-2 font-semibold text-[#181c22]">
+              <span className="px-2 font-semibold text-on-surface">
                 Trang {page} / {Math.max(1, data?.totalPages || 0)}
               </span>
 
@@ -702,7 +702,7 @@ export function StudentManagementPage() {
                 type="button"
                 disabled={busy || Boolean(error) || !data?.hasNext}
                 onClick={() => setParams((p) => ({ ...p, page: page + 1 }))}
-                className="grid h-8 w-8 place-items-center rounded-lg border border-[#c1c6d5] bg-white hover:bg-[#d6e3ff] hover:text-[#005cb8] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="grid h-8 w-8 place-items-center rounded-lg border border-outline-variant bg-surface-container-low hover:bg-surface-container hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer text-on-surface"
                 aria-label="Trang sau"
               >
                 <ChevronRight size={16} />

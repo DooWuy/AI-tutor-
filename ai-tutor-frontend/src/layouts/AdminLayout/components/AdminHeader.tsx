@@ -44,7 +44,7 @@ export function AdminHeader({ user, onOpenMenu }: AdminHeaderProps) {
           </div>
           <div className={styles.brandCopy}>
             <span className={styles.brandTitle}>
-              AI Tutor <span className="text-[#005cb8]">Admin OS</span>
+              AI Tutor <span className="text-primary font-black">Admin OS</span>
             </span>
             <span className={styles.brandLabel}>Trung tâm điều hành</span>
           </div>
@@ -53,7 +53,7 @@ export function AdminHeader({ user, onOpenMenu }: AdminHeaderProps) {
         {/* Global Quick Search Mockup / Status */}
         <div className={styles.headerCenter}>
           <div className={styles.searchBar}>
-            <Sparkles size={14} className="text-[#005cb8]" />
+            <Sparkles size={14} className="text-primary" />
             <span>Tìm kiếm học sinh, tài liệu, lớp học hoặc cài đặt...</span>
             <span className={styles.searchKbd}>⌘K</span>
           </div>

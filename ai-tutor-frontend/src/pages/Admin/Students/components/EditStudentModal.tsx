@@ -112,26 +112,26 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#181c22]/50 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-student-modal-title"
     >
-      <div className="w-full max-w-2xl rounded-2xl bg-white border border-[#c1c6d5]/70 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-6">
+      <div className="w-full max-w-2xl rounded-2xl bg-surface-container-lowest border border-outline-variant/70 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-6">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#c1c6d5]/40 bg-[#f9f9ff]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant/40 bg-surface-container-low">
           <div>
-            <h2 id="edit-student-modal-title" className="text-lg font-bold text-[#181c22]">
+            <h2 id="edit-student-modal-title" className="text-lg font-bold text-on-surface">
               Chỉnh sửa học sinh
             </h2>
-            <p className="text-xs text-[#414753] mt-0.5">
+            <p className="text-xs text-on-surface-variant mt-0.5">
               Cập nhật thông tin học tập và liên lạc của học sinh
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-lg text-[#717785] hover:bg-[#ebedf7] hover:text-[#181c22] transition-colors"
+            className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors cursor-pointer"
             aria-label="Đóng modal"
           >
             <X size={18} />
@@ -142,54 +142,54 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
         <form onSubmit={handleSubmit}>
           <div className="px-6 py-5 max-h-[75vh] overflow-y-auto space-y-6">
             {generalError && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-[#ffdad6] border border-[#ba1a1a]/30 text-[#93000a] text-xs font-medium" role="alert">
-                <AlertCircle size={16} className="shrink-0 text-[#ba1a1a]" />
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-error-container/40 border border-error/30 text-on-error-container text-xs font-medium" role="alert">
+                <AlertCircle size={16} className="shrink-0 text-error" />
                 <span>{generalError}</span>
               </div>
             )}
 
             {/* Readonly Identity Section */}
-            <div className="p-4 rounded-xl bg-[#f1f3fc] border border-[#c1c6d5]/40 space-y-3">
+            <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/50 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#414753] flex items-center gap-1.5">
-                  <Lock size={13} className="text-[#717785]" /> Thông tin định danh
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                  <Lock size={13} className="text-on-surface-variant" /> Thông tin định danh
                 </span>
-                <span className="text-[11px] text-[#717785] italic">
+                <span className="text-[11px] text-on-surface-variant/80 italic">
                   Thông tin định danh không chỉnh sửa tại đây.
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#717785] block">Mã học sinh</label>
+                  <label className="text-[11px] font-semibold text-on-surface-variant block">Mã học sinh</label>
                   <input
                     type="text"
                     disabled
                     readOnly
                     value={student.studentCode}
-                    className="w-full h-8 px-2.5 mt-1 text-xs bg-white/70 border border-[#c1c6d5]/60 rounded-md text-[#414753] font-mono cursor-not-allowed"
+                    className="w-full h-8 px-2.5 mt-1 text-xs bg-surface-container border border-outline-variant/60 rounded-md text-on-surface-variant font-mono cursor-not-allowed"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-[#717785] block">Username</label>
+                  <label className="text-[11px] font-semibold text-on-surface-variant block">Username</label>
                   <input
                     type="text"
                     disabled
                     readOnly
                     value={student.username}
-                    className="w-full h-8 px-2.5 mt-1 text-xs bg-white/70 border border-[#c1c6d5]/60 rounded-md text-[#414753] font-medium cursor-not-allowed"
+                    className="w-full h-8 px-2.5 mt-1 text-xs bg-surface-container border border-outline-variant/60 rounded-md text-on-surface-variant font-medium cursor-not-allowed"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-[#717785] block">Email</label>
+                  <label className="text-[11px] font-semibold text-on-surface-variant block">Email</label>
                   <input
                     type="text"
                     disabled
                     readOnly
                     value={student.email}
-                    className="w-full h-8 px-2.5 mt-1 text-xs bg-white/70 border border-[#c1c6d5]/60 rounded-md text-[#414753] font-medium truncate cursor-not-allowed"
+                    className="w-full h-8 px-2.5 mt-1 text-xs bg-surface-container border border-outline-variant/60 rounded-md text-on-surface-variant font-medium truncate cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -197,15 +197,15 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
 
             {/* Editable Group 1: Thông tin cá nhân */}
             <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#005cb8] flex items-center gap-1.5 pb-1 border-b border-[#c1c6d5]/30">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 pb-1 border-b border-outline-variant/30">
                 Thông tin cá nhân & Liên hệ
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Full name */}
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="edit-fullname">
-                    Họ và tên <span className="text-[#ba1a1a]">*</span>
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="edit-fullname">
+                    Họ và tên <span className="text-error">*</span>
                   </label>
                   <input
                     ref={fullNameRef}
@@ -216,20 +216,20 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
                       setForm({ ...form, fullName: e.target.value });
                       if (fieldErrors.fullName) setFieldErrors({ ...fieldErrors, fullName: '' });
                     }}
-                    className={`w-full h-9 px-3 text-xs bg-[#f9f9ff] border rounded-lg text-[#181c22] font-medium transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 ${
+                    className={`w-full h-9 px-3 text-xs bg-surface-container-low border rounded-lg text-on-surface font-medium transition-all focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                       fieldErrors.fullName
-                        ? 'border-[#ba1a1a] bg-[#ffdad6]/20 focus:border-[#ba1a1a]'
-                        : 'border-[#c1c6d5] focus:border-[#005cb8]'
+                        ? 'border-error bg-error-container/20 focus:border-error'
+                        : 'border-outline-variant focus:border-primary'
                     }`}
                   />
                   {fieldErrors.fullName && (
-                    <p className="text-[11px] text-[#ba1a1a] mt-0.5">{fieldErrors.fullName}</p>
+                    <p className="text-[11px] text-error mt-0.5">{fieldErrors.fullName}</p>
                   )}
                 </div>
 
                 {/* Phone */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="edit-phone">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="edit-phone">
                     Số điện thoại
                   </label>
                   <input
@@ -237,13 +237,13 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
                     type="tel"
                     value={form.phoneNumber || ''}
                     onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
 
                 {/* Birthday */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="edit-dob">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="edit-dob">
                     Ngày sinh
                   </label>
                   <input
@@ -251,20 +251,20 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
                     type="date"
                     value={form.dateOfBirth || ''}
                     onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
 
                 {/* Gender */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="edit-gender">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="edit-gender">
                     Giới tính
                   </label>
                   <select
                     id="edit-gender"
                     value={form.gender || 'MALE'}
                     onChange={(e) => setForm({ ...form, gender: e.target.value as StudentGender })}
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8] cursor-pointer"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
                   >
                     <option value="MALE">Nam</option>
                     <option value="FEMALE">Nữ</option>
@@ -274,7 +274,7 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
 
                 {/* Address */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="edit-address">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="edit-address">
                     Địa chỉ
                   </label>
                   <input
@@ -283,7 +283,7 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
                     value={form.address || ''}
                     onChange={(e) => setForm({ ...form, address: e.target.value })}
                     placeholder="Quận/Huyện, Tỉnh/TP"
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
               </div>
@@ -291,14 +291,14 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
 
             {/* Editable Group 2: Lớp học */}
             <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#005cb8] flex items-center gap-1.5 pb-1 border-b border-[#c1c6d5]/30">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 pb-1 border-b border-outline-variant/30">
                 Trường học & Phân lớp
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* School */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="edit-school">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="edit-school">
                     Trường
                   </label>
                   <input
@@ -306,20 +306,20 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
                     type="text"
                     value={form.schoolName || ''}
                     onChange={(e) => setForm({ ...form, schoolName: e.target.value })}
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
 
                 {/* Grade */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="edit-grade">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="edit-grade">
                     Khối
                   </label>
                   <select
                     id="edit-grade"
                     value={form.gradeLevel || '10'}
                     onChange={(e) => setForm({ ...form, gradeLevel: e.target.value })}
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8] cursor-pointer"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
                   >
                     {Array.from({ length: 12 }, (_, i) => String(i + 1)).map((g) => (
                       <option key={g} value={g}>
@@ -331,7 +331,7 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
 
                 {/* Class */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="edit-class">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="edit-class">
                     Lớp
                   </label>
                   <input
@@ -339,7 +339,7 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
                     type="text"
                     value={form.className || ''}
                     onChange={(e) => setForm({ ...form, className: e.target.value })}
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
               </div>
@@ -347,13 +347,13 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
 
             {/* Editable Group 3: Thông tin phụ huynh */}
             <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#005cb8] flex items-center gap-1.5 pb-1 border-b border-[#c1c6d5]/30">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 pb-1 border-b border-outline-variant/30">
                 Thông tin phụ huynh (Tùy chọn)
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="edit-parent-name">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="edit-parent-name">
                     Họ tên cha/mẹ
                   </label>
                   <input
@@ -362,12 +362,12 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
                     value={form.parentName || ''}
                     onChange={(e) => setForm({ ...form, parentName: e.target.value })}
                     placeholder="Nguyễn Văn B"
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="edit-parent-phone">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="edit-parent-phone">
                     SĐT phụ huynh
                   </label>
                   <input
@@ -376,12 +376,12 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
                     value={form.parentPhone || ''}
                     onChange={(e) => setForm({ ...form, parentPhone: e.target.value })}
                     placeholder="0912345678"
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="edit-parent-email">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="edit-parent-email">
                     Email phụ huynh
                   </label>
                   <input
@@ -390,7 +390,7 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
                     value={form.parentEmail || ''}
                     onChange={(e) => setForm({ ...form, parentEmail: e.target.value })}
                     placeholder="phuhuynh@example.com"
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
               </div>
@@ -398,19 +398,19 @@ export function EditStudentModal({ isOpen, student, onClose, onSuccess }: EditSt
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#c1c6d5]/40 bg-[#f9f9ff]">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-outline-variant/40 bg-surface-container-low">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="px-4 py-2 text-xs font-semibold text-[#414753] hover:bg-[#ebedf7] hover:text-[#181c22] rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface rounded-lg transition-colors cursor-pointer disabled:opacity-50"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[#005cb8] hover:bg-[#1275e2] rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               {submitting && <RefreshCw size={14} className="animate-spin" />}
               <span>{submitting ? 'Đang lưu...' : 'Lưu thay đổi'}</span>

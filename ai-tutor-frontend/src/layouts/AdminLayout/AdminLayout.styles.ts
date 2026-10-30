@@ -7,7 +7,7 @@ export const styles = {
   brandMark: 'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#004bb5] to-[#2575fc] text-white shadow-md shadow-[#005cb8]/20 ring-1 ring-white/20',
   brandCopy: 'min-w-0 flex flex-col justify-center',
   brandTitle: 'block truncate text-sm font-bold tracking-tight text-on-surface sm:text-base flex items-center gap-1.5',
-  brandLabel: 'block text-[10px] font-extrabold uppercase tracking-widest leading-none text-[#005cb8] mt-0.5',
+  brandLabel: 'block text-[10px] font-extrabold uppercase tracking-widest leading-none text-primary mt-0.5',
   
   headerCenter: 'hidden md:flex items-center gap-3 flex-1 max-w-md mx-6',
   searchBar: 'w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-outline-variant bg-surface-container-lowest hover:bg-surface-container focus-within:bg-surface-container-lowest focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all text-xs text-on-surface-variant',

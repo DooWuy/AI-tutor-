@@ -147,26 +147,26 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#181c22]/50 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-student-modal-title"
     >
-      <div className="w-full max-w-2xl rounded-2xl bg-white border border-[#c1c6d5]/70 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-6">
+      <div className="w-full max-w-2xl rounded-2xl bg-surface-container-lowest border border-outline-variant/70 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-6">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#c1c6d5]/40 bg-[#f9f9ff]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant/40 bg-surface-container-low">
           <div>
-            <h2 id="add-student-modal-title" className="text-lg font-bold text-[#181c22]">
+            <h2 id="add-student-modal-title" className="text-lg font-bold text-on-surface">
               Thêm học sinh
             </h2>
-            <p className="text-xs text-[#414753] mt-0.5">
+            <p className="text-xs text-on-surface-variant mt-0.5">
               Tạo tài khoản học sinh thủ công và gửi email kích hoạt
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-lg text-[#717785] hover:bg-[#ebedf7] hover:text-[#181c22] transition-colors"
+            className="grid h-8 w-8 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors cursor-pointer"
             aria-label="Đóng modal"
           >
             <X size={18} />
@@ -177,23 +177,23 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
         <form onSubmit={handleSubmit}>
           <div className="px-6 py-5 max-h-[75vh] overflow-y-auto space-y-6">
             {generalError && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-[#ffdad6] border border-[#ba1a1a]/30 text-[#93000a] text-xs font-medium" role="alert">
-                <AlertCircle size={16} className="shrink-0 text-[#ba1a1a]" />
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-error-container/40 border border-error/30 text-on-error-container text-xs font-medium" role="alert">
+                <AlertCircle size={16} className="shrink-0 text-error" />
                 <span>{generalError}</span>
               </div>
             )}
 
             {/* Group 1: Thông tin tài khoản */}
             <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#005cb8] flex items-center gap-1.5 pb-1 border-b border-[#c1c6d5]/30">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 pb-1 border-b border-outline-variant/30">
                 1. Thông tin tài khoản
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Username */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="add-username">
-                    Username <span className="text-[#ba1a1a]">*</span>
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="add-username">
+                    Username <span className="text-error">*</span>
                   </label>
                   <input
                     ref={usernameInputRef}
@@ -205,21 +205,21 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                       if (fieldErrors.username) setFieldErrors({ ...fieldErrors, username: '' });
                     }}
                     placeholder="vd: nguyenvana"
-                    className={`w-full h-9 px-3 text-xs bg-[#f9f9ff] border rounded-lg text-[#181c22] font-medium transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 ${
+                    className={`w-full h-9 px-3 text-xs bg-surface-container-low border rounded-lg text-on-surface font-medium transition-all focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                       fieldErrors.username
-                        ? 'border-[#ba1a1a] bg-[#ffdad6]/20 focus:border-[#ba1a1a]'
-                        : 'border-[#c1c6d5] focus:border-[#005cb8]'
+                        ? 'border-error bg-error-container/20 focus:border-error'
+                        : 'border-outline-variant focus:border-primary'
                     }`}
                   />
                   {fieldErrors.username && (
-                    <p className="text-[11px] text-[#ba1a1a] mt-0.5">{fieldErrors.username}</p>
+                    <p className="text-[11px] text-error mt-0.5">{fieldErrors.username}</p>
                   )}
                 </div>
 
                 {/* Email */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="add-email">
-                    Email <span className="text-[#ba1a1a]">*</span>
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="add-email">
+                    Email <span className="text-error">*</span>
                   </label>
                   <input
                     ref={emailInputRef}
@@ -231,21 +231,21 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                       if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' });
                     }}
                     placeholder="vd: a@example.com"
-                    className={`w-full h-9 px-3 text-xs bg-[#f9f9ff] border rounded-lg text-[#181c22] font-medium transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 ${
+                    className={`w-full h-9 px-3 text-xs bg-surface-container-low border rounded-lg text-on-surface font-medium transition-all focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                       fieldErrors.email
-                        ? 'border-[#ba1a1a] bg-[#ffdad6]/20 focus:border-[#ba1a1a]'
-                        : 'border-[#c1c6d5] focus:border-[#005cb8]'
+                        ? 'border-error bg-error-container/20 focus:border-error'
+                        : 'border-outline-variant focus:border-primary'
                     }`}
                   />
                   {fieldErrors.email && (
-                    <p className="text-[11px] text-[#ba1a1a] mt-0.5">{fieldErrors.email}</p>
+                    <p className="text-[11px] text-error mt-0.5">{fieldErrors.email}</p>
                   )}
                 </div>
 
                 {/* Password */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="add-password">
-                    Mật khẩu tạm <span className="text-[#ba1a1a]">*</span>
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="add-password">
+                    Mật khẩu tạm <span className="text-error">*</span>
                   </label>
                   <div className="relative">
                     <input
@@ -258,16 +258,16 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                         if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' });
                       }}
                       placeholder="Tối thiểu 6 ký tự"
-                      className={`w-full h-9 px-3 pr-10 text-xs bg-[#f9f9ff] border rounded-lg text-[#181c22] font-medium transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 ${
+                      className={`w-full h-9 px-3 pr-10 text-xs bg-surface-container-low border rounded-lg text-on-surface font-medium transition-all focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                         fieldErrors.password
-                          ? 'border-[#ba1a1a] bg-[#ffdad6]/20 focus:border-[#ba1a1a]'
-                          : 'border-[#c1c6d5] focus:border-[#005cb8]'
+                          ? 'border-error bg-error-container/20 focus:border-error'
+                          : 'border-outline-variant focus:border-primary'
                       }`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowTempPassword((current) => !current)}
-                      className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-[#717785] hover:bg-[#ebedf7] hover:text-[#181c22] transition-colors"
+                      className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors cursor-pointer"
                       aria-label={showTempPassword ? 'Ẩn mật khẩu tạm' : 'Hiện mật khẩu tạm'}
                       aria-pressed={showTempPassword}
                     >
@@ -275,7 +275,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                     </button>
                   </div>
                   {fieldErrors.password && (
-                    <p className="text-[11px] text-[#ba1a1a] mt-0.5">{fieldErrors.password}</p>
+                    <p className="text-[11px] text-error mt-0.5">{fieldErrors.password}</p>
                   )}
                 </div>
               </div>
@@ -283,15 +283,15 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
 
             {/* Group 2: Thông tin cá nhân */}
             <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#005cb8] flex items-center gap-1.5 pb-1 border-b border-[#c1c6d5]/30">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 pb-1 border-b border-outline-variant/30">
                 2. Thông tin cá nhân
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Full name */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="add-fullname">
-                    Họ và tên <span className="text-[#ba1a1a]">*</span>
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="add-fullname">
+                    Họ và tên <span className="text-error">*</span>
                   </label>
                   <input
                     ref={fullNameInputRef}
@@ -303,20 +303,20 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                       if (fieldErrors.fullName) setFieldErrors({ ...fieldErrors, fullName: '' });
                     }}
                     placeholder="vd: Nguyễn Văn A"
-                    className={`w-full h-9 px-3 text-xs bg-[#f9f9ff] border rounded-lg text-[#181c22] font-medium transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 ${
+                    className={`w-full h-9 px-3 text-xs bg-surface-container-low border rounded-lg text-on-surface font-medium transition-all focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                       fieldErrors.fullName
-                        ? 'border-[#ba1a1a] bg-[#ffdad6]/20 focus:border-[#ba1a1a]'
-                        : 'border-[#c1c6d5] focus:border-[#005cb8]'
+                        ? 'border-error bg-error-container/20 focus:border-error'
+                        : 'border-outline-variant focus:border-primary'
                     }`}
                   />
                   {fieldErrors.fullName && (
-                    <p className="text-[11px] text-[#ba1a1a] mt-0.5">{fieldErrors.fullName}</p>
+                    <p className="text-[11px] text-error mt-0.5">{fieldErrors.fullName}</p>
                   )}
                 </div>
 
                 {/* Phone */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="add-phone">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="add-phone">
                     Số điện thoại
                   </label>
                   <input
@@ -325,13 +325,13 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                     value={form.phoneNumber || ''}
                     onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
                     placeholder="vd: 0900000000"
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
 
                 {/* Birthday */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="add-dob">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="add-dob">
                     Ngày sinh
                   </label>
                   <input
@@ -339,20 +339,20 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                     type="date"
                     value={form.dateOfBirth || ''}
                     onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
 
                 {/* Gender */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="add-gender">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="add-gender">
                     Giới tính
                   </label>
                   <select
                     id="add-gender"
                     value={form.gender || 'MALE'}
                     onChange={(e) => setForm({ ...form, gender: e.target.value as StudentGender })}
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8] cursor-pointer"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
                   >
                     <option value="MALE">Nam</option>
                     <option value="FEMALE">Nữ</option>
@@ -364,14 +364,14 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
 
             {/* Group 3: Lớp học */}
             <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#005cb8] flex items-center gap-1.5 pb-1 border-b border-[#c1c6d5]/30">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 pb-1 border-b border-outline-variant/30">
                 3. Lớp học & Trường
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* School */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="add-school">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="add-school">
                     Trường
                   </label>
                   <input
@@ -380,20 +380,20 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                     value={form.schoolName || ''}
                     onChange={(e) => setForm({ ...form, schoolName: e.target.value })}
                     placeholder="vd: THCS Lê Lợi"
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
 
                 {/* Grade */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="add-grade">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="add-grade">
                     Khối
                   </label>
                   <select
                     id="add-grade"
                     value={form.gradeLevel || '10'}
                     onChange={(e) => setForm({ ...form, gradeLevel: e.target.value })}
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8] cursor-pointer"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
                   >
                     {Array.from({ length: 12 }, (_, i) => String(i + 1)).map((g) => (
                       <option key={g} value={g}>
@@ -405,7 +405,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
 
                 {/* Class */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#414753]" htmlFor="add-class">
+                  <label className="text-xs font-bold text-on-surface-variant" htmlFor="add-class">
                     Lớp
                   </label>
                   <input
@@ -414,7 +414,7 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
                     value={form.className || ''}
                     onChange={(e) => setForm({ ...form, className: e.target.value })}
                     placeholder="vd: 8A1"
-                    className="w-full h-9 px-3 text-xs bg-[#f9f9ff] border border-[#c1c6d5] rounded-lg text-[#181c22] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005cb8]/20 focus:border-[#005cb8]"
+                    className="w-full h-9 px-3 text-xs bg-surface-container-low border border-outline-variant rounded-lg text-on-surface font-medium focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
               </div>
@@ -422,19 +422,19 @@ export function AddStudentModal({ isOpen, onClose, onSuccess }: AddStudentModalP
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#c1c6d5]/40 bg-[#f9f9ff]">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-outline-variant/40 bg-surface-container-low">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="px-4 py-2 text-xs font-semibold text-[#414753] hover:bg-[#ebedf7] hover:text-[#181c22] rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface rounded-lg transition-colors cursor-pointer disabled:opacity-50"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[#005cb8] hover:bg-[#1275e2] rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               {submitting && <RefreshCw size={14} className="animate-spin" />}
               <span>{submitting ? 'Đang tạo...' : 'Tạo học sinh'}</span>
