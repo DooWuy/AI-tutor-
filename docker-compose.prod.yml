@@ -89,7 +89,7 @@ services:
         max-file: "5"
 
   ai-tutor-service:
-    image: ${IMAGE_BACKEND:-ghcr.io/doowuy/ai-tutor-/ai-tutor-service}:${IMAGE_TAG:-latest}
+    image: ${IMAGE_BACKEND:-ghcr.io/doowuy/ai-tutor/ai-tutor-service}:${IMAGE_TAG:-latest}
     container_name: ai-tutor-service
     restart: always
     ports:
@@ -146,7 +146,7 @@ services:
         max-file: "5"
 
   ai-tutor-frontend:
-    image: ${IMAGE_FRONTEND:-ghcr.io/doowuy/ai-tutor-/ai-tutor-frontend}:${IMAGE_TAG:-latest}
+    image: ${IMAGE_FRONTEND:-ghcr.io/doowuy/ai-tutor/ai-tutor-frontend}:${IMAGE_TAG:-latest}
     container_name: ai-tutor-frontend
     restart: always
     ports:

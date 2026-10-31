@@ -77,7 +77,7 @@ jobs:
         id: set-env
         run: |
           # Lowercase repository name for RFC 1123 compliant Docker images
-          LOWER_REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          LOWER_REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]' | sed -e 's/[-_.]*$//')
           echo "lower_repo=${LOWER_REPO}" >> "$GITHUB_OUTPUT"
 
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
