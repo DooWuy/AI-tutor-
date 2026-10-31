@@ -1,3 +1,4 @@
+import { getStoredSession } from './authApi';
 import type { Notification, NotificationFeed } from '../types/notification';
 import { isRecord, parseNotificationFeed } from './notificationValidation';
 export type { Notification, NotificationMetadata, NotificationType, NotificationFeed } from '../types/notification';
@@ -5,7 +6,10 @@ export type { Notification, NotificationMetadata, NotificationType, Notification
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8088/api/v1').replace(/\/$/, '');
 
 async function request(path: string, method = 'GET', signal?: AbortSignal): Promise<unknown> {
-  const response = await fetch(`${API_BASE_URL}/notifications${path}`, { method, credentials: 'include', signal });
+  const token = getStoredSession()?.accessToken;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(`${API_BASE_URL}/notifications${path}`, { method, headers, credentials: 'include', signal });
   const payload: unknown = response.headers.get('content-type')?.includes('application/json') ? await response.json() : null;
   if (!response.ok || !isRecord(payload) || payload.success !== true) {
     throw new Error(isRecord(payload) && typeof payload.message === 'string' ? payload.message : `Không thể cập nhật thông báo (HTTP ${response.status}).`);

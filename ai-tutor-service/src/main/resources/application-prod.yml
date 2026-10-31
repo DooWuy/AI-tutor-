@@ -4,8 +4,8 @@ server:
 app:
   auth:
     cookie:
-      secure: true
-      same-site: None
+      secure: ${APP_AUTH_COOKIE_SECURE:false}
+      same-site: ${APP_AUTH_COOKIE_SAME_SITE:Lax}
   analytics:
     knowledge-gap-job: true
     at-risk-job: true

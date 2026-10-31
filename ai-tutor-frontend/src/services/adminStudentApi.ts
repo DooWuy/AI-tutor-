@@ -1,3 +1,4 @@
+import { getStoredSession } from './authApi';
 import type { ApiResponse } from '../types/auth';
 import type {
   AdminStudentDetail,
@@ -54,9 +55,17 @@ function apiError(payload: ApiResponse<unknown> | null, status: number) {
   return new AdminStudentApiError(message, status, fieldErrors);
 }
 
+function authHeaders(): Record<string, string> {
+  const token = getStoredSession()?.accessToken;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
 async function fetchApi(path: string, init: RequestInit = {}) {
   try {
-    return await fetch(`${API_BASE_URL}${path}`, { ...init, credentials: 'include' });
+    const headers = { ...authHeaders(), ...(init.headers as Record<string, string> || {}) };
+    return await fetch(`${API_BASE_URL}${path}`, { ...init, headers, credentials: 'include' });
   } catch (error) {
     if (init.signal?.aborted) throw error;
     throw new AdminStudentApiError('Không thể kết nối tới máy chủ. Hãy kiểm tra backend đang chạy.', 0);

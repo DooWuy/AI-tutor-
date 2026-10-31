@@ -1,3 +1,4 @@
+import { getStoredSession } from './authApi';
 import type { ApiResponse } from '../types/auth';
 import type {
   AnalyticsFiltersResponse,
@@ -22,6 +23,13 @@ async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
   return res.json();
 }
 
+function authHeaders(): Record<string, string> {
+  const token = getStoredSession()?.accessToken;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
 async function request<T>(endpoint: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
@@ -30,6 +38,7 @@ async function request<T>(endpoint: string, init?: RequestInit): Promise<T> {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders(),
         ...init?.headers,
       },
     });
@@ -144,6 +153,7 @@ export const analyticsApi = {
 
     const res = await fetch(`${API_BASE_URL}/analytics/report.pdf?${params.toString()}`, {
       credentials: 'include',
+      headers: authHeaders(),
     });
 
     if (!res.ok) {
@@ -179,6 +189,7 @@ export const analyticsApi = {
 
     const res = await fetch(`${API_BASE_URL}/analytics/export.xlsx?${params.toString()}`, {
       credentials: 'include',
+      headers: authHeaders(),
     });
 
     if (!res.ok) {
