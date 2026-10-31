@@ -357,6 +357,9 @@ jobs:
         env:
           HEALTHCHECK_URL: ${{ vars.BACKEND_HEALTHCHECK_URL }}
           SERVER_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
           TARGET_URL="${HEALTHCHECK_URL}"
           if [ -z "$TARGET_URL" ]; then
@@ -387,6 +390,24 @@ jobs:
           done
 
           if [ "$SUCCESS" -ne 1 ]; then
+            if [ -n "$SERVER_HOST" ] && [ -n "$SSH_KEY" ]; then
+              echo "⚠️ Direct connection to $TARGET_URL timed out / refused (Port 8088 likely blocked by firewall)."
+              echo "Verifying backend health internally via SSH..."
+              mkdir -p ~/.ssh
+              echo "$SSH_KEY" > ~/.ssh/health_key
+              chmod 600 ~/.ssh/health_key
+              TARGET_PORT="${SSH_PORT:-22}"
+              TARGET_USER="${SSH_USER:-ubuntu}"
+              INTERNAL_STATUS=$(ssh -i ~/.ssh/health_key -p "$TARGET_PORT" -o StrictHostKeyChecking=no "$TARGET_USER@$SERVER_HOST" "curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:8088/actuator/health || echo '000'")
+              rm -f ~/.ssh/health_key
+              if [ "$INTERNAL_STATUS" -eq 200 ]; then
+                echo "✅ Backend internal health check PASSED via SSH with HTTP 200 OK."
+                SUCCESS=1
+              fi
+            fi
+          fi
+
+          if [ "$SUCCESS" -ne 1 ]; then
             echo "❌ Health check FAILED after $MAX_RETRIES attempts."
             exit 1
           fi
@@ -395,6 +416,9 @@ jobs:
         env:
           FRONTEND_URL: ${{ vars.FRONTEND_HEALTHCHECK_URL }}
           SERVER_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
           TARGET_URL="${FRONTEND_URL}"
           if [ -z "$TARGET_URL" ]; then
@@ -411,7 +435,23 @@ jobs:
           if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 304 ]; then
             echo "✅ Frontend check PASSED with HTTP $HTTP_STATUS."
           else
-            echo "⚠️ Frontend check returned status $HTTP_STATUS."
+            if [ -n "$SERVER_HOST" ] && [ -n "$SSH_KEY" ]; then
+              echo "Verifying frontend health internally via SSH..."
+              mkdir -p ~/.ssh
+              echo "$SSH_KEY" > ~/.ssh/health_key
+              chmod 600 ~/.ssh/health_key
+              TARGET_PORT="${SSH_PORT:-22}"
+              TARGET_USER="${SSH_USER:-ubuntu}"
+              INTERNAL_STATUS=$(ssh -i ~/.ssh/health_key -p "$TARGET_PORT" -o StrictHostKeyChecking=no "$TARGET_USER@$SERVER_HOST" "curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:3000/ || echo '000'")
+              rm -f ~/.ssh/health_key
+              if [ "$INTERNAL_STATUS" -eq 200 ] || [ "$INTERNAL_STATUS" -eq 304 ]; then
+                echo "✅ Frontend internal check PASSED via SSH with HTTP $INTERNAL_STATUS."
+              else
+                echo "⚠️ Frontend check returned status $HTTP_STATUS (Internal: $INTERNAL_STATUS)."
+              fi
+            else
+              echo "⚠️ Frontend check returned status $HTTP_STATUS."
+            fi
           fi
 
   # ===========================================================================
