@@ -413,3 +413,44 @@ chứng bởi các bộ test T2-T8.
 Quy trình dashboard, chẩn đoán, requeue một row có guard, rollout/rollback và checklist staging nằm
 tại [notification_runbook.md](notification_runbook.md). Test local không thay thế xác nhận staging;
 các ô rollout/smoke production chỉ được đóng sau khi lưu evidence theo runbook.
+
+## 13. Contract enrollment và đồng bộ màn hình giáo viên
+
+| Event | Recipient | Metadata bắt buộc | Link | Event key | Channel |
+|---|---|---|---|---|---|
+| `STUDY_CLASS_JOIN_REQUESTED` | User của teacher sở hữu lớp | `classId`, `enrollmentId`, `className`, `enrollmentStatus=PENDING`, `studentId`, `studentName` | `/teacher/study-classes/{classId}` | `STUDY_CLASS_JOIN_REQUESTED:{enrollmentId}:{requestedAt}` | `WEBSOCKET` |
+| `STUDY_CLASS_JOIN_APPROVED` | User của student trong enrollment | `classId`, `enrollmentId`, `className`, `enrollmentStatus=APPROVED` | `/student/classes/{classId}` | `STUDY_CLASS_JOIN_APPROVED:{enrollmentId}:{requestedAt}` | `WEBSOCKET` |
+| `STUDY_CLASS_JOIN_REJECTED` | User của student trong enrollment | `classId`, `enrollmentId`, `className`, `enrollmentStatus=REJECTED` | `/student/classes/{classId}` | `STUDY_CLASS_JOIN_REJECTED:{enrollmentId}:{requestedAt}` | `WEBSOCKET` |
+
+`requestedAt` là instant của chu kỳ xin vào lớp và được lưu vào `occurrence_at`; retry cùng
+chu kỳ giữ nguyên event key, còn rejoin sau `REJECTED` tạo `requestedAt` mới. Ba event chỉ tạo
+delivery WebSocket, không có email. Teacher notification không chứa email hoặc dữ liệu nhạy cảm.
+REST vẫn là nguồn dữ liệu authoritative: màn hình teacher nhận event thì refetch danh sách lớp;
+trang chi tiết chỉ refetch khi `metadata.classId` trùng route. `NotificationProvider` là nơi duy
+nhất giữ STOMP connection, toast, bell và unread count. Hook màn hình ghi nhận notification ID đã
+xử lý nên replay qua REST/STOMP hoặc đổi `isRead` không tạo refetch lần hai.
+
+## 14. Kiểm chứng TASK-07 và TASK-08 ngày 30/10/2026
+
+- Frontend `npm.cmd run test:notifications`: **30 pass, 0 fail**; gồm validation enrollment,
+  link theo role, toast/unread, reconnect và hook teacher chỉ refetch event đúng `classId` một lần.
+- Frontend `npm.cmd run build`: **pass**. `npm.cmd run lint`: **pass**, chỉ còn các warning
+  lint hiện hữu của repo và warning effect trong hook (không có lỗi lint chặn build).
+- Backend tập trung:
+  `./gradlew.bat test --tests '*StudyClass*Test' --tests '*StudyClassNotificationIntegrationTest' --tests '*NotificationContractTest'`
+  **BUILD SUCCESSFUL**; bao phủ unit branch, ownership/unauthorized, rollback, duplicate join,
+  cạnh tranh approve, class full/dissolved và rejoin event key.
+- Backend full `./gradlew.bat test`: **441 tests, 33 skipped, 7 failed**. Một failure là
+  `SampleTextbookSplitTest` do fixture PDF vẫn trỏ `docs/` trong khi tài liệu nằm ở `.docs/`;
+  sáu failure còn lại là `WebSocketBrokerIntegrationTest` timeout khi dựng client WebSocket
+  local. Đây là hồi quy/hạ tầng ngoài thay đổi enrollment; cần chạy lại trên compose có Nginx
+  và RabbitMQ STOMP trước khi ký acceptance transport.
+
+## 15. Checklist QA staging và evidence
+
+Các kịch bản join → teacher, approve/reject → student, offline REST và RabbitMQ outage phải được
+chạy bằng hai tài khoản staging. Evidence tối thiểu: thời gian bắt đầu/kết thúc, environment/image
+SHA, notification ID, delivery ID, enrollment ID, tester và kết quả; tuyệt đối không lưu token,
+email hoặc metadata nhạy cảm. Tại thời điểm 30/10/2026 chưa có endpoint/tài khoản staging trong
+worktree, vì vậy các ô smoke production/staging vẫn mở và không được suy diễn từ Testcontainers
+hay build local.

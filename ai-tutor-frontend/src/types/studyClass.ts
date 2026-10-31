@@ -32,6 +32,9 @@ export interface StudyClassList {
 }
 
 export interface StudyClassJoinResult {
+  enrollmentId: string;
+  classId: string;
+  requestedAt: string;
   className: string;
   classCode: string;
   status: EnrollmentStatus;
@@ -72,6 +75,8 @@ export interface StudentStudyQuiz {
 }
 
 export interface StudentStudyClassCard {
+  className: string;
+  reviewedAt: string | null;
   enrollmentId: string;
   enrollmentStatus: EnrollmentStatus;
   requestedAt: string;
@@ -95,4 +100,19 @@ export interface StudyClassCreateInput {
   endDate?: string | null;
   durationAmount?: number | null;
   durationUnit?: 'WEEKS' | 'MONTHS' | null;
+}
+
+export interface StudentStudyClass {
+  enrollmentId: string;
+  classId: string;
+  className: string;
+  description: string | null;
+  classCode: string;
+  teacherName: string;
+  classStatus: StudyClassStatus;
+  enrollmentStatus: EnrollmentStatus;
+  requestedAt: string;
+  reviewedAt: string | null;
+  startDate: string;
+  endDate: string | null;
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { listStudyClasses } from '../../../services/studyClassApi';
 import type { StudyClass, StudyClassStatus } from '../../../types/studyClass';
 import { CreateStudyClassModal } from './CreateStudyClassModal';
+import { useStudyClassUpdates } from '../../../hooks/useStudyClassUpdates';
 
 const FILTERS: { value: '' | StudyClassStatus; label: string }[] = [
   { value: '', label: 'Tất cả' },
@@ -19,6 +20,7 @@ export function StudyClassSection() {
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
   const [reload, setReload] = useState(0);
+  const notificationRevision = useStudyClassUpdates(undefined, ['STUDY_CLASS_JOIN_REQUESTED']);
 
   useEffect(() => {
     let disposed = false;
@@ -43,7 +45,7 @@ export function StudyClassSection() {
       disposed = true;
       window.clearTimeout(handle);
     };
-  }, [filter, keyword, reload]);
+  }, [filter, keyword, reload, notificationRevision]);
 
   const full = activeCount >= 4;
 
@@ -71,7 +73,12 @@ export function StudyClassSection() {
         ))}
         <input className="min-w-40 flex-1 rounded-xl border border-outline-variant bg-surface px-3 py-1 text-sm" placeholder="Tìm theo tên hoặc mã lớp" value={keyword} onChange={(event) => setKeyword(event.target.value)} />
       </div>
-      {error ? <p className="text-sm text-error" role="alert">{error}</p> : null}
+      {error ? (
+        <div className="flex flex-wrap items-center gap-3 text-sm text-error" role="alert">
+          <p>{error}</p>
+          <button type="button" className="font-semibold text-primary" onClick={() => setReload((value) => value + 1)}>Thử lại</button>
+        </div>
+      ) : null}
       {loading ? <p className="text-sm text-on-surface-variant">Đang tải lớp học thêm...</p> : null}
       {!loading && !error && classes.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-outline-variant px-4 py-8 text-center text-sm text-on-surface-variant">Chưa có lớp học thêm nào.</p>

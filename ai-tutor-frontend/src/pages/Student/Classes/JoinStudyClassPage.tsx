@@ -1,3 +1,4 @@
+import { useStudyClassUpdates } from '../../../hooks/useStudyClassUpdates';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Clock, FileText, CheckCircle2, Calendar, Eye, AlertCircle } from 'lucide-react';
@@ -26,6 +27,7 @@ function formatDate(value: string | null) {
 
 export default function JoinStudyClassPage() {
   const navigate = useNavigate();
+  const revision = useStudyClassUpdates();
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab') === 'quizzes' ? 'quizzes' : 'classes';
   const [code, setCode] = useState('');
@@ -64,7 +66,7 @@ export default function JoinStudyClassPage() {
     return () => {
       disposed = true;
     };
-  }, [reload]);
+  }, [reload, revision]);
 
   function selectTab(next: 'classes' | 'quizzes') {
     setParams(next === 'quizzes' ? { tab: 'quizzes' } : {});
@@ -72,6 +74,7 @@ export default function JoinStudyClassPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (sending) return;
     setSending(true);
     setError('');
     setMessage('');
@@ -142,7 +145,7 @@ export default function JoinStudyClassPage() {
       {loadError ? (
         <div className="flex items-center gap-2 p-3 rounded-xl bg-error/10 text-error text-sm" role="alert">
           <AlertCircle size={18} />
-          <span>{loadError}</span>
+          <span>{loadError}</span><button type="button" className="rounded-lg px-3 py-2 underline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => setReload(value => value + 1)}>Thử lại</button>
         </div>
       ) : null}
 
@@ -155,7 +158,7 @@ export default function JoinStudyClassPage() {
 
       {loading ? <p className="text-sm text-on-surface-variant">Đang tải...</p> : null}
 
-      {!loading && tab === 'classes' ? (
+      {tab === 'classes' ? (
         <div className="space-y-4 max-w-3xl">
           <form className="space-y-3 rounded-2xl border border-outline-variant bg-surface p-4" onSubmit={submit}>
             <h2 className="text-lg font-bold text-on-surface">Xin vào lớp mới</h2>
@@ -163,7 +166,7 @@ export default function JoinStudyClassPage() {
             <label className="block text-sm font-semibold text-on-surface">
               Mã lớp
               <input
-                className="mt-1 w-full rounded-xl border border-outline-variant bg-surface px-3 py-2 uppercase tracking-widest"
+                className="mt-1 w-full rounded-xl border border-outline-variant bg-surface px-3 py-2 uppercase tracking-widest focus-visible:outline-2 focus-visible:outline-primary"
                 value={code}
                 onChange={(event) => setCode(event.target.value.toUpperCase())}
                 minLength={6}
@@ -172,8 +175,8 @@ export default function JoinStudyClassPage() {
                 autoCapitalize="characters"
               />
             </label>
-            {message ? <p className="text-sm text-primary">{message}</p> : null}
-            <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-60" disabled={sending}>
+            {message ? <p role="status" className="text-sm text-primary">{message}</p> : null}
+            <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60" disabled={sending}>
               {sending ? 'Đang gửi...' : 'Gửi yêu cầu'}
             </button>
           </form>
@@ -198,35 +201,27 @@ export default function JoinStudyClassPage() {
           {classes.length === 0 && !schoolClass ? (
             <p className="text-sm text-on-surface-variant">Bạn chưa có lớp đang học.</p>
           ) : null}
-          {classes.map((item) => (
-            <article key={item.enrollmentId} className="space-y-2 rounded-2xl border border-outline-variant bg-surface p-4">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-lg font-bold text-on-surface">{item.name}</h2>
-                  <p className="mt-1 text-sm text-on-surface-variant">
-                    Mã {item.classCode}
-                    {item.teacherName ? ` · Giáo viên ${item.teacherName}` : ''}
-                    {` · ${item.approvedCount}/${item.maxStudents} học sinh`}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                    {enrollmentLabel[item.enrollmentStatus] || item.enrollmentStatus}
-                  </span>
-                  <span className="rounded-full bg-surface-container px-3 py-1 text-xs font-semibold text-on-surface-variant">
-                    {classLabel[item.classStatus] || item.classStatus}
-                  </span>
-                </div>
+          {(['APPROVED', 'PENDING', 'REJECTED'] as const).map(status => {
+            const rows = classes.filter(item => item.enrollmentStatus === status);
+            const title = { APPROVED: 'Đã tham gia', PENDING: 'Đang chờ', REJECTED: 'Đã từ chối' }[status];
+            return <section key={status} aria-label={title} className="space-y-3">
+              <h2 className="text-lg font-bold text-on-surface">{title} <span className="rounded-full bg-surface-container px-2 py-1 text-sm">{rows.length}</span></h2>
+              {!rows.length ? <p className="rounded-2xl border border-dashed border-outline-variant p-4 text-sm text-on-surface-variant">Chưa có lớp trong nhóm này.</p> : null}
+              <div className="grid gap-3 sm:grid-cols-2">
+                {rows.map(item => <article key={item.enrollmentId} className="flex min-w-0 flex-col gap-3 rounded-2xl border border-outline-variant bg-surface p-5">
+                  <h3 className="break-words text-lg font-bold text-on-surface">{item.className || item.name}</h3>
+                  <span className="text-xs text-on-surface-variant">{classLabel[item.classStatus]} · {enrollmentLabel[status]}</span>
+                  <p className="text-sm text-on-surface-variant">Giáo viên: {item.teacherName || 'Chưa cập nhật'}</p>
+                  {item.description ? <p className="line-clamp-2 text-sm text-on-surface-variant">{item.description}</p> : null}
+                  <p className="text-xs text-on-surface-variant">{formatDate(item.startDate)} — {formatDate(item.endDate)}</p>
+                  <p className="text-sm text-on-surface-variant">{status === 'PENDING' ? 'Yêu cầu đang chờ giáo viên duyệt.' : status === 'REJECTED' ? 'Bạn có thể nhập mã lớp để gửi lại yêu cầu.' : 'Bạn đã là thành viên của lớp.'}</p>
+                  <Link to={`/student/classes/${item.classId}`} className="mt-auto self-start rounded-xl px-3 py-2 text-sm font-semibold text-primary ring-1 ring-outline-variant hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-primary" aria-label={`Xem ${item.className || item.name}`}>
+                    {status === 'APPROVED' ? 'Mở lớp' : 'Xem yêu cầu'} →
+                  </Link>
+                </article>)}
               </div>
-              {item.description ? <p className="text-sm text-on-surface">{item.description}</p> : null}
-              <p className="text-xs text-on-surface-variant">
-                Bắt đầu {formatDate(item.startDate)} · Kết thúc {formatDate(item.endDate)}
-              </p>
-              {item.enrollmentStatus === 'PENDING' ? (
-                <p className="text-sm text-on-surface-variant">Đề thi hiện sau khi giáo viên chấp nhận yêu cầu.</p>
-              ) : null}
-            </article>
-          ))}
+            </section>;
+          })}
         </div>
       ) : null}
 

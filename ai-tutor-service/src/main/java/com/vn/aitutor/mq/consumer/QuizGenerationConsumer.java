@@ -29,7 +29,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class QuizGenerationConsumer {
+public class QuizGenerationConsumer{
 
     private final QuizRepository quizRepository;
     private final QuizQuestionRepository quizQuestionRepository;
