@@ -160,3 +160,40 @@ xử lý tiếp. Không dùng `flyway repair`, không reset volume và không đ
 - [ ] Lưu evidence: thời gian, environment, image SHA, tester, delivery/notification ID và kết quả.
 
 Không đánh dấu staging/production hoàn tất chỉ dựa trên Testcontainers hoặc build local.
+
+## 6. Kiểm tra notification lớp học và broker lỗi
+
+Lọc delivery của luồng enrollment theo source, chỉ lấy ID/trạng thái để tránh đưa nội dung học
+sinh vào log vận hành:
+
+```sql
+SELECT n.id AS notification_id, d.id AS delivery_id,
+       n.type, n.source_type, n.source_id,
+       d.channel, d.status, d.attempt_count,
+       d.next_attempt_at, d.lease_until, d.last_error_code,
+       n.created_at, d.updated_at
+FROM notifications n
+JOIN notification_deliveries d ON d.notification_id = n.id
+WHERE n.source_type = 'STUDY_CLASS_ENROLLMENT'
+  AND d.status IN ('PENDING', 'PROCESSING', 'FAILED')
+ORDER BY d.updated_at DESC
+LIMIT 100;
+```
+
+Đối chiếu `source_id` với enrollment trong ticket và kiểm tra recipient bằng user ID đã được
+phân quyền; không truy vấn/ghi title, message, email, token hoặc metadata đầy đủ vào incident.
+
+Kịch bản broker outage cho staging:
+
+1. Ghi thời gian bắt đầu, image SHA, enrollment ID và notification/delivery ID; xác nhận row
+   enrollment và notification đã commit trong PostgreSQL.
+2. Tạm dừng RabbitMQ hoặc STOMP listener, gửi một join/approve thử và xác nhận delivery vẫn
+   ở `PENDING`/`PROCESSING` hoặc retry theo `next_attempt_at`, không tạo notification thứ hai.
+3. Khôi phục broker, kiểm tra worker chuyển đúng delivery sang `SENT`, rồi xác nhận recipient
+   nhận đúng `/user/queue/notifications` trong 10 giây khi WebSocket khỏe.
+4. Nếu delivery thành `FAILED`, requeue từng row theo mục 3 sau khi xác minh lease/expiry; không
+   reset hàng loạt và không sửa trạng thái enrollment bằng SQL.
+
+Nếu broker không thể khởi động, REST feed vẫn là nguồn lịch sử: lưu notification ID và kết quả
+REST, đánh dấu smoke transport là `BLOCKED` thay vì `PASS`, rồi ghi ticket hạ tầng kèm log broker
+đã lọc secret.

@@ -5,6 +5,7 @@ import type { AdminStudentListItem, PageResponse, SortDirection, StudentSortFiel
 import { formatQuizWindow, subjectLabel } from '../../../types/assessment';
 import type { TeacherClassQuiz } from '../../../types/teacherClass';
 import type { StudyClass, StudyMember } from '../../../types/studyClass';
+import { useStudyClassUpdates } from '../../../hooks/useStudyClassUpdates';
 
 const number = new Intl.NumberFormat('vi-VN');
 const sorts: { label: string; sort: StudentSortField; direction: SortDirection }[] = [
@@ -37,6 +38,8 @@ export default function StudyClassDetailPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState(sorts[0]);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
+  const notificationRevision = useStudyClassUpdates(classId, ['STUDY_CLASS_JOIN_REQUESTED']);
 
   useEffect(() => {
     let disposed = false;
@@ -57,7 +60,7 @@ export default function StudyClassDetailPage() {
     return () => {
       disposed = true;
     };
-  }, [classId, reload]);
+  }, [classId, reload, notificationRevision]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -118,12 +121,16 @@ export default function StudyClassDetailPage() {
   }
 
   async function decide(requestId: string, action: 'approve' | 'reject') {
+    if (processingRequestId) return;
     setError('');
+    setProcessingRequestId(requestId);
     try {
       await actOnStudyRequest(classId, requestId, action);
       setReload((value) => value + 1);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Không xử lý được yêu cầu');
+    } finally {
+      setProcessingRequestId(null);
     }
   }
 
@@ -133,7 +140,12 @@ export default function StudyClassDetailPage() {
   return (
     <section className="space-y-6">
       <Link to="/teacher/classes" className="text-sm font-semibold text-primary">← Lớp học của tôi</Link>
-      {error ? <p className="text-sm text-error" role="alert">{error}</p> : null}
+      {error ? (
+        <div className="flex flex-wrap items-center gap-3 text-sm text-error" role="alert">
+          <p>{error}</p>
+          <button type="button" className="font-semibold text-primary" onClick={() => setReload((value) => value + 1)}>Thử lại</button>
+        </div>
+      ) : null}
       {notice ? <p className="text-sm text-primary">{notice}</p> : null}
       {!studyClass && !error ? <p className="text-sm text-on-surface-variant">Đang tải lớp...</p> : null}
       {studyClass ? (
@@ -287,8 +299,10 @@ export default function StudyClassDetailPage() {
                     </div>
                     {active ? (
                       <div className="flex gap-2">
-                        <button type="button" className="rounded-xl bg-primary px-3 py-1 text-sm font-semibold text-on-primary" onClick={() => decide(item.id, 'approve')}>Chấp nhận</button>
-                        <button type="button" className="rounded-xl border border-outline-variant px-3 py-1 text-sm font-semibold" onClick={() => decide(item.id, 'reject')}>Từ chối</button>
+                        <button type="button" className="rounded-xl bg-primary px-3 py-1 text-sm font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-60" disabled={processingRequestId !== null} aria-busy={processingRequestId === item.id} onClick={() => decide(item.id, 'approve')}>
+                          {processingRequestId === item.id ? 'Đang xử lý…' : 'Chấp nhận'}
+                        </button>
+                        <button type="button" className="rounded-xl border border-outline-variant px-3 py-1 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60" disabled={processingRequestId !== null} onClick={() => decide(item.id, 'reject')}>Từ chối</button>
                       </div>
                     ) : null}
                   </li>

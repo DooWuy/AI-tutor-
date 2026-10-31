@@ -42,4 +42,7 @@ export const markNotificationAsRead = async (id: string, signal?: AbortSignal): 
 
 export const markAllNotificationsAsRead = async (signal?: AbortSignal): Promise<void> => {
   await request('/read-all', 'PUT', signal);
+
+
+
 };

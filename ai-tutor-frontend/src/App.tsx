@@ -31,6 +31,8 @@ const QuizAttemptPage = lazy(() => import('./pages/Student/Practice/QuizAttemptP
 const QuizResultPage = lazy(() => import('./pages/Student/Practice/QuizResultPage').then(m => ({ default: m.QuizResultPage })));
 const JoinStudyClassPage = lazy(() => import('./pages/Student/Classes/JoinStudyClassPage'));
 
+const StudentStudyClassDetailPage = lazy(() => import('./pages/Student/Classes/StudentStudyClassDetailPage'));
+
 // Teacher Pages
 const AnalyticsPage = lazy(() => import('./pages/Teacher/Analytics/AnalyticsPage'));
 const TeachingMaterialsPage = lazy(() => import('./pages/Teacher/TeachingMaterials/TeachingMaterialsPage'));
@@ -95,6 +97,7 @@ function App() {
                         <Route path="timetable" element={<TimetablePage />} />
                         <Route path="profile" element={<ProfilePage />} />
                         <Route path="classes" element={<JoinStudyClassPage />} />
+                        <Route path="classes/:classId" element={<StudentStudyClassDetailPage />} />
                         <Route path="chat" element={<AIChatPage />} />
                         <Route path="practice" element={<PracticePage />} />
                         <Route path="practice/:subjectId" element={<PracticeTopicPage />} />

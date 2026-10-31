@@ -13,11 +13,19 @@ export function isNotification(value: unknown): value is Notification {
     || typeof value.message !== 'string' || !value.message.trim()
     || (value.link !== null && typeof value.link !== 'string')
     || typeof value.isRead !== 'boolean' || !instant(value.createdAt) || !isRecord(value.metadata)) return false;
-  for (const key of ['scheduleId', 'slotId', 'quizId', 'jobId']) {
+  for (const key of ['scheduleId', 'slotId', 'quizId', 'jobId', 'classId', 'enrollmentId', 'studentId']) {
     if (value.metadata[key] !== undefined && (typeof value.metadata[key] !== 'string' || !uuid.test(value.metadata[key]))) return false;
   }
-  for (const key of ['subject', 'room']) {
+  for (const key of ['subject', 'room', 'className', 'studentName']) {
     if (value.metadata[key] !== undefined && typeof value.metadata[key] !== 'string') return false;
+  }
+  if (value.metadata.enrollmentStatus !== undefined && !['PENDING', 'APPROVED', 'REJECTED'].includes(String(value.metadata.enrollmentStatus))) return false;
+  const statuses: Record<string, string> = { STUDY_CLASS_JOIN_REQUESTED: 'PENDING', STUDY_CLASS_JOIN_APPROVED: 'APPROVED', STUDY_CLASS_JOIN_REJECTED: 'REJECTED' };
+  if (statuses[value.type]) {
+    const metadata = value.metadata;
+    if (!metadata.classId || !metadata.enrollmentId || typeof metadata.className !== 'string' || !metadata.className.trim()
+      || metadata.enrollmentStatus !== statuses[value.type]) return false;
+    if (value.type === 'STUDY_CLASS_JOIN_REQUESTED' && (!metadata.studentId || typeof metadata.studentName !== 'string' || !metadata.studentName.trim())) return false;
   }
   return value.metadata.startsAt === undefined || instant(value.metadata.startsAt);
 }

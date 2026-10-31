@@ -1,7 +1,7 @@
 import type { ApiResponse } from '../types/auth';
 import type { AdminStudentDetail, AdminStudentListItem, PageResponse, SortDirection, StudentSortField } from '../types/adminStudent';
 import type { TeacherClassQuiz } from '../types/teacherClass';
-import type { StudentPublishedQuiz, StudentSchoolClass, StudentStudyClassCard, StudyClass, StudyClassCreateInput, StudyClassJoinResult, StudyClassList, StudyMember } from '../types/studyClass';
+import type { StudentStudyClass, StudentPublishedQuiz, StudentSchoolClass, StudentStudyClassCard, StudyClass, StudyClassCreateInput, StudyClassJoinResult, StudyClassList, StudyMember } from '../types/studyClass';
 import { getStoredSession } from './authApi';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8088/api/v1').replace(/\/$/, '');
@@ -118,4 +118,8 @@ export function listMyClassQuizzes() {
 
 export function joinStudyClass(classCode: string) {
   return request<StudyClassJoinResult>('/student/study-classes/join', 'POST', { classCode });
+}
+
+export function getMyStudyClass(classId: string) {
+  return request<StudentStudyClass>(`/student/study-classes/${encodeURIComponent(classId)}`);
 }
