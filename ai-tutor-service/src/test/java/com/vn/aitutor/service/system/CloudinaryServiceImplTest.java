@@ -58,7 +58,7 @@ class CloudinaryServiceImplTest {
     void materialize_localPath_returnsFile() throws IOException {
         File file = service.materialize("/uploads/documents/test.pdf");
         assertNotNull(file);
-        assertEquals("uploads\\documents\\test.pdf".replace('/', File.separatorChar), file.getPath());
+        assertEquals(new File("uploads/documents/test.pdf").getPath(), file.getPath());
     }
 
     @Test

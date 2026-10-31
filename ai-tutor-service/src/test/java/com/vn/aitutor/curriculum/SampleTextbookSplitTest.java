@@ -12,7 +12,9 @@ class SampleTextbookSplitTest {
 
     @Test
     void splitsTheFirstLessonAtPdfPagesSevenThroughNine() throws Exception {
-        byte[] bytes = Files.readAllBytes(textbook());
+        Path path = textbook();
+        org.junit.jupiter.api.Assumptions.assumeTrue(path != null, "Bỏ qua test vì không thấy file sách mẫu");
+        byte[] bytes = Files.readAllBytes(path);
 
         assertEquals(142, PdfSplitterUtil.pageCount(bytes));
         assertFalse(PrintedPageOffsetDetector.detect(bytes).isPresent());
@@ -25,6 +27,8 @@ class SampleTextbookSplitTest {
 
     private static Path textbook() {
         Path[] candidates = new Path[] {
+                Path.of("..", ".docs", "SGK - Toán 5 - Tập 1 - Chương trình mới.pdf"),
+                Path.of(".docs", "SGK - Toán 5 - Tập 1 - Chương trình mới.pdf"),
                 Path.of("..", "docs", "SGK - Toán 5 - Tập 1 - Chương trình mới.pdf"),
                 Path.of("docs", "SGK - Toán 5 - Tập 1 - Chương trình mới.pdf"),
                 Path.of("D:\\AI-tutor-\\docs\\SGK - Toán 5 - Tập 1 - Chương trình mới.pdf")
@@ -34,6 +38,6 @@ class SampleTextbookSplitTest {
                 return candidate;
             }
         }
-        throw new IllegalStateException("Không thấy file sách mẫu trong docs");
+        return null;
     }
 }

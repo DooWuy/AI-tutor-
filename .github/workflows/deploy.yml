@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - master
       - staging
     paths-ignore:
       - '**.md'
@@ -13,6 +14,7 @@ on:
   pull_request:
     branches:
       - main
+      - master
       - staging
     paths-ignore:
       - '**.md'
@@ -86,7 +88,7 @@ jobs:
             echo "is_deployable=true" >> "$GITHUB_OUTPUT"
             echo "deploy_component=${{ inputs.deploy_component }}" >> "$GITHUB_OUTPUT"
             echo "skip_tests=${{ inputs.skip_tests }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          elif [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.ref }}" = "refs/heads/master" ]; then
             echo "target_environment=production" >> "$GITHUB_OUTPUT"
             echo "is_deployable=${{ github.event_name == 'push' }}" >> "$GITHUB_OUTPUT"
             echo "deploy_component=all" >> "$GITHUB_OUTPUT"

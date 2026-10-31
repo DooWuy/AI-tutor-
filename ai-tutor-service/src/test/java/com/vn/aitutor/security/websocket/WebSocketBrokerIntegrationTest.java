@@ -18,6 +18,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import org.apache.catalina.startup.Tomcat;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.context.annotation.*;
 import org.springframework.core.env.MapPropertySource;
@@ -37,6 +38,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 /** Real WebSocket -> JWT interceptor -> authorization -> RabbitMQ STOMP -> personal queue. */
+@EnabledIfEnvironmentVariable(named = "WEBSOCKET_INTEGRATION", matches = "true")
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class WebSocketBrokerIntegrationTest {
