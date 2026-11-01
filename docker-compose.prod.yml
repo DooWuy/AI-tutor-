@@ -152,7 +152,7 @@ services:
     container_name: ai-tutor-frontend
     restart: always
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
+      - "${FRONTEND_PORT:-80}:80"
     depends_on:
       ai-tutor-service:
         condition: service_healthy
