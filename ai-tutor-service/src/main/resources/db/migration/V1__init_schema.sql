@@ -47,6 +47,23 @@ INSERT INTO users (
     NOW()
 ) ON CONFLICT (id) DO NOTHING;
 
+-- Default Teacher Account (Password: Teacher@123)
+INSERT INTO users (
+    id, username, email, password_hash, full_name, gender, role, is_active, is_deleted, created_at, updated_at
+) VALUES (
+    '4a8e5975-4fad-4226-8533-3ac9f573155e',
+    'teacher',
+    'teacher@aitutor.vn',
+    '$2a$10$wo.bwsFiMY5ittoV.OPJfuykpAvGcn6Ey1wo6zKho8S.onvquuawu',
+    'Giáo viên mẫu',
+    'OTHER',
+    'TEACHER',
+    TRUE,
+    FALSE,
+    NOW(),
+    NOW()
+) ON CONFLICT (id) DO NOTHING;
+
 CREATE INDEX idx_users_full_name_trgm ON users USING gin (full_name gin_trgm_ops);
 CREATE INDEX idx_users_email_trgm ON users USING gin (email gin_trgm_ops);
 CREATE INDEX idx_users_username_trgm ON users USING gin (username gin_trgm_ops);
@@ -63,6 +80,18 @@ CREATE TABLE teachers (
     CONSTRAINT uk_teachers_teacher_code UNIQUE (teacher_code),
     CONSTRAINT fk_teachers_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
+
+-- Default Teacher Profile
+INSERT INTO teachers (
+    id, user_id, teacher_code, department, subject_taught, school_name
+) VALUES (
+    '5b9e5975-4fad-4226-8533-3ac9f573155f',
+    '4a8e5975-4fad-4226-8533-3ac9f573155e',
+    'GV001',
+    'Tổ Toán - Tin',
+    'Toán học',
+    'THPT Chuyên Hà Nội - Amsterdam'
+) ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE school_classes (
     id UUID PRIMARY KEY,
