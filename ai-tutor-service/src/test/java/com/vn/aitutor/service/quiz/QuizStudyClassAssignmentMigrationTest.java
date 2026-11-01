@@ -33,7 +33,11 @@ class QuizStudyClassAssignmentMigrationTest {
              Statement sql = connection.createStatement()) {
             try (var row = sql.executeQuery("SELECT count(*) FROM users")) {
                 assertTrue(row.next());
-                assertEquals(1, row.getInt(1), "Keep the seeded admin account");
+                assertEquals(2, row.getInt(1), "Keep the seeded admin and teacher accounts");
+            }
+            try (var row = sql.executeQuery("SELECT count(*) FROM teachers")) {
+                assertTrue(row.next());
+                assertEquals(1, row.getInt(1), "Keep the seeded teacher account");
             }
             try (var row = sql.executeQuery("SELECT count(*) FROM quiz_study_class_assignments")) {
                 assertTrue(row.next());
