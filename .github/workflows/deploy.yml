@@ -334,14 +334,6 @@ jobs:
             export IMAGE_FRONTEND="$IMAGE_FRONTEND"
             export IMAGE_TAG="$IMAGE_TAG"
             docker compose -f docker-compose.prod.yml pull
-
-            # Tự động đồng bộ mật khẩu PostgreSQL khớp với cấu hình trước khi khởi động backend
-            docker compose -f docker-compose.prod.yml up -d postgres
-            sleep 3
-            DB_PASS=$(grep -E '^DB_PASSWORD=' .env 2>/dev/null | cut -d '=' -f2- | tr -d '\r"' || echo "password")
-            DB_PASS=${DB_PASS:-password}
-            docker exec -u postgres ai-tutor-postgres psql -c "ALTER USER postgres WITH PASSWORD '$DB_PASS';" 2>/dev/null || true
-
             if ! docker compose -f docker-compose.prod.yml up -d --remove-orphans; then
               echo "❌ Docker compose up failed. Dumping container status and logs..."
               docker compose -f docker-compose.prod.yml ps
