@@ -25,14 +25,12 @@ class QuizStudyClassAssignmentMigrationTest {
     }
 
     @Test
-    void upgradesLegacyV7WhoseAppliedV5DidNotCreateAssignmentTable() throws Exception {
-        flyway("7", true).migrate();
+    void freshInstallAppliesConsolidatedV1() throws Exception {
+        assertEquals(1, flyway("1", true).migrate().migrationsExecuted);
+        assertEquals(0, flyway("1", true).migrate().migrationsExecuted);
+
         try (Connection connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
              Statement sql = connection.createStatement()) {
-            // Reproduce the deployed database: V5 is recorded but this table is absent.
-            sql.execute("DROP TABLE quiz_study_class_assignments");
-            sql.execute("UPDATE flyway_schema_history SET description='study class notification contract', checksum=0 WHERE version='5'");
-            assertEquals(1, flyway("8", false).migrate().migrationsExecuted);
             try (var row = sql.executeQuery("SELECT count(*) FROM users")) {
                 assertTrue(row.next());
                 assertEquals(1, row.getInt(1), "Keep the seeded admin account");
@@ -45,13 +43,6 @@ class QuizStudyClassAssignmentMigrationTest {
                 assertTrue(row.next());
                 assertEquals(3, row.getInt(1));
             }
-            assertEquals(0, flyway("8", false).migrate().migrationsExecuted);
         }
-    }
-
-    @Test
-    void freshInstallCanApplyBothCurrentV5AndRepairV8() throws Exception {
-        assertEquals(8, flyway("8", true).migrate().migrationsExecuted);
-        assertEquals(0, flyway("8", true).migrate().migrationsExecuted);
     }
 }

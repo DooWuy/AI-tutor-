@@ -1,2 +1,0 @@
-ALTER TABLE quizzes ADD COLUMN available_from TIMESTAMPTZ;
-ALTER TABLE quizzes ADD COLUMN available_until TIMESTAMPTZ;
