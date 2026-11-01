@@ -334,7 +334,12 @@ jobs:
             export IMAGE_FRONTEND="$IMAGE_FRONTEND"
             export IMAGE_TAG="$IMAGE_TAG"
             docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            if ! docker compose -f docker-compose.prod.yml up -d --remove-orphans; then
+              echo "❌ Docker compose up failed. Dumping container status and logs..."
+              docker compose -f docker-compose.prod.yml ps
+              docker compose -f docker-compose.prod.yml logs --tail 100 ai-tutor-service
+              exit 1
+            fi
             docker image prune -f
           EOF
 

@@ -136,11 +136,11 @@ services:
       ollama:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "4", "http://localhost:8088/actuator/health/readiness"]
-      interval: 15s
+      test: ["CMD-SHELL", "curl -f -s http://localhost:8088/actuator/health/readiness || curl -f -s http://localhost:8088/actuator/health || exit 1"]
+      interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 40s
+      retries: 12
+      start_period: 60s
     logging:
       driver: "json-file"
       options:
