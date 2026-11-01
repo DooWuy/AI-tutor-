@@ -92,3 +92,21 @@ test('duplicate events toast once, browser alerts require existing permission an
     assert.equal(ui.calls.native, 1); assert.equal(ui.calls.permission, 0);
   } finally { await ui.cleanup(); }
 });
+
+
+test('unread approaching class reminder in feed triggers alert and exposes permission', async () => {
+  const futureStart = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  const classNotif = {
+    ...dto(99),
+    metadata: { startsAt: futureStart }
+  };
+  const ui = await setup(async () => ({ items: [classNotif], nextCursor: null, unreadCount: 1 }));
+  try {
+    assert.equal(typeof ui.snapshot().requestDesktopPermission, 'function');
+    assert.equal(ui.snapshot().permission, 'default');
+    assert.equal(ui.calls.toast, 1);
+    const perm = await act(async () => await ui.snapshot().requestDesktopPermission());
+    assert.equal(perm, 'granted');
+    assert.equal(ui.calls.permission, 1);
+  } finally { await ui.cleanup(); }
+});

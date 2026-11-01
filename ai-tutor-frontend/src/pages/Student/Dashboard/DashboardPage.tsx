@@ -26,6 +26,8 @@ import { useAuth } from "../../../context/AuthContext";
 import { ResourceState, number, dayLabel } from "../Progress/ProgressComponents";
 import type { LeaderboardEntry } from "../../../types/gamification";
 import { styles } from "./DashboardPage.styles";
+import { NotificationPermissionBanner } from "../../../components/common/NotificationPermissionBanner";
+import { UpcomingClassBanner } from "../../../components/schedule/UpcomingClassBanner";
 
 interface RankingRowProps {
   entry: LeaderboardEntry;
@@ -114,6 +116,11 @@ export const DashboardPage = () => {
           </Link>
         </div>
       </header>
+
+      <div className="space-y-4">
+        <NotificationPermissionBanner />
+        <UpcomingClassBanner />
+      </div>
 
       <section className={styles.hero.section} aria-labelledby="home-start-title">
         <div className={styles.hero.left}>

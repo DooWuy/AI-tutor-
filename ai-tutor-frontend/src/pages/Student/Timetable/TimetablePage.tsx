@@ -12,6 +12,8 @@ import { useAlert } from '../../../context/AlertContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { isAcademicSlot, getSlotIndex, formatSubjectName } from '../../../utils/timetableUtils';
 import { getSubjectColor, getSubjectIcon, generateSubjectStyles } from '../../../utils/subjectColorUtils';
+import { NotificationPermissionBanner } from '../../../components/common/NotificationPermissionBanner';
+import { UpcomingClassBanner } from '../../../components/schedule/UpcomingClassBanner';
 
 export const TimetablePage: React.FC = () => {
   const { showAlert, showSuccess, showError } = useAlert();
@@ -272,6 +274,9 @@ export const TimetablePage: React.FC = () => {
         weekOffset={weekOffset}
         onOpenColorModal={() => setIsColorModalOpen(true)}
       />
+
+      <NotificationPermissionBanner />
+      <UpcomingClassBanner slots={slots} />
 
       {/* MAIN TIMETABLE LAYOUT (GRID & SIDEBAR) */}
       <div className={styles.gridContainer}>
