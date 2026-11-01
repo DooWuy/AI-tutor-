@@ -309,10 +309,6 @@ export const TimetablePage: React.FC = () => {
                 <span className="material-symbols-outlined text-sm text-primary">palette</span>
                 <span>Bảng mã màu</span>
               </button>
-              <div className="flex items-center gap-1 bg-surface-container-lowest border border-outline-variant p-1 rounded-xl">
-                <button className="px-3 py-1 bg-primary text-on-primary text-xs font-semibold rounded-lg shadow-sm">Xem cả tuần</button>
-                <button className="px-3 py-1 text-on-surface-variant hover:text-primary text-xs font-medium rounded-lg">Chỉ hôm nay</button>
-              </div>
             </div>
           </div>
 
