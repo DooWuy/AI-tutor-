@@ -12,6 +12,8 @@ import { useAlert } from '../../../context/AlertContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { isAcademicSlot, getSlotIndex, formatSubjectName } from '../../../utils/timetableUtils';
 import { getSubjectColor, getSubjectIcon, generateSubjectStyles } from '../../../utils/subjectColorUtils';
+import { NotificationPermissionBanner } from '../../../components/common/NotificationPermissionBanner';
+import { UpcomingClassBanner } from '../../../components/schedule/UpcomingClassBanner';
 
 export const TimetablePage: React.FC = () => {
   const { showAlert, showSuccess, showError } = useAlert();
@@ -273,6 +275,9 @@ export const TimetablePage: React.FC = () => {
         onOpenColorModal={() => setIsColorModalOpen(true)}
       />
 
+      <NotificationPermissionBanner />
+      <UpcomingClassBanner slots={slots} />
+
       {/* MAIN TIMETABLE LAYOUT (GRID & SIDEBAR) */}
       <div className={styles.gridContainer}>
         {/* ================== LEFT TIMETABLE GRID ================== */}
@@ -304,10 +309,6 @@ export const TimetablePage: React.FC = () => {
                 <span className="material-symbols-outlined text-sm text-primary">palette</span>
                 <span>Bảng mã màu</span>
               </button>
-              <div className="flex items-center gap-1 bg-surface-container-lowest border border-outline-variant p-1 rounded-xl">
-                <button className="px-3 py-1 bg-primary text-on-primary text-xs font-semibold rounded-lg shadow-sm">Xem cả tuần</button>
-                <button className="px-3 py-1 text-on-surface-variant hover:text-primary text-xs font-medium rounded-lg">Chỉ hôm nay</button>
-              </div>
             </div>
           </div>
 

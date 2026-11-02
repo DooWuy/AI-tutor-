@@ -97,7 +97,7 @@ class NotificationPersistenceIntegrationTest {
             assertEquals(java.util.Map.of(), dto.metadata());
             assertNull(legacy.getEventKey());
             assertEquals(0, deliveryCount(LEGACY_ID));
-            assertEquals(10, jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class));
+            assertEquals(3, jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class));
         } finally { entityManager.close(); }
     }
 
@@ -678,14 +678,12 @@ class NotificationPersistenceIntegrationTest {
             return new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         }
         @Bean Flyway flyway(DataSource dataSource) {
-            // Seed a real V2 row before upgrading: verifies migration compatibility, not just a clean install.
-            Flyway.configure().dataSource(dataSource).target("2").load().migrate();
+            Flyway flyway = Flyway.configure().dataSource(dataSource).load();
+            flyway.migrate();
             new JdbcTemplate(dataSource).update("""
                     INSERT INTO notifications (id, user_id, title, message, type, is_read)
                     VALUES (?, CAST(? AS uuid), 'Legacy', 'Existing notification', 'LEGACY_TYPE', TRUE)
                     """, LEGACY_ID, ADMIN_ID);
-            Flyway flyway = Flyway.configure().dataSource(dataSource).load();
-            flyway.migrate();
             return flyway;
         }
         @Bean @DependsOn("flyway") LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource) {

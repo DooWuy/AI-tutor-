@@ -53,6 +53,9 @@ app:
     at-risk-job: false
 
 management:
+  health:
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:

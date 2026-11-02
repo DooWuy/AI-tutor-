@@ -5,8 +5,16 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:808
 const ACCESS_TOKEN_KEY = 'ai-tutor.access-token'
 const USER_KEY = 'ai-tutor.user'
 
+function getStorages(): Storage[] {
+  if (typeof window === 'undefined') return []
+  const list: Storage[] = []
+  try { if (typeof localStorage !== 'undefined') list.push(localStorage) } catch {}
+  try { if (typeof sessionStorage !== 'undefined') list.push(sessionStorage) } catch {}
+  return list
+}
+
 export function getStoredSession(): AuthSession | null {
-  for (const storage of [localStorage, sessionStorage]) {
+  for (const storage of getStorages()) {
     const rawUser = storage.getItem(USER_KEY)
     if (!rawUser) continue
     const rawToken = storage.getItem(ACCESS_TOKEN_KEY) || ''
@@ -21,7 +29,7 @@ export function getStoredSession(): AuthSession | null {
 }
 
 export function clearSession() {
-  for (const storage of [localStorage, sessionStorage]) {
+  for (const storage of getStorages()) {
     storage.removeItem(USER_KEY)
     storage.removeItem(ACCESS_TOKEN_KEY)
   }

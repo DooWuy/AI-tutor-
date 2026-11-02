@@ -47,6 +47,23 @@ INSERT INTO users (
     NOW()
 ) ON CONFLICT (id) DO NOTHING;
 
+-- Default Teacher Account (Password: Teacher@123)
+INSERT INTO users (
+    id, username, email, password_hash, full_name, gender, role, is_active, is_deleted, created_at, updated_at
+) VALUES (
+    '4a8e5975-4fad-4226-8533-3ac9f573155e',
+    'teacher',
+    'teacher@aitutor.vn',
+    '$2a$10$wo.bwsFiMY5ittoV.OPJfuykpAvGcn6Ey1wo6zKho8S.onvquuawu',
+    'Giáo viên mẫu',
+    'OTHER',
+    'TEACHER',
+    TRUE,
+    FALSE,
+    NOW(),
+    NOW()
+) ON CONFLICT (id) DO NOTHING;
+
 CREATE INDEX idx_users_full_name_trgm ON users USING gin (full_name gin_trgm_ops);
 CREATE INDEX idx_users_email_trgm ON users USING gin (email gin_trgm_ops);
 CREATE INDEX idx_users_username_trgm ON users USING gin (username gin_trgm_ops);
@@ -63,6 +80,18 @@ CREATE TABLE teachers (
     CONSTRAINT uk_teachers_teacher_code UNIQUE (teacher_code),
     CONSTRAINT fk_teachers_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
+
+-- Default Teacher Profile
+INSERT INTO teachers (
+    id, user_id, teacher_code, department, subject_taught, school_name
+) VALUES (
+    '5b9e5975-4fad-4226-8533-3ac9f573155f',
+    '4a8e5975-4fad-4226-8533-3ac9f573155e',
+    'GV001',
+    'Tổ Toán - Tin',
+    'Toán học',
+    'THPT Chuyên Hà Nội - Amsterdam'
+) ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE school_classes (
     id UUID PRIMARY KEY,
@@ -138,6 +167,41 @@ CREATE TABLE password_reset_tokens (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_password_reset_token_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
+
+CREATE TABLE study_classes (
+    id UUID PRIMARY KEY,
+    name VARCHAR(64) NOT NULL,
+    description VARCHAR(1000),
+    class_code VARCHAR(6) NOT NULL,
+    teacher_id UUID NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    max_students INTEGER NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_study_classes_teacher FOREIGN KEY (teacher_id) REFERENCES teachers (id) ON DELETE RESTRICT,
+    CONSTRAINT uk_study_classes_code UNIQUE (class_code),
+    CONSTRAINT ck_study_classes_status CHECK (status IN ('ACTIVE', 'DISSOLVED')),
+    CONSTRAINT ck_study_classes_max CHECK (max_students BETWEEN 1 AND 200)
+);
+
+CREATE INDEX idx_study_classes_teacher_status ON study_classes (teacher_id, status);
+
+CREATE TABLE study_class_enrollments (
+    id UUID PRIMARY KEY,
+    class_id UUID NOT NULL,
+    student_id UUID NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reviewed_at TIMESTAMPTZ,
+    CONSTRAINT fk_study_enrollments_class FOREIGN KEY (class_id) REFERENCES study_classes (id) ON DELETE CASCADE,
+    CONSTRAINT fk_study_enrollments_student FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
+    CONSTRAINT uk_study_enrollments_class_student UNIQUE (class_id, student_id),
+    CONSTRAINT ck_study_enrollments_status CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED'))
+);
+
+CREATE INDEX idx_study_enrollments_class_status ON study_class_enrollments (class_id, status);
 
 -- -----------------------------------------------------------------------------
 -- 2. Curriculum & Learning Materials
@@ -344,6 +408,8 @@ CREATE TABLE quizzes (
     is_ai_generated BOOLEAN NOT NULL DEFAULT FALSE,
     generation_status VARCHAR(16) NOT NULL DEFAULT 'READY',
     created_by_id UUID NOT NULL,
+    available_from TIMESTAMPTZ,
+    available_until TIMESTAMPTZ,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_quizzes_created_by FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE RESTRICT,
@@ -383,6 +449,21 @@ CREATE TABLE quiz_class_assignments (
 
 CREATE INDEX idx_qca_class_id ON quiz_class_assignments (class_id);
 CREATE INDEX idx_qca_quiz_id ON quiz_class_assignments (quiz_id);
+
+CREATE TABLE quiz_study_class_assignments (
+    id UUID PRIMARY KEY,
+    quiz_id UUID NOT NULL,
+    study_class_id UUID NOT NULL,
+    assigned_by_id UUID NOT NULL,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_qsca_quiz FOREIGN KEY (quiz_id) REFERENCES quizzes (id) ON DELETE CASCADE,
+    CONSTRAINT fk_qsca_study_class FOREIGN KEY (study_class_id) REFERENCES study_classes (id) ON DELETE CASCADE,
+    CONSTRAINT fk_qsca_user FOREIGN KEY (assigned_by_id) REFERENCES users (id) ON DELETE RESTRICT,
+    CONSTRAINT uk_qsca_quiz_class UNIQUE (quiz_id, study_class_id)
+);
+
+CREATE INDEX idx_qsca_study_class_id ON quiz_study_class_assignments (study_class_id);
+CREATE INDEX idx_qsca_quiz_id ON quiz_study_class_assignments (quiz_id);
 
 CREATE TABLE quiz_questions (
     id UUID PRIMARY KEY,
@@ -585,6 +666,7 @@ CREATE TABLE schedule_slots (
 );
 
 CREATE INDEX idx_schedule_slots_schedule_id ON schedule_slots (schedule_id);
+CREATE INDEX idx_schedule_slots_reminder_scan ON schedule_slots (day_of_week, start_time, id);
 
 CREATE TABLE notifications (
     id UUID PRIMARY KEY,
@@ -594,13 +676,69 @@ CREATE TABLE notifications (
     type VARCHAR(32) NOT NULL,
     link VARCHAR(1024),
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    event_key VARCHAR(255),
+    source_type VARCHAR(32),
+    source_id UUID,
+    occurrence_at TIMESTAMPTZ,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT uk_notifications_user_event UNIQUE (user_id, event_key),
+    CONSTRAINT ck_notifications_source_type CHECK (
+        source_type IS NULL OR source_type IN (
+            'SCHEDULE_SLOT',
+            'QUIZ',
+            'GENERATION_JOB',
+            'STUDY_CLASS_ENROLLMENT'
+        )
+    ),
+    CONSTRAINT ck_notifications_source_pair CHECK ((source_type IS NULL) = (source_id IS NULL)),
+    CONSTRAINT ck_notifications_event_source CHECK (
+        event_key IS NULL OR (btrim(event_key) <> '' AND source_type IS NOT NULL)
+    ),
+    CONSTRAINT ck_notifications_metadata CHECK (jsonb_typeof(metadata) = 'object')
 );
 
 CREATE INDEX idx_notifications_user_id ON notifications (user_id);
 CREATE INDEX idx_notifications_user_created ON notifications (user_id, created_at DESC);
 CREATE INDEX idx_notifications_user_unread ON notifications (user_id) WHERE is_read = false;
+CREATE INDEX idx_notifications_user_feed ON notifications (user_id, created_at DESC, id DESC);
+CREATE INDEX idx_notifications_user_unread_feed ON notifications (user_id, created_at DESC, id DESC)
+    WHERE is_read = FALSE;
+
+CREATE TABLE notification_deliveries (
+    id UUID PRIMARY KEY,
+    notification_id UUID NOT NULL,
+    channel VARCHAR(16) NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    lease_token UUID,
+    lease_until TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    last_error_code VARCHAR(64),
+    sent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_notification_deliveries_notification FOREIGN KEY (notification_id)
+        REFERENCES notifications (id) ON DELETE CASCADE,
+    CONSTRAINT uk_notification_deliveries_channel UNIQUE (notification_id, channel),
+    CONSTRAINT ck_notification_deliveries_channel CHECK (channel IN ('WEBSOCKET', 'EMAIL')),
+    CONSTRAINT ck_notification_deliveries_status CHECK (
+        status IN ('PENDING', 'PROCESSING', 'SENT', 'FAILED', 'CANCELLED', 'EXPIRED')),
+    CONSTRAINT ck_notification_deliveries_attempt_count CHECK (attempt_count >= 0),
+    CONSTRAINT ck_notification_deliveries_lease CHECK (
+        (status = 'PROCESSING' AND lease_token IS NOT NULL AND lease_until IS NOT NULL)
+        OR (status <> 'PROCESSING' AND lease_token IS NULL AND lease_until IS NULL)),
+    CONSTRAINT ck_notification_deliveries_sent CHECK ((status = 'SENT') = (sent_at IS NOT NULL))
+);
+
+CREATE INDEX idx_notification_deliveries_pending ON notification_deliveries (next_attempt_at, id)
+    WHERE status = 'PENDING';
+CREATE INDEX idx_notification_deliveries_lease ON notification_deliveries (lease_until, id)
+    WHERE status = 'PROCESSING';
+CREATE INDEX idx_notification_deliveries_expiry ON notification_deliveries (expires_at, id)
+    WHERE status IN ('PENDING', 'PROCESSING') AND expires_at IS NOT NULL;
 
 CREATE TABLE parent_alert_messages (
     id UUID PRIMARY KEY,

@@ -13,7 +13,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - ai_tutor_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -34,8 +34,8 @@ services:
     restart: always
     command: sh -c "rabbitmq-plugins enable --offline rabbitmq_stomp rabbitmq_web_stomp && rabbitmq-server"
     ports:
-      - "${RABBITMQ_PORT:-5672}:5672"
-      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+      - "127.0.0.1:${RABBITMQ_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MGMT_PORT:-15672}:15672"
       - "${RABBITMQ_STOMP_PORT:-61613}:61613"
       - "${RABBITMQ_WEB_STOMP_PORT:-15674}:15674"
     environment:
@@ -59,7 +59,7 @@ services:
     restart: always
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - ai_tutor_redisdata:/data
     healthcheck:
@@ -79,7 +79,7 @@ services:
     container_name: ai-tutor-ollama
     restart: always
     ports:
-      - "${OLLAMA_PORT:-11434}:11434"
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
     volumes:
       - ./ollama_data:/root/.ollama
     logging:

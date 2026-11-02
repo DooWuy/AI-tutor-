@@ -4,6 +4,7 @@ import { updateMyStudentProfile } from '../../../../services/studentProfileApi';
 import { useAlert } from '../../../../context/AlertContext';
 import type { ScheduleSlotDto } from '../../../../types/schedule';
 import { isAcademicSlot, formatSubjectName } from '../../../../utils/timetableUtils';
+import { useNotification } from '../../../../context/NotificationContext';
 
 export interface CustomReminderItem {
   id: string;
@@ -28,6 +29,7 @@ export const TimetableSidebar: React.FC<TimetableSidebarProps> = ({
   setCurrentPreferences,
 }) => {
   const { showError, showSuccess } = useAlert();
+  const { permission, requestDesktopPermission } = useNotification();
   const [isUpdating, setIsUpdating] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [customReminders, setCustomReminders] = useState<CustomReminderItem[]>([]);
@@ -161,6 +163,31 @@ export const TimetableSidebar: React.FC<TimetableSidebarProps> = ({
     if (!next) next = sortedSlots[0];
     return next;
   }, [slots]);
+
+  const [liveNow, setLiveNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setLiveNow(new Date()), 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const isImminent = useMemo(() => {
+    if (!nextSlot || !nextSlot.startTime) return false;
+    const realDayOfWeek = liveNow.getDay() === 0 ? 8 : liveNow.getDay() + 1;
+    if (nextSlot.dayOfWeek !== realDayOfWeek) return false;
+    const [h, m] = nextSlot.startTime.split(':').map(Number);
+    const startSec = (h || 0) * 3600 + (m || 0) * 60;
+    const nowSec = liveNow.getHours() * 3600 + liveNow.getMinutes() * 60 + liveNow.getSeconds();
+    const diffSec = startSec - nowSec;
+    return diffSec >= 0 && diffSec <= 15 * 60;
+  }, [nextSlot, liveNow]);
+
+  const imminentMinutes = useMemo(() => {
+    if (!nextSlot || !nextSlot.startTime) return 0;
+    const [h, m] = nextSlot.startTime.split(':').map(Number);
+    const startSec = (h || 0) * 3600 + (m || 0) * 60;
+    const nowSec = liveNow.getHours() * 3600 + liveNow.getMinutes() * 60 + liveNow.getSeconds();
+    return Math.max(0, Math.floor((startSec - nowSec) / 60));
+  }, [nextSlot, liveNow]);
 
   const getDayNameLabel = (day: number) => {
     const today = new Date().getDay() === 0 ? 8 : new Date().getDay() + 1;
@@ -424,16 +451,59 @@ export const TimetableSidebar: React.FC<TimetableSidebarProps> = ({
               </span>
             )}
           </div>
+
+          <div className={`flex items-center gap-3 p-2.5 rounded-xl border text-xs transition-all ${
+            permission === 'granted'
+              ? 'bg-purple-500/5 border-purple-500/20 text-on-surface'
+              : 'bg-surface-container-lowest border-outline-variant/40 text-on-surface-variant'
+          }`}>
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[18px] text-purple-500" style={{ fontVariationSettings: "'FILL' 1" }}>
+                desktop_windows
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-xs leading-tight">Thông báo máy tính (Desktop)</p>
+              <p className="text-[11px] text-on-surface-variant leading-tight mt-0.5">
+                {permission === 'granted'
+                  ? 'Pop-up xuất hiện khi tiết học sắp đến'
+                  : permission === 'denied'
+                  ? 'Đang bị chặn trong trình duyệt'
+                  : 'Nhận cảnh báo ngay cả khi tắt tab'}
+              </p>
+            </div>
+            {permission === 'granted' ? (
+              <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full shrink-0">
+                Đã bật
+              </span>
+            ) : permission === 'default' ? (
+              <button
+                type="button"
+                onClick={() => void requestDesktopPermission()}
+                className="text-[10px] font-bold text-white bg-primary hover:bg-primary-hover px-2.5 py-1 rounded-lg transition-colors shrink-0 shadow-xs cursor-pointer"
+              >
+                Bật ngay
+              </button>
+            ) : (
+              <span className="text-[10px] font-bold text-error bg-error/10 px-2 py-0.5 rounded-full shrink-0">
+                Bị chặn
+              </span>
+            )}
+          </div>
         </div>
         
-        <div className={styles.reminderNextBox}>
-          <div className={styles.reminderNextTitle}>
-            <span className="material-symbols-outlined text-[14px]">schedule</span>
-            {nextSlot 
-              ? `Lần nhắc tiếp theo: ${nextSlot.startTime ? nextSlot.startTime.substring(0, 5) : ''} ${getDayNameLabel(nextSlot.dayOfWeek)}` 
-              : 'Chưa có lịch học'}
+        <div className={`${styles.reminderNextBox} ${isImminent ? 'border-amber-500/60 bg-amber-500/10 ring-1 ring-amber-500/30' : ''}`}>
+          <div className={`${styles.reminderNextTitle} ${isImminent ? 'text-amber-700 dark:text-amber-300 font-bold' : ''}`}>
+            <span className={`material-symbols-outlined text-[14px] ${isImminent ? 'animate-bounce text-amber-500' : ''}`}>
+              {isImminent ? 'alarm' : 'schedule'}
+            </span>
+            {isImminent
+              ? `SẮP BẮT ĐẦU: Còn ${imminentMinutes} phút!`
+              : nextSlot 
+                ? `Lần nhắc tiếp theo: ${nextSlot.startTime ? nextSlot.startTime.substring(0, 5) : ''} ${getDayNameLabel(nextSlot.dayOfWeek)}` 
+                : 'Chưa có lịch học'}
           </div>
-          <p className={styles.reminderNextDesc}>
+          <p className={`${styles.reminderNextDesc} ${isImminent ? 'text-amber-900/80 dark:text-amber-200/90 font-medium' : ''}`}>
             {nextSlot 
               ? `"Chuẩn bị vào môn ${formatSubjectName(nextSlot.subjectName, simplifyNames)} ${nextSlot.teacherName ? `- ${nextSlot.teacherName}` : ''} ${nextSlot.room ? `tại ${nextSlot.room}` : ''}"`
               : 'Vui lòng cập nhật thời khóa biểu để nhận nhắc nhở.'}
