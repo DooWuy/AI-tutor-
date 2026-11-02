@@ -27,6 +27,24 @@ import java.util.UUID;
 public class UserController {
 
     private final IUserService userService;
+    private final com.vn.aitutor.service.user.TeacherInvitationService invitations;
+
+    @PostMapping("/teachers")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @io.swagger.v3.oas.annotations.Operation(summary="Invite Teacher; fixed role, no password; mail queued after commit")
+    public ResponseEntity<ApiResponse<UserResponse>> createTeacher(
+            @Valid @RequestBody com.vn.aitutor.dto.request.user.TeacherCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createProfile(request.toUserRequest()));
+    }
+
+    @PostMapping("/{id}/invitation/resend")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @io.swagger.v3.oas.annotations.Operation(summary="Queue new setup email for pending Teacher; rotate token; 60 second cooldown")
+    public ResponseEntity<ApiResponse<UserResponse>> resendInvitation(@PathVariable UUID id) {
+        invitations.resend(id);
+        return ResponseEntity.ok(userService.getProfileById(id));
+    }
+
 
     @GetMapping("/accounts")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")

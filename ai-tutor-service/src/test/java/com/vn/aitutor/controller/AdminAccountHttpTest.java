@@ -32,6 +32,7 @@ class AdminAccountHttpTest {
     @Configuration @EnableWebMvc @EnableWebSecurity @EnableMethodSecurity
     @Import({UserController.class, GlobalExceptionHandler.class})
     static class Config {
+        @Bean com.vn.aitutor.service.user.TeacherInvitationService invitations() { return mock(com.vn.aitutor.service.user.TeacherInvitationService.class); }
         @Bean IUserService users() { return mock(IUserService.class); }
         @Bean SecurityFilterChain security(HttpSecurity http) {
             return http.csrf(c -> c.disable()).authorizeHttpRequests(a -> a.anyRequest().authenticated())
@@ -88,5 +89,33 @@ class AdminAccountHttpTest {
         mvc.perform(put("/api/v1/users/" + id + "/status").with(user("admin").roles("ADMIN"))
                 .contentType("application/json").content("{\"active\":false}"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test void teacherCreateAndResendRequireAdminAndRejectInvalidPayloads() throws Exception {
+        String json="{\"username\":\"alice\",\"email\":\"alice@example.invalid\",\"fullName\":\"Alice Teacher\",\"department\":\"Science\",\"subjectTaught\":\"Math\"}";
+        for(String role:List.of("STUDENT","TEACHER")) {
+            mvc.perform(post("/api/v1/users/teachers").with(user("actor").roles(role)).contentType("application/json").content(json)).andExpect(status().isForbidden());
+            mvc.perform(post("/api/v1/users/"+UUID.randomUUID()+"/invitation/resend").with(user("actor").roles(role))).andExpect(status().isForbidden());
+        }
+        mvc.perform(post("/api/v1/users/teachers").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous()).contentType("application/json").content(json)).andExpect(status().isUnauthorized());
+        for(String body:List.of(json.replace("Science",""),json.replace("alice@example.invalid","invalid"),json.replace("Math","x".repeat(129)),json.replace("Science","Science\",\"role\":\"ADMIN"))) {
+            mvc.perform(post("/api/v1/users/teachers").with(user("admin").roles("ADMIN")).contentType("application/json").content(body)).andExpect(status().isBadRequest());
+        }
+        when(service.createProfile(any())).thenAnswer(invocation -> {
+            var r=invocation.getArgument(0,com.vn.aitutor.dto.request.user.UserCreateRequest.class);
+            org.junit.jupiter.api.Assertions.assertEquals(com.vn.aitutor.entity.enums.Role.TEACHER,r.getRole());
+            org.junit.jupiter.api.Assertions.assertNull(r.getPassword());
+            return ApiResponse.<UserResponse>builder().success(true).data(UserResponse.builder().invitationStatus("QUEUED").build()).build();
+        });
+        mvc.perform(post("/api/v1/users/teachers").with(user("admin").roles("ADMIN")).contentType("application/json").content(json))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.data.invitationStatus").value("QUEUED"));
+    }
+    @Test void profilePayloadCannotWriteIdentityPermissionsOrAssignments() throws Exception {
+        for (String field:List.of("email","username","teacherCode","role","xp","classIds")) {
+            mvc.perform(put("/api/v1/users/"+UUID.randomUUID()).with(user("admin").roles("ADMIN"))
+                .contentType("application/json").content("{\"fullName\":\"Alice Teacher\",\""+field+"\":\"changed\"}"))
+                .andExpect(status().isBadRequest());
+        }
+        verifyNoInteractions(service);
     }
 }

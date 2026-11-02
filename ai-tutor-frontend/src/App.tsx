@@ -17,6 +17,7 @@ import { Spinner } from './components/common/Spinner';
 // Lazy-loaded Pages (Code-splitting for optimal bundle size and fast initial load)
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const LoginPage = lazy(() => import('./pages/Login/LoginPage'));
+const SetupPasswordPage = lazy(() => import('./pages/SetupPasswordPage'));
 const RegisterPage = lazy(() => import('./pages/Register/RegisterPage'));
 
 // Student Pages
@@ -88,6 +89,7 @@ function App() {
                     <Routes>
                       <Route path="/" element={<LandingPage />} />
                       <Route path="/login" element={<LoginPage />} />
+                      <Route path="/setup-password" element={<SetupPasswordPage />} />
                       <Route path="/register" element={<RegisterPage />} />
                       <Route path="/quizzes/:quizId/statistics" element={<QuizStatisticsRedirect />} />
                       

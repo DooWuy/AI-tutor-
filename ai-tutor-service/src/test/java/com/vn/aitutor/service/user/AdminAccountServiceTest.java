@@ -20,11 +20,11 @@ class AdminAccountServiceTest {
 
     @BeforeEach void setup() {
         users = mock(UserRepository.class);
-        service = new UserServiceImpl(users, null, null, null, null, null, null, null,
+        service = new UserServiceImpl(users, null, mock(com.vn.aitutor.repository.TeacherRepository.class), null, null, null, null, null,
                 mock(UserPrincipalCache.class), null);
         target = new User(); target.setId(UUID.randomUUID()); target.setRole(Role.ADMIN);
         target.setUsername("admin"); target.setActive(true);
-        when(users.findById(target.getId())).thenReturn(Optional.of(target));
+        when(users.lockById(target.getId())).thenReturn(Optional.of(target));
     }
 
     @Test void lastAdminCannotBeLockedOrDeleted() {
@@ -53,7 +53,7 @@ class AdminAccountServiceTest {
         assertFalse(target.isActive());
         var ordered = inOrder(users);
         ordered.verify(users).lockAdminAccounts();
-        ordered.verify(users).findById(target.getId());
+        ordered.verify(users).lockById(target.getId());
         ordered.verify(users).countByRoleAndActiveTrueAndIsDeletedFalse(Role.ADMIN);
     }
 

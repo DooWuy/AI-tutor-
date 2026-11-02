@@ -45,6 +45,6 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return users != null && users.isActive() && !users.isDeleted();
+        return users != null && users.isActive() && !users.isDeleted() && users.isSetupComplete();
     }
 }

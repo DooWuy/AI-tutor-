@@ -34,7 +34,7 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        userController = new UserController(userService);
+        userController = new UserController(userService, mock(com.vn.aitutor.service.user.TeacherInvitationService.class));
     }
 
     @Test

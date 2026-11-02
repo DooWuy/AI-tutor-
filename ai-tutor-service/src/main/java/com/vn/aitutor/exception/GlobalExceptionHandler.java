@@ -103,6 +103,12 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<ApiResponse<String>> handleAuthentication(org.springframework.security.core.AuthenticationException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.<String>builder().success(false)
+                .message("Không thể đăng nhập. Kiểm tra thông tin đăng nhập hoặc liên hệ quản trị viên.").build());
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<String>> handleBadCredentialsException(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -130,6 +136,12 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler({org.springframework.dao.DataIntegrityViolationException.class, org.hibernate.exception.ConstraintViolationException.class})
+    public ResponseEntity<ApiResponse<String>> handleIntegrity(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.<String>builder().success(false)
+                .message("Định danh đã tồn tại hoặc dữ liệu vi phạm ràng buộc. Vui lòng kiểm tra lại.").build());
+    }
+
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<ApiResponse<String>> handleDataAccess(DataAccessException ex) {
         if (historyImmutable(ex)) {
@@ -144,7 +156,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.<String>builder()
                         .success(false)
-                        .message(ex.getMessage() + (ex.getCause() != null ? " - " + ex.getCause().getMessage() : ""))
+                        .message("Không thể xử lý dữ liệu. Vui lòng thử lại.")
                         .build());
     }
 

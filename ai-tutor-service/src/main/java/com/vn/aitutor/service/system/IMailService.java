@@ -2,6 +2,7 @@ package com.vn.aitutor.service.system;
 
 public interface IMailService {
     void sendRegistrationSuccessEmail(String toEmail, String fullName);
+    void sendTeacherSetupEmail(String toEmail, String fullName, String username, String setupToken);
     void sendAccountSetupEmail(String toEmail, String fullName, String username, String setupToken);
 
     void sendParentAlertEmail(String toEmail, String subject, String body);

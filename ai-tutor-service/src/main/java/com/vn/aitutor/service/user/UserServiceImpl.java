@@ -57,7 +57,7 @@ public class UserServiceImpl implements IUserService {
     public PageResponseDTO<UserResponse> searchAccounts(Role role, Boolean active, String search, PageRequest pageRequest) {
         Page<User> page = userRepository.searchAccounts(role, active,
                 StringUtils.hasText(search) ? search.trim() : null, pageRequest);
-        return PageResponseDTO.<UserResponse>builder().content(page.map(this::mapToUserResponse).getContent())
+        return PageResponseDTO.<UserResponse>builder().content(mapAccounts(page.getContent()))
                 .page(page.getNumber() + 1).size(page.getSize()).totalElements(page.getTotalElements())
                 .totalPages(page.getTotalPages()).build();
     }
@@ -65,7 +65,7 @@ public class UserServiceImpl implements IUserService {
     @Override
     public ApiResponse<UserResponse> setStatus(UUID id, boolean active) {
         userRepository.lockAdminAccounts();
-        User user = getUserById(id);
+        User user = lockUser(id);
         if (!active) protectLastAdmin(user);
         user.setActive(active);
         User saved = userRepository.save(user);
@@ -101,9 +101,7 @@ public class UserServiceImpl implements IUserService {
     public PageResponseDTO<UserResponse> getAllProfile(Role role, String search, PageRequest pageRequest) {
         Page<User> usersPage = userRepository.searchUsers(role, search, pageRequest);
 
-        List<UserResponse> items = usersPage.getContent().stream()
-                .map(this::mapToUserResponse)
-                .collect(Collectors.toList());
+        List<UserResponse> items = mapAccounts(usersPage.getContent());
 
         return PageResponseDTO.<UserResponse>builder()
                 .content(items)
@@ -126,6 +124,9 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public ApiResponse<UserResponse> createProfile(UserCreateRequest request) {
+        request.setEmail(request.getEmail().trim().toLowerCase(java.util.Locale.ROOT));
+        if (request.getRole() != Role.TEACHER && !StringUtils.hasText(request.getPassword()))
+            throw new ResourceBadRequestException("Mật khẩu không được để trống");
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new ResourceConflictException("Tên đăng nhập đã tồn tại");
         }
@@ -137,7 +138,12 @@ public class UserServiceImpl implements IUserService {
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setPasswordHash(passwordEncoder.encode(request.getRole() == Role.TEACHER
+                ? UUID.randomUUID().toString() + UUID.randomUUID() : request.getPassword()));
+        if (request.getRole() == Role.TEACHER) {
+            user.setInvitationStatus("QUEUED");
+            user.setInvitationRequestedAt(java.time.Instant.now());
+        }
         user.setFullName(request.getFullName());
         user.setRole(request.getRole());
         user.setGender(Gender.OTHER);
@@ -190,8 +196,8 @@ public class UserServiceImpl implements IUserService {
                 .build();
         passwordResetTokenRepository.save(resetToken);
 
-        // Gửi email yêu cầu thiết lập mật khẩu
-        mailService.sendAccountSetupEmail(
+        // Teacher QUEUED state and token are a durable mail job, visible only after commit.
+        if (request.getRole() != Role.TEACHER) mailService.sendAccountSetupEmail(
                 savedUser.getEmail(), 
                 savedUser.getFullName(), 
                 savedUser.getUsername(), 
@@ -223,8 +229,15 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public ApiResponse<UserResponse> updateProfile(UUID id, UserUpdateRequest request) {
-        User user = getUserById(id);
+        User user = lockUser(id);
         
+        if (user.getRole() == Role.TEACHER) {
+            if (request.getDepartment() != null && request.getDepartment().isBlank()
+                    || request.getSubjectTaught() != null && request.getSubjectTaught().isBlank())
+                throw new ResourceBadRequestException("Khoa và môn giảng dạy không được để trống");
+            if (StringUtils.hasText(request.getGradeLevel()) || StringUtils.hasText(request.getClassName()))
+                throw new ResourceBadRequestException("Không được thay đổi phân công lớp trong hồ sơ Teacher");
+        }
         user.setFullName(request.getFullName());
         if (request.getDateOfBirth() != null) {
             user.setDateOfBirth(request.getDateOfBirth());
@@ -270,7 +283,7 @@ public class UserServiceImpl implements IUserService {
     @Override
     public ApiResponse<UserResponse> updateRole(UUID id, UpdateRoleRequest request) {
         userRepository.lockAdminAccounts();
-        User user = getUserById(id);
+        User user = lockUser(id);
         // Role transitions require profile/history migration; never just change the discriminator.
         if (user.getRole() != request.getRole()) {
             throw new ResourceConflictException("Đổi vai trò cần quy trình chuyển hồ sơ; hãy tạo tài khoản đúng vai trò");
@@ -288,7 +301,7 @@ public class UserServiceImpl implements IUserService {
     @Override
     public ApiResponse<String> deleteProfile(UUID id) {
         userRepository.lockAdminAccounts();
-        User user = getUserById(id);
+        User user = lockUser(id);
         protectLastAdmin(user);
         user.setDeleted(true);
         userRepository.save(user);
@@ -396,14 +409,40 @@ public class UserServiceImpl implements IUserService {
                 .build();
     }
 
+    private User lockUser(UUID id) {
+        return userRepository.lockById(id).filter(u -> !u.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+    }
+
     private User getUserById(UUID id) {
         return userRepository.findById(id)
                 .filter(u -> !u.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với id: " + id));
     }
 
+    private List<UserResponse> mapAccounts(List<User> users) {
+        var teachers = teacherRepository.findByUser_IdIn(users.stream().filter(u -> u.getRole() == Role.TEACHER).map(User::getId).toList())
+                .stream().collect(Collectors.toMap(t -> t.getUser().getId(), t -> t));
+        return users.stream().map(u -> {
+            var r = mapUser(u);
+            if (teachers.containsKey(u.getId())) fillTeacher(r, teachers.get(u.getId()));
+            return r;
+        }).toList();
+    }
+
+    private void fillTeacher(UserResponse r, Teacher t) {
+        r.setTeacherId(t.getId()); r.setTeacherCode(t.getTeacherCode());
+        r.setDepartment(t.getDepartment()); r.setSubjectTaught(t.getSubjectTaught()); r.setSchoolName(t.getSchoolName());
+    }
+
     private UserResponse mapToUserResponse(User user) {
-        return UserResponse.builder()
+        var response = mapUser(user);
+        if (user.getRole() == Role.TEACHER) teacherRepository.findByUserId(user.getId()).ifPresent(t -> fillTeacher(response, t));
+        return response;
+    }
+
+    private UserResponse mapUser(User user) {
+        UserResponse response = UserResponse.builder()
                 .userId(user.getId())
                 .email(user.getEmail())
                 .username(user.getUsername())
@@ -417,6 +456,8 @@ public class UserServiceImpl implements IUserService {
                 .isDeleted(user.isDeleted())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .invitationStatus(user.getInvitationStatus())
                 .build();
+        return response;
     }
 }
