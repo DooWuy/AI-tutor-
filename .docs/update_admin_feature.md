@@ -156,15 +156,18 @@ Phạm vi chưa bao gồm: tự đăng ký Teacher công khai, duyệt chứng c
 
 Story S2-US1: Là Admin, tôi muốn xem số liệu toàn hệ thống để theo dõi hoạt động. Liên kết FR-REP-03, US-12, NFR-PERF-01,03,04.
 
+Tiến độ 02/11/2026: **ADM-201..207 Done ở mức đầu ra kỹ thuật**; quy ước metric, API và kiểm chứng được ghi tại [admin-dashboard-contract.md](admin-dashboard-contract.md). Metric dùng baseline triển khai toàn thời gian, chờ PO xem xét khi nghiệm thu. **ADM-208 còn mở** cho staging, tải HTTP, OpenAPI artifact, browser QA và PO; story chưa Accepted/Done theo mục 10.
+
+
 | Task | Phụ trách | Công việc và đầu ra kiểm chứng |
 |---|---|---|
-| [ ] ADM-201 | BE + QA + PO | Chốt metric: user có loại deleted không, active là trạng thái tài khoản hay có hoạt động, chat đếm session hay message, attempt bao gồm trạng thái nào. Chốt timezone Asia/Ho_Chi_Minh và khoảng ngày; ghi ví dụ dữ liệu → kết quả |
-| [ ] ADM-202 | BE + FE | Chốt API tổng quan, ưu tiên `/api/v1/dashboard/admin` theo SRS; DTO có totalUsers/totalDocuments/totalQuizzes/chatCount/attemptCount và thời điểm cập nhật. Filter thời gian phải chỉ rõ áp dụng cho KPI nào |
-| [ ] ADM-203 | BE | Implement aggregate count/query trực tiếp tại DB, không suy ra tổng từ page học sinh; query/DTO/projection riêng, tránh N+1 và không trả entity; bảo vệ ROLE_ADMIN |
-| [ ] ADM-204 | BE | Kiểm tra query plan với dữ liệu mẫu đủ lớn; thêm index qua migration nếu cần. Đo trước khi thêm cache; nếu cache, phải có TTL/invalidation và thời điểm cập nhật rõ |
-| [ ] ADM-205 | FE | Tích hợp API, xóa KPI/biểu đồ/tỷ lệ hard-code, bỏ fallback 95%; các chỉ số mở rộng chưa có dữ liệu phải ẩn hoặc ghi không khả dụng. Không hiển thị uptime 99.9% hay “hoạt động tối ưu” khi chưa có nguồn đo |
-| [ ] ADM-206 | FE | Loading/empty/error/retry, refresh và timestamp; lỗi refresh không làm dữ liệu cũ được hiểu là dữ liệu mới. Điều hướng `/admin` về dashboard nếu chốt UX; kiểm tra link drill-down |
-| [ ] ADM-207 | QA + BE | Seed dữ liệu có expected count, đối chiếu API/DB/UI; test DB rỗng, account deleted/locked, biên ngày, query thời gian không hợp lệ, 401/403 và lỗi backend |
+| [x] ADM-201 — **Done** | BE + QA + PO | Chốt metric: user có loại deleted không, active là trạng thái tài khoản hay có hoạt động, chat đếm session hay message, attempt bao gồm trạng thái nào. Chốt timezone Asia/Ho_Chi_Minh và khoảng ngày; ghi ví dụ dữ liệu → kết quả |
+| [x] ADM-202 — **Done** | BE + FE | Chốt API tổng quan, ưu tiên `/api/v1/dashboard/admin` theo SRS; DTO có totalUsers/totalDocuments/totalQuizzes/chatCount/attemptCount và thời điểm cập nhật. Filter thời gian phải chỉ rõ áp dụng cho KPI nào |
+| [x] ADM-203 — **Done** | BE | Implement aggregate count/query trực tiếp tại DB, không suy ra tổng từ page học sinh; query/DTO/projection riêng, tránh N+1 và không trả entity; bảo vệ ROLE_ADMIN |
+| [x] ADM-204 — **Done** | BE | Kiểm tra query plan với dữ liệu mẫu đủ lớn; thêm index qua migration nếu cần. Đo trước khi thêm cache; nếu cache, phải có TTL/invalidation và thời điểm cập nhật rõ |
+| [x] ADM-205 — **Done** | FE | Tích hợp API, xóa KPI/biểu đồ/tỷ lệ hard-code, bỏ fallback 95%; các chỉ số mở rộng chưa có dữ liệu phải ẩn hoặc ghi không khả dụng. Không hiển thị uptime 99.9% hay “hoạt động tối ưu” khi chưa có nguồn đo |
+| [x] ADM-206 — **Done** | FE | Loading/empty/error/retry, refresh và timestamp; lỗi refresh không làm dữ liệu cũ được hiểu là dữ liệu mới. Điều hướng `/admin` về dashboard nếu chốt UX; kiểm tra link drill-down |
+| [x] ADM-207 — **Done** | QA + BE | Seed dữ liệu có expected count, đối chiếu API/DB/UI; test DB rỗng, account deleted/locked, biên ngày, query thời gian không hợp lệ, 401/403 và lỗi backend |
 | [ ] ADM-208 | DO + QA | Smoke/load test ban đầu, OpenAPI, CI và staging; demo tạo quiz/chat/attempt mới rồi dashboard phản ánh đúng trong giới hạn cập nhật đã công bố |
 
 AC/exit gate: đủ năm nhóm số liệu FR-REP-03, đúng dataset kiểm thử, không chứa số giả; database rỗng hiển thị 0; lỗi hiển thị rõ; dashboard đạt mục tiêu hiệu năng đã đo và qua PO acceptance trên môi trường tích hợp.
@@ -175,15 +178,18 @@ Biểu đồ xu hướng là tùy chọn. Nếu giữ biểu đồ hiện tại,
 
 Story S3-US1: Là Admin, tôi muốn quản lý tài liệu của mọi người tạo và biết trạng thái xử lý để bảo đảm nguồn học liệu dùng được. Liên kết FR-DOC-01..06, US-06, BR-06, NFR-SEC-04,08 và mục 11.3.
 
+Tiến độ 02/11/2026: xem [contract và bằng chứng S3-US1](admin-document-contract.md). ADM-301/302/303/305/306/307 hoàn tất đầu ra kỹ thuật; ADM-304 có recovery implementation nhưng còn kiểm chứng crash/restart; ADM-308 và ADM-309 còn mở cho integration/E2E, staging và PO. Story chưa Accepted/Done theo mục 10.
+
+
 | Task | Phụ trách | Công việc và đầu ra kiểm chứng |
 |---|---|---|
-| [ ] ADM-301 | BE + FE + AI | Rà `DocumentController`, `DocumentLifecycleService`, ingest PDF và curriculum/book APIs. Chốt phần tái sử dụng, contract metadata/status; không tạo bộ CRUD song song chỉ để đổi prefix `/admin` |
-| [ ] ADM-302 | BE | Bổ sung pagination/filter cần thiết cho list tài liệu: tên, người tạo, môn, khối, trạng thái. DTO đủ filename/size/type/subject/grade/creator/status/createdAt; chẩn đoán lỗi không lộ secret/stacktrace cho client |
-| [ ] ADM-303 | BE + AI | Kiểm tra upload loại/kích thước/tên file; trả document ID để theo dõi; lifecycle PROCESSING → SUCCESS/FAILED; failure giữ tài liệu gốc hợp lệ và trạng thái/lỗi có thể chẩn đoán |
+| [x] ADM-301 — **Done** | BE + FE + AI | Rà `DocumentController`, `DocumentLifecycleService`, ingest PDF và curriculum/book APIs. Chốt phần tái sử dụng, contract metadata/status; không tạo bộ CRUD song song chỉ để đổi prefix `/admin` |
+| [x] ADM-302 — **Done** | BE | Bổ sung pagination/filter cần thiết cho list tài liệu: tên, người tạo, môn, khối, trạng thái. DTO đủ filename/size/type/subject/grade/creator/status/createdAt; chẩn đoán lỗi không lộ secret/stacktrace cho client |
+| [x] ADM-303 — **Done** | BE + AI | Kiểm tra upload loại/kích thước/tên file; trả document ID để theo dõi; lifecycle PROCESSING → SUCCESS/FAILED; failure giữ tài liệu gốc hợp lệ và trạng thái/lỗi có thể chẩn đoán |
 | [ ] ADM-304 | BE + AI | Kiểm tra ingestion trùng/request lặp, exception/timeout và restart worker; tránh document ở PROCESSING vô thời hạn. Chốt cơ chế phục hồi job theo hạ tầng hiện có |
-| [ ] ADM-305 | BE + AI | Xác nhận retrieval chỉ dùng SUCCESS; metadata filter đồng bộ khi sửa; xóa không để vector tiếp tục được truy xuất; kiểm tra citation/lịch sử khi tài liệu đã xóa và lỗi xóa file ngoài DB |
-| [ ] ADM-306 | FE | Tạo `/admin/documents`, bật menu, list/filter/pagination và form upload; ưu tiên tái dùng component Teacher có kiểm tra đường dẫn/phân quyền |
-| [ ] ADM-307 | FE | Hiển thị tiến độ/trạng thái, lỗi an toàn, creator và metadata; polling có hủy khi rời trang; form sửa phân loại và confirm xóa; loading/empty/error/retry |
+| [x] ADM-305 — **Done** | BE + AI | Xác nhận retrieval chỉ dùng SUCCESS; metadata filter đồng bộ khi sửa; xóa không để vector tiếp tục được truy xuất; kiểm tra citation/lịch sử khi tài liệu đã xóa và lỗi xóa file ngoài DB |
+| [x] ADM-306 — **Done** | FE | Tạo `/admin/documents`, bật menu, list/filter/pagination và form upload; ưu tiên tái dùng component Teacher có kiểm tra đường dẫn/phân quyền |
+| [x] ADM-307 — **Done** | FE | Hiển thị tiến độ/trạng thái, lỗi an toàn, creator và metadata; polling có hủy khi rời trang; form sửa phân loại và confirm xóa; loading/empty/error/retry |
 | [ ] ADM-308 | QA + AI | Integration upload → chunk → retrieval; tài liệu SUCCESS có thể truy xuất, FAILED/PROCESSING không được dùng; Teacher A không sửa/xóa tài liệu Teacher B, Admin làm được; regression Teacher |
 | [ ] ADM-309 | DO + QA | Test migration/index mới trên DB sạch và DB có dữ liệu; OpenAPI, CI/staging, chuẩn bị PDF hợp lệ/sai/vượt dung lượng; demo và PO acceptance |
 

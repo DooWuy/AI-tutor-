@@ -259,4 +259,66 @@ class AdminAccountDatabaseTest {
         assertEquals(a,jdbc.queryForObject("SELECT created_by_id FROM documents WHERE title='Alice Document'",UUID.class));
         assertEquals(a,jdbc.queryForObject("SELECT created_by_id FROM quizzes WHERE title='Alice Quiz'",UUID.class));
     }
+
+    @Test void dashboardCountsRealRowsAndFreshChangesWithoutDateOrOwnerFiltering() {
+        var dashboard=new com.vn.aitutor.repository.AdminDashboardRepository(jdbc);
+        var zero=dashboard.overview(); assertEquals(0,zero.totalUsers());assertEquals(0,zero.totalDocuments());assertEquals(0,zero.totalQuizzes());assertEquals(0,zero.chatCount());assertEquals(0,zero.attemptCount());
+        UUID admin=account("Admin",Role.ADMIN), locked=account("Locked",Role.TEACHER), deleted=account("Deleted",Role.STUDENT);
+        jdbc.update("UPDATE users SET is_active=false WHERE id=?",locked);jdbc.update("UPDATE users SET is_deleted=true WHERE id=?",deleted);
+        UUID student=UUID.randomUUID();jdbc.update("INSERT INTO students(id,user_id,student_code,school_name,grade_level) VALUES (?,?,?,'School','10')",student,deleted,"STU-TEST");
+        for(String status:List.of("SUCCESS","PROCESSING","FAILED")) jdbc.update("INSERT INTO documents(id,title,file_name,file_path,status,created_by_id) VALUES (?,?,?,'test',?,?)",UUID.randomUUID(),status,"test.pdf",status,locked);
+        UUID quiz=UUID.randomUUID();jdbc.update("INSERT INTO quizzes(id,title,difficulty,created_by_id) VALUES (?,'Quiz','MEDIUM',?)",quiz,admin);
+        for(String date:List.of("2026-11-01T16:59:59Z","2026-11-01T17:00:00Z")) {
+            jdbc.update("INSERT INTO chat_sessions(id,student_id,created_at) VALUES (?,?,?::timestamptz)",UUID.randomUUID(),student,date);
+            jdbc.update("INSERT INTO quiz_attempts(id,quiz_id,student_id,submitted_at,is_visible) VALUES (?,?,?,?::timestamptz,false)",UUID.randomUUID(),quiz,student,date);
+        }
+        jdbc.update("INSERT INTO quiz_attempts(id,quiz_id,student_id) VALUES (?,?,?)",UUID.randomUUID(),quiz,student);
+        var counts=dashboard.overview();assertEquals(2,counts.totalUsers());assertEquals(3,counts.totalDocuments());assertEquals(1,counts.totalQuizzes());assertEquals(2,counts.chatCount());assertEquals(2,counts.attemptCount());
+        assertFalse(counts.updatedAt().isBefore(zero.updatedAt()));
+        jdbc.update("INSERT INTO quizzes(id,title,difficulty,created_by_id) VALUES (?,'New Quiz','MEDIUM',?)",UUID.randomUUID(),locked);
+        assertEquals(2,dashboard.overview().totalQuizzes());
+    }
+    @Test void dashboardQueryPlanAndConcurrentSmokeOnTwentyThousandAccounts() throws Exception {
+        jdbc.execute("INSERT INTO users(id,username,email,password_hash,full_name,gender,role) SELECT gen_random_uuid(),'load'||n,'load'||n||'@test.invalid','unused','Load User','OTHER','STUDENT' FROM generate_series(1,20000) n");
+        jdbc.execute("ANALYZE users");
+        var plan=jdbc.queryForList("EXPLAIN (ANALYZE, BUFFERS) "+com.vn.aitutor.repository.AdminDashboardRepository.COUNTS_SQL,String.class);
+        var dashboard=new com.vn.aitutor.repository.AdminDashboardRepository(jdbc);
+        var pool=Executors.newFixedThreadPool(20); long started=System.nanoTime();
+        try {
+            var tasks=new ArrayList<Callable<Long>>();
+            for(int n=0;n<20;n++) tasks.add(()->{long t=System.nanoTime();assertEquals(20000,dashboard.overview().totalUsers());return (System.nanoTime()-t)/1000000;});
+            long max=0;for(var result:pool.invokeAll(tasks))max=Math.max(max,result.get());
+            System.out.println("Dashboard smoke: 20 concurrent reads, 20000 users, maxMs="+max+", wallMs="+(System.nanoTime()-started)/1000000);
+            System.out.println(String.join("\n",plan));
+        }finally{pool.shutdownNow();}
+    }
+
+    @Test void documentPaginationAndRetrievalOnlyReturnSuccessfulSurvivingDocuments() {
+        UUID owner=account("Owner",Role.TEACHER), other=account("Other",Role.TEACHER);
+        var tx=new org.springframework.transaction.support.TransactionTemplate(context.getBean(PlatformTransactionManager.class));
+        tx.executeWithoutResult(st -> {
+            var em=SharedEntityManagerCreator.createSharedEntityManager(context.getBean(EntityManagerFactory.class));
+            var factory=new JpaRepositoryFactory(em);var docs=factory.getRepository(com.vn.aitutor.repository.DocumentRepository.class);
+            var chunks=factory.getRepository(com.vn.aitutor.repository.DocumentChunkRepository.class);
+            var service=new com.vn.aitutor.service.curriculum.DocumentLifecycleService(docs,chunks,mock(com.vn.aitutor.service.system.ICloudinaryService.class));
+            String vector="["+String.join(",",Collections.nCopies(1024,"0.1"))+"]";
+            UUID success=null;
+            for(String status:List.of("SUCCESS","PROCESSING","FAILED")) {
+                UUID id=UUID.randomUUID(); if(status.equals("SUCCESS"))success=id;
+                jdbc.update("INSERT INTO documents(id,title,file_name,file_path,status,subject,grade_level,created_by_id) VALUES (?,?,'lesson.pdf','stored',?,'TOAN','10',?)",id,status,status,owner);
+                jdbc.update("INSERT INTO document_chunks(id,document_id,chunk_index,content,embedding) VALUES (?,?,0,'Lesson content',?::vector)",UUID.randomUUID(),id,vector);
+            }
+            var principal=com.vn.aitutor.security.principal.UserPrincipal.builder().users(em.find(com.vn.aitutor.entity.User.class,owner)).build();
+            assertEquals(3,service.browse(null,null,null,null,null,1,20,principal).getTotalElements());
+            assertEquals(1,service.browse(null,"TOAN","10",com.vn.aitutor.entity.enums.DocumentStatus.SUCCESS,null,1,20,principal).getTotalElements());
+            var otherPrincipal=com.vn.aitutor.security.principal.UserPrincipal.builder().users(em.find(com.vn.aitutor.entity.User.class,other)).build();
+            assertEquals(0,service.browse(null,null,null,null,owner,1,20,otherPrincipal).getTotalElements());
+            assertEquals(1,chunks.findTopSimilarChunks(vector,5).size());assertEquals(1,chunks.findTopSimilarChunksWithFilter(vector,"TOAN","10",5).size());
+            var request=new com.vn.aitutor.dto.request.curriculum.DocumentMetadataRequest();request.setSubject("LY");
+            service.updateMetadata(success,request,principal);
+            assertEquals(0,chunks.findTopSimilarChunksWithFilter(vector,"TOAN","10",5).size());
+            assertEquals(1,chunks.findTopSimilarChunksWithFilter(vector,"LY","10",5).size());
+            service.delete(success,principal);em.flush();assertEquals(0,chunks.findTopSimilarChunks(vector,5).size());
+        });
+    }
 }

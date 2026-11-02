@@ -9,6 +9,10 @@ import lombok.Getter;
 @Builder
 public class DocumentSummaryResponse {
 
+    private Long fileSize;
+    private String fileType;
+    private UUID creatorId;
+    private String creatorName;
     private UUID id;
     private String title;
     private String fileName;

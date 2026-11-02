@@ -177,7 +177,7 @@ jobs:
         working-directory: ai-tutor-frontend
 
       - name: Test Admin account and student API contracts
-        run: node --test tests/adminUserApi.test.mjs tests/adminStudentApi.test.mjs tests/adminUsersPage.test.mjs tests/adminTeacher.test.mjs
+        run: node --test tests/adminUserApi.test.mjs tests/adminStudentApi.test.mjs tests/adminUsersPage.test.mjs tests/adminTeacher.test.mjs tests/adminDashboard.test.mjs tests/adminDocuments.test.mjs
         working-directory: ai-tutor-frontend
 
   # ===========================================================================

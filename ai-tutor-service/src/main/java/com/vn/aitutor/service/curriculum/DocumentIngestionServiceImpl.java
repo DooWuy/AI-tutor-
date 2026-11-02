@@ -36,14 +36,17 @@ public class DocumentIngestionServiceImpl implements IDocumentIngestionService {
 
     @Override
     @Transactional
-    public void ingestPdfDocument(MultipartFile file, String subject, String gradeLevel, UUID userId) throws Exception {
+    public UUID ingestPdfDocument(MultipartFile file, String subject, String gradeLevel, UUID userId) throws Exception {
         learningMaterialValidator.validateSupplement(file);
+        subject = com.vn.aitutor.entity.enums.SubjectCode.parseRequired(subject).name();
+        gradeLevel = com.vn.aitutor.curriculum.GradeLevels.normalize(gradeLevel);
         log.info("Bắt đầu xử lý nạp file: {}", file.getOriginalFilename());
         User user = requireUser(userId);
         String fileUrl = cloudinaryService.uploadDocument(file);
         Document doc = newDocument(file, file.getOriginalFilename(), fileUrl, subject, gradeLevel, null, null, user);
         documentRepository.save(doc);
         publish(doc.getId(), fileUrl);
+        return doc.getId();
     }
 
     @Override
@@ -91,10 +94,14 @@ public class DocumentIngestionServiceImpl implements IDocumentIngestionService {
                 .documentId(documentId)
                 .fileUrl(fileUrl)
                 .build();
-        rabbitTemplate.convertAndSend(
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
+            @Override public void afterCommit() {
+                try { rabbitTemplate.convertAndSend(
                 RabbitMQConfig.DOCUMENT_EXCHANGE,
                 RabbitMQConfig.DOCUMENT_INGESTION_ROUTING_KEY,
-                message);
+                message); } catch (RuntimeException ex) { log.warn("Document {} enqueue failed; recovery scan will retry",documentId); }
+            }
+        });
     }
 
     private User requireUser(UUID userId) {

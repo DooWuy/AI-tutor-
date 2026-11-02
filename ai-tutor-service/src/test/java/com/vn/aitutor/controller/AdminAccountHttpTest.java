@@ -30,9 +30,11 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 @SpringJUnitWebConfig(AdminAccountHttpTest.Config.class)
 class AdminAccountHttpTest {
     @Configuration @EnableWebMvc @EnableWebSecurity @EnableMethodSecurity
-    @Import({UserController.class, GlobalExceptionHandler.class})
+    @Import({UserController.class, AdminDashboardController.class, DocumentController.class, GlobalExceptionHandler.class})
     static class Config {
         @Bean com.vn.aitutor.service.user.TeacherInvitationService invitations() { return mock(com.vn.aitutor.service.user.TeacherInvitationService.class); }
+        @Bean com.vn.aitutor.repository.AdminDashboardRepository dashboard() { return mock(com.vn.aitutor.repository.AdminDashboardRepository.class); }
+        @Bean com.vn.aitutor.service.curriculum.DocumentLifecycleService documents() { return mock(com.vn.aitutor.service.curriculum.DocumentLifecycleService.class); }
         @Bean IUserService users() { return mock(IUserService.class); }
         @Bean SecurityFilterChain security(HttpSecurity http) {
             return http.csrf(c -> c.disable()).authorizeHttpRequests(a -> a.anyRequest().authenticated())
@@ -117,5 +119,27 @@ class AdminAccountHttpTest {
                 .andExpect(status().isBadRequest());
         }
         verifyNoInteractions(service);
+    }
+
+    @Test void dashboardSecurityValidationAndFailure() throws Exception {
+        var repo=context.getBean(com.vn.aitutor.repository.AdminDashboardRepository.class); reset(repo);
+        mvc.perform(get("/api/v1/dashboard/admin").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous())).andExpect(status().isUnauthorized());
+        for(String role:List.of("STUDENT","TEACHER")) mvc.perform(get("/api/v1/dashboard/admin").with(user("actor").roles(role))).andExpect(status().isForbidden());
+        for(String query:List.of("from=2026-11-02","from=bad","to=2026-10-01","page=1")) mvc.perform(get("/api/v1/dashboard/admin?"+query).with(user("admin").roles("ADMIN"))).andExpect(status().isBadRequest());
+        verifyNoInteractions(repo);
+        when(repo.overview()).thenReturn(new com.vn.aitutor.dto.response.dashboard.AdminDashboardResponse(3,2,4,5,6,java.time.Instant.parse("2026-11-02T00:00:00Z")));
+        mvc.perform(get("/api/v1/dashboard/admin").with(user("admin").roles("ADMIN"))).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"))
+            .andExpect(jsonPath("$.data.totalUsers").value(3)).andExpect(jsonPath("$.data.updatedAt").exists());
+        when(repo.overview()).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("secret database endpoint"));
+        mvc.perform(get("/api/v1/dashboard/admin").with(user("admin").roles("ADMIN"))).andExpect(status().isInternalServerError()).andExpect(jsonPath("$.message").value("Không thể xử lý dữ liệu. Vui lòng thử lại."));
+    }
+
+    @Test void documentRoutesEnforceRolesAndPagination() throws Exception {
+        mvc.perform(get("/api/v1/documents/page").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous())).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/documents/page").with(user("student").roles("STUDENT"))).andExpect(status().isForbidden());
+        for(String query:List.of("page=0","size=51","status=INVALID")) mvc.perform(get("/api/v1/documents/page?"+query).with(user("admin").roles("ADMIN"))).andExpect(status().isBadRequest());
+        var docs=context.getBean(com.vn.aitutor.service.curriculum.DocumentLifecycleService.class);
+        when(docs.browse(any(),any(),any(),any(),any(),eq(1),eq(20),any())).thenReturn(PageResponseDTO.<com.vn.aitutor.dto.response.curriculum.DocumentSummaryResponse>builder().content(List.of()).totalElements(0L).build());
+        mvc.perform(get("/api/v1/documents/page").with(user("admin").roles("ADMIN"))).andExpect(status().isOk()).andExpect(jsonPath("$.content").isArray());
     }
 }

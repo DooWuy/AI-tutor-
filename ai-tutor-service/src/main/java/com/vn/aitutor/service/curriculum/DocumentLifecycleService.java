@@ -31,6 +31,17 @@ public class DocumentLifecycleService {
     private final ICloudinaryService cloudinaryService;
 
     @Transactional(readOnly = true)
+    public com.vn.aitutor.dto.response.PageResponseDTO<DocumentSummaryResponse> browse(String search, String subject, String grade,
+            com.vn.aitutor.entity.enums.DocumentStatus status, UUID creator, int page, int size, UserPrincipal principal) {
+        UUID owner = isAdmin(principal) ? creator : principal.getUsers().getId();
+        var rows = documentRepository.browse(owner, status, blankToNull(subject), blankToNull(grade), blankToNull(search),
+            org.springframework.data.domain.PageRequest.of(page-1,size,org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC,"createdAt").and(org.springframework.data.domain.Sort.by("id"))));
+        return com.vn.aitutor.dto.response.PageResponseDTO.<DocumentSummaryResponse>builder().content(rows.map(this::toSummary).getContent())
+            .page(page).size(size).totalElements(rows.getTotalElements()).totalPages(rows.getTotalPages()).build();
+    }
+    private String blankToNull(String value) { return value == null || value.isBlank() ? null : value.trim(); }
+
+    @Transactional(readOnly = true)
     public List<DocumentSummaryResponse> list(UUID lessonId, UUID bookId, UserPrincipal principal) {
         UUID ownerId = isAdmin(principal) ? null : principal.getUsers().getId();
         return documentRepository.search(lessonId, bookId, ownerId).stream()
@@ -79,7 +90,7 @@ public class DocumentLifecycleService {
     }
 
     private Document require(UUID documentId) {
-        return documentRepository.findById(documentId)
+        return documentRepository.lockById(documentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài liệu"));
     }
 
@@ -99,7 +110,9 @@ public class DocumentLifecycleService {
 
     private DocumentSummaryResponse toSummary(Document document) {
         return DocumentSummaryResponse.builder()
-                .id(document.getId())
+                .id(document.getId()).fileSize(document.getFileSize()).fileType(document.getFileType())
+                .creatorId(document.getCreatedBy() == null ? null : document.getCreatedBy().getId())
+                .creatorName(document.getCreatedBy() == null ? null : document.getCreatedBy().getFullName())
                 .title(document.getTitle())
                 .fileName(document.getFileName())
                 .subject(document.getSubject())
@@ -108,7 +121,7 @@ public class DocumentLifecycleService {
                 .progressPercentage(document.getProgressPercentage())
                 .documentType(document.getDocumentType() == null ? null : document.getDocumentType().name())
                 .lessonId(document.getLesson() == null ? null : document.getLesson().getId())
-                .errorMessage(document.getErrorMessage())
+                .errorMessage(document.getErrorMessage() == null ? null : "Xử lý tài liệu thất bại. Liên hệ quản trị viên với mã tài liệu.")
                 .createdAt(document.getCreatedAt())
                 .build();
     }

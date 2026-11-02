@@ -28,6 +28,17 @@ public class DocumentController {
 
     private final DocumentLifecycleService documentLifecycleService;
 
+    @GetMapping("/page")
+    @io.swagger.v3.oas.annotations.Operation(summary="Paginated documents; Admin sees all owners, Teacher sees own")
+    public ResponseEntity<com.vn.aitutor.dto.response.PageResponseDTO<DocumentSummaryResponse>> browse(
+        @RequestParam(required=false) String search, @RequestParam(required=false) String subject,
+        @RequestParam(required=false) String gradeLevel, @RequestParam(required=false) com.vn.aitutor.entity.enums.DocumentStatus status,
+        @RequestParam(required=false) UUID creatorId, @RequestParam(defaultValue="1") int page,
+        @RequestParam(defaultValue="20") int size, @AuthenticationPrincipal UserPrincipal principal) {
+        if(page<1 || size<1 || size>50) throw new com.vn.aitutor.exception.ResourceBadRequestException("Phân trang không hợp lệ");
+        return ResponseEntity.ok(documentLifecycleService.browse(search,subject,gradeLevel,status,creatorId,page,size,principal));
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<DocumentSummaryResponse>>> list(
             @RequestParam(required = false) UUID lessonId,

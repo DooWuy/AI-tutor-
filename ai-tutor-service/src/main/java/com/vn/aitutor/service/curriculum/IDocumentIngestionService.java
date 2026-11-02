@@ -17,7 +17,7 @@ public interface IDocumentIngestionService {
      * @param gradeLevel the grade level
      * @param userId the ID of the user (admin/teacher) uploading the document
      */
-    void ingestPdfDocument(MultipartFile file, String subject, String gradeLevel, UUID userId) throws Exception;
+    UUID ingestPdfDocument(MultipartFile file, String subject, String gradeLevel, UUID userId) throws Exception;
 
     UUID uploadLessonDocument(UUID lessonId, MultipartFile file, String title, DocumentType documentType, UUID userId)
             throws Exception;

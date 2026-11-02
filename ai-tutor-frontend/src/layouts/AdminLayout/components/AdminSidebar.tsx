@@ -68,8 +68,6 @@ const navSections: NavSection[] = [
         to: '/admin/documents',
         label: 'Kho tài liệu & Sách',
         icon: BookOpen,
-        badge: 'Sắp có',
-        isPlaceholder: true,
       },
       {
         to: '/admin/question-bank',
