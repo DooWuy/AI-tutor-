@@ -17,7 +17,10 @@ import {
   FileText,
   Clock,
   Sparkles,
-  AlertTriangle
+  AlertTriangle,
+  Cpu,
+  Activity,
+  Layers
 } from 'lucide-react';
 import { fetchAdminDashboard, type AdminDashboard } from '../../services/adminDashboardApi';
 
@@ -253,26 +256,41 @@ export function AdminDashboardPage() {
           aria-hidden="true"
           className="pointer-events-none absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-secondary/10 blur-3xl"
         />
+        {/* Subtle decorative background watermark icons */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-4 bottom-2 opacity-[0.06] dark:opacity-[0.08] select-none"
+        >
+          <Layers size={140} className="text-primary" />
+        </div>
 
-        <div className="relative flex flex-wrap items-start justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <span>Hệ thống trực tuyến · Toàn thời gian</span>
+        <div className="relative flex flex-wrap items-center justify-between gap-6">
+          <div className="flex items-start gap-5 max-w-2xl">
+            {/* Visual Thumbnail Icon Badge */}
+            <div className="hidden sm:flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary to-primary-container text-white shadow-lg shadow-primary/25 ring-4 ring-primary/10 transition-transform duration-300 hover:scale-105">
+              <Cpu size={32} className="text-white drop-shadow-xs" aria-hidden="true" />
             </div>
 
-            <h1
-              id="admin-dashboard-title"
-              className="text-2xl font-bold tracking-tight sm:text-4xl text-on-surface"
-            >
-              Tổng quan quản trị
-            </h1>
-            <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed">
-              Số liệu được truy vấn mới mỗi lần tải. Nhấn làm mới để cập nhật.
-            </p>
+            <div className="space-y-2.5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <Activity size={12} className="text-emerald-500" aria-hidden="true" />
+                <span>Hệ thống trực tuyến · Toàn thời gian</span>
+              </div>
+
+              <h1
+                id="admin-dashboard-title"
+                className="text-2xl font-bold tracking-tight sm:text-4xl text-on-surface"
+              >
+                Tổng quan quản trị
+              </h1>
+              <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed">
+                Số liệu được truy vấn mới mỗi lần tải. Nhấn làm mới để cập nhật.
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">

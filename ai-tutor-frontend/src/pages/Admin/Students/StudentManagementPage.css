@@ -1,9 +1,52 @@
-/* Custom helper animations for Student Management */
+/* Custom helper animations and styles for Student Management */
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.98); }
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
 .student-modal-enter {
-  animation: fadeIn 0.15s ease-out forwards;
+  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.student-card-enter {
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pulse-indicator {
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+/* Glassmorphism card surfaces */
+.student-glass-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Custom compact scrollbar */
+.student-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.student-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.student-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(113, 119, 133, 0.25);
+  border-radius: 9999px;
+}
+
+.student-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(113, 119, 133, 0.45);
 }
