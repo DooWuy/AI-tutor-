@@ -30,11 +30,15 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 @SpringJUnitWebConfig(AdminAccountHttpTest.Config.class)
 class AdminAccountHttpTest {
     @Configuration @EnableWebMvc @EnableWebSecurity @EnableMethodSecurity
-    @Import({UserController.class, AdminDashboardController.class, DocumentController.class, GlobalExceptionHandler.class})
+    @Import({UserController.class, AdminDashboardController.class, DocumentController.class, QuizReportController.class, QuizManagementController.class, GlobalExceptionHandler.class})
     static class Config {
         @Bean com.vn.aitutor.service.user.TeacherInvitationService invitations() { return mock(com.vn.aitutor.service.user.TeacherInvitationService.class); }
         @Bean com.vn.aitutor.repository.AdminDashboardRepository dashboard() { return mock(com.vn.aitutor.repository.AdminDashboardRepository.class); }
         @Bean com.vn.aitutor.service.curriculum.DocumentLifecycleService documents() { return mock(com.vn.aitutor.service.curriculum.DocumentLifecycleService.class); }
+        @Bean com.vn.aitutor.service.quiz.QuizAccess quizAccess() { return mock(com.vn.aitutor.service.quiz.QuizAccess.class); }
+        @Bean org.springframework.jdbc.core.JdbcTemplate reportJdbc() { return mock(org.springframework.jdbc.core.JdbcTemplate.class); }
+        @Bean com.vn.aitutor.service.quiz.QuizManagementService quizManagement() { return mock(com.vn.aitutor.service.quiz.QuizManagementService.class); }
+        @Bean com.vn.aitutor.service.quiz.QuizStatisticsService quizStatistics() { return mock(com.vn.aitutor.service.quiz.QuizStatisticsService.class); }
         @Bean IUserService users() { return mock(IUserService.class); }
         @Bean SecurityFilterChain security(HttpSecurity http) {
             return http.csrf(c -> c.disable()).authorizeHttpRequests(a -> a.anyRequest().authenticated())
@@ -141,5 +145,23 @@ class AdminAccountHttpTest {
         var docs=context.getBean(com.vn.aitutor.service.curriculum.DocumentLifecycleService.class);
         when(docs.browse(any(),any(),any(),any(),any(),eq(1),eq(20),any())).thenReturn(PageResponseDTO.<com.vn.aitutor.dto.response.curriculum.DocumentSummaryResponse>builder().content(List.of()).totalElements(0L).build());
         mvc.perform(get("/api/v1/documents/page").with(user("admin").roles("ADMIN"))).andExpect(status().isOk()).andExpect(jsonPath("$.content").isArray());
+    }
+
+    @Test void quizReportsRequireStaffAndValidatePagination() throws Exception {
+        String path="/api/v1/quizzes/"+UUID.randomUUID()+"/report";
+        mvc.perform(get(path).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous())).andExpect(status().isUnauthorized());
+        mvc.perform(get(path).with(user("student").roles("STUDENT"))).andExpect(status().isForbidden());
+        for(String query:List.of("page=0","size=51"))mvc.perform(get(path+"?"+query).with(user("admin").roles("ADMIN"))).andExpect(status().isBadRequest());
+    }
+
+    @Test void quizPublishAndReviewAreStaffOnly() throws Exception {
+        String path="/api/v1/quizzes/"+UUID.randomUUID();
+        for(String suffix:List.of("/review","/publish","/archive")) {
+            mvc.perform(post(path+suffix).with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous()).contentType("application/json").content("{\"classIds\":[]}")).andExpect(status().isUnauthorized());
+            mvc.perform(post(path+suffix).with(user("student").roles("STUDENT")).contentType("application/json").content("{\"classIds\":[]}")).andExpect(status().isForbidden());
+        }
+        var management=context.getBean(com.vn.aitutor.service.quiz.QuizManagementService.class);
+        when(management.review(any(),any())).thenThrow(new com.vn.aitutor.exception.ResourceForbiddenException("Owner only"));
+        mvc.perform(post(path+"/review").with(user("other").roles("TEACHER"))).andExpect(status().isForbidden());
     }
 }

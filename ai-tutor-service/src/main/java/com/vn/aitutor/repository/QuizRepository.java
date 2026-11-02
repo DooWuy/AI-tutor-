@@ -16,6 +16,9 @@ public interface QuizRepository extends JpaRepository<Quiz, UUID> {
     @org.springframework.data.jpa.repository.Query("SELECT q FROM Quiz q WHERE q.id = :id")
     Optional<Quiz> lockById(UUID id);
 
+    @Query(value="select exists(select 1 from quiz_attempt_drafts where quiz_id=:id)",nativeQuery=true)
+    boolean hasStartedDraft(@Param("id") UUID id);
+
     Optional<Quiz> findFirstByTitle(String title);
 
     @Query("""

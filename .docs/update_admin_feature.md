@@ -206,12 +206,15 @@ Retry tài liệu bằng nút trên UI là Should/extension; chỉ thêm sau khi
 
 Story S4-US1: Admin quản lý quiz và kết quả mọi chủ sở hữu. Story S4-US2: Admin sử dụng các luồng hồ sơ/học sinh/cấu hình/logs an toàn. Liên kết FR-QUIZ-01..04, FR-REP-04, US-07, US-14, FR-PRO-01..04, mục 3.4 và NFR-SEC-03,05.
 
+Tiến độ S4-US1 ngày 02/11/2026: contract, thay đổi và evidence tại [admin-quiz-contract.md](admin-quiz-contract.md). ADM-401..404 hoàn tất đầu ra kỹ thuật. ADM-405 đã rà routes/publish targets/notification và có component tests, còn browser QA; ADM-412 giữ mở cho integration/staging/PO. Không tự đóng S4-US2 (ADM-406..411) trong story này.
+
+
 | Task | Phụ trách | Công việc và đầu ra kiểm chứng |
 |---|---|---|
-| [ ] ADM-401 | BE + QA | Kiểm tra service quản lý quiz, question bank, generation và statistics: Admin truy cập mọi quiz, Teacher chỉ đúng ownership. Không suy luận quyền chỉ từ route dùng chung |
-| [ ] ADM-402 | BE + FE | Hoàn thiện create/edit/publish/archive theo code hiện có; chặn publish thiếu câu hỏi/đáp án không hợp lệ; bản single-choice đúng 1 đáp án, tối thiểu 2 phương án; câu AI cần được duyệt trước khi kích hoạt |
-| [ ] ADM-403 | BE | Chốt hành vi sửa/xóa quiz đã có attempt: bảo toàn câu hỏi/điểm/XP và lịch sử. Áp dụng guard hoặc versioning theo thiết kế hiện có, không làm đổi kết quả đã nộp |
-| [ ] ADM-404 | BE + FE | Kết quả quiz: lượt làm, điểm trung bình, danh sách phân trang, empty/error/retry; Admin xem được quiz của nhiều Teacher; chỉ trả dữ liệu cá nhân cần thiết |
+| [x] ADM-401 — **Done** | BE + QA | Kiểm tra service quản lý quiz, question bank, generation và statistics: Admin truy cập mọi quiz, Teacher chỉ đúng ownership. Không suy luận quyền chỉ từ route dùng chung |
+| [x] ADM-402 — **Done** | BE + FE | Hoàn thiện create/edit/publish/archive theo code hiện có; chặn publish thiếu câu hỏi/đáp án không hợp lệ; bản single-choice đúng 1 đáp án, tối thiểu 2 phương án; câu AI cần được duyệt trước khi kích hoạt |
+| [x] ADM-403 — **Done** | BE | Chốt hành vi sửa/xóa quiz đã có attempt: bảo toàn câu hỏi/điểm/XP và lịch sử. Áp dụng guard hoặc versioning theo thiết kế hiện có, không làm đổi kết quả đã nộp |
+| [x] ADM-404 — **Done** | BE + FE | Kết quả quiz: lượt làm, điểm trung bình, danh sách phân trang, empty/error/retry; Admin xem được quiz của nhiều Teacher; chỉ trả dữ liệu cá nhân cần thiết |
 | [ ] ADM-405 | FE + QA | Kiểm tra editor/publish target/notification link trong ngữ cảnh `/admin`; không điều hướng sang Teacher hoặc gọi API bị từ chối ngoài dự kiến; regression cả hai role |
 | [ ] ADM-406 | BE + FE + QA | Regression Student Management: search/filter/sort/pagination, create setup password, edit định danh được phép, detail XP/streak, khóa/xóa mềm giữ history. Kiểm tra import Backend hiện có không bị hỏng; UI import không bắt buộc mới |
 | [ ] ADM-407 | BE + FE | Kiểm tra hồ sơ cá nhân Admin và luồng đổi mật khẩu đã có API; bổ sung lối truy cập UI nếu thiếu theo ma trận quyền. Kiểm tra quyền xem leaderboard/XP, không lộ email/địa chỉ nhạy cảm |

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { quizAdminApi } from '../../services/assessmentApi';
 import type { QuizStatistics } from '../../types/assessment';
 import { ErrorBanner, PrimaryButton, useAssessmentBase } from './assessmentUi';
-import { HardestQuestionsChart } from './HardestQuestionsChart';
+
 
 function formatWhen(value?: string | null) {
   if (!value) return '—';
@@ -14,17 +14,22 @@ function formatWhen(value?: string | null) {
 export default function QuizStatisticsPage() {
   const { quizId = '' } = useParams();
   const base = useAssessmentBase();
+  const [page,setPage] = useState(1);
+  const [revision,setRevision] = useState(0);
   const [stats, setStats] = useState<QuizStatistics | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
+  useEffect(() => {setPage(1);},[quizId]);
   useEffect(() => {
-    quizAdminApi.statistics(quizId)
-      .then(setStats)
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Không tải được thống kê'))
-      .finally(() => setLoading(false));
-  }, [quizId]);
+    let cancelled = false; setLoading(true); setError(''); setStats(null);
+    quizAdminApi.statistics(quizId,page)
+      .then(value=>{if(!cancelled)setStats(value);})
+      .catch((err:unknown)=>{if(!cancelled)setError(err instanceof Error?err.message:'Không tải được thống kê');})
+      .finally(()=>{if(!cancelled)setLoading(false);});
+    return ()=>{cancelled=true;};
+  },[quizId,page,revision]);
 
   const download = async () => {
     setExporting(true);
@@ -52,6 +57,7 @@ export default function QuizStatisticsPage() {
         <PrimaryButton disabled={exporting || !stats} onClick={download}>Xuất dữ liệu</PrimaryButton>
       </div>
       <ErrorBanner message={error} />
+      {error && <PrimaryButton onClick={()=>setRevision(v=>v+1)}>Thử lại</PrimaryButton>}
       {loading ? <p className="text-sm text-on-surface-variant">Đang tính thống kê...</p> : null}
       {stats ? (
         <>
@@ -60,17 +66,6 @@ export default function QuizStatisticsPage() {
             <Metric label="Điểm trung bình" value={average} />
             <Metric label="Tỷ lệ đạt yêu cầu" value={`${passing}%`} />
             <Metric label="Ngưỡng đạt" value={`${Number(stats.passingScore).toFixed(1)}%`} />
-          </div>
-
-          <div className="rounded-2xl border border-outline-variant p-4">
-            <h2 className="font-bold text-on-surface">Câu sai nhiều nhất</h2>
-            {stats.hardestQuestions.length === 0 ? (
-              <p className="mt-2 text-sm text-on-surface-variant">Chưa có bài làm để phân tích độ khó.</p>
-            ) : (
-              <div className="mt-3">
-                <HardestQuestionsChart questions={stats.hardestQuestions} />
-              </div>
-            )}
           </div>
 
           <div className="hidden overflow-hidden rounded-2xl border border-outline-variant md:block">
@@ -110,6 +105,7 @@ export default function QuizStatisticsPage() {
               </article>
             ))}
           </div>
+          <div className="flex flex-wrap items-center gap-3"><span>{stats.totalElements || 0} học sinh · Trang {page}/{Math.max(1,stats.totalPages || 0)}</span><PrimaryButton disabled={page<=1||loading} onClick={()=>setPage(p=>p-1)}>Trước</PrimaryButton><PrimaryButton disabled={page>=(stats.totalPages || 0)||loading} onClick={()=>setPage(p=>p+1)}>Sau</PrimaryButton></div>
           {stats.students.length === 0 ? <p className="text-sm text-on-surface-variant">Chưa có học sinh nộp bài.</p> : null}
         </>
       ) : null}

@@ -97,7 +97,7 @@ class NotificationPersistenceIntegrationTest {
             assertEquals(java.util.Map.of(), dto.metadata());
             assertNull(legacy.getEventKey());
             assertEquals(0, deliveryCount(LEGACY_ID));
-            assertEquals(9, jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class));
+            assertEquals(10, jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class));
         } finally { entityManager.close(); }
     }
 

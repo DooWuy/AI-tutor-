@@ -102,7 +102,7 @@ public class QuizManagementService {
 
     @Transactional(readOnly = true)
     public QuizResponse get(UUID quizId, UserPrincipal principal) {
-        Quiz quiz = quizAccess.require(quizId, principal);
+        Quiz quiz = quizAccess.requireLocked(quizId, principal);
         return detail(quiz);
     }
 
@@ -119,7 +119,8 @@ public class QuizManagementService {
 
     @Transactional
     public QuizResponse update(UUID quizId, QuizUpsertRequest request, UserPrincipal principal) {
-        Quiz quiz = quizAccess.require(quizId, principal);
+        Quiz quiz = quizAccess.requireLocked(quizId, principal);
+        assertQuestionsMutable(quiz);
         apply(quiz, request);
         return detail(quizRepository.save(quiz));
     }
@@ -169,10 +170,11 @@ public class QuizManagementService {
         if (hasId(studyClassIds)) {
             studyClassRepository.dissolveExpired(LocalDate.now(learningClock.withZone(ZONE)), learningClock.instant());
         }
-        Quiz quiz = quizAccess.require(quizId, principal);
+        Quiz quiz = quizAccess.requireLocked(quizId, principal);
         if (quizQuestionRepository.countByQuizId(quizId) == 0) {
             throw new ResourceBadRequestException("Đề thi cần ít nhất một câu hỏi trước khi phát hành");
         }
+        validatePublishContent(quiz);
         List<SchoolClass> targets = resolveClasses(quiz, classIds, principal);
         List<StudyClass> studyTargets = resolveStudyClasses(studyClassIds, principal);
         if (targets.isEmpty() && studyTargets.isEmpty()) {
@@ -182,6 +184,40 @@ public class QuizManagementService {
         replaceAssignments(quiz, targets, principal.getUsers());
         replaceStudyAssignments(quiz, studyTargets, principal.getUsers());
         return changeStatus(quiz, QuizStatus.PUBLISHED);
+    }
+
+    @Transactional
+    public QuizResponse review(UUID quizId, UserPrincipal principal) {
+        Quiz quiz=quizAccess.requireLocked(quizId,principal);
+        assertQuestionsMutable(quiz);
+        validateSnapshots(quiz);
+        quiz.setReviewRequired(false);
+        return detail(quizRepository.save(quiz));
+    }
+
+    private void validatePublishContent(Quiz quiz) {
+        if(quiz.isReviewRequired()) throw new ResourceBadRequestException("Cần xem và xác nhận duyệt câu hỏi AI trước khi phát hành");
+        validateSnapshots(quiz);
+    }
+
+    private void validateSnapshots(Quiz quiz) {
+        var questions=quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId());
+        if(questions.isEmpty()) throw new ResourceBadRequestException("Đề thi cần ít nhất một câu hỏi trước khi phát hành");
+        for(var q:questions) {
+            if (q.getOptions()!=null && q.getOptions().stream().anyMatch(o -> o==null || !(o.get("key") instanceof String)
+                    || !(o.getOrDefault("text",o.get("content")) instanceof String)))
+                throw new ResourceBadRequestException("Phương án câu hỏi không hợp lệ");
+            if (q.getCorrectOptionKey()!=null && new java.util.HashSet<>(java.util.Arrays.asList(q.getCorrectOptionKey().split(",",-1))).size()!=q.getCorrectOptionKey().split(",",-1).length)
+                throw new ResourceBadRequestException("Đáp án bị trùng");
+            var keys=q.getCorrectOptionKey()==null?java.util.Set.<String>of():new java.util.HashSet<>(java.util.Arrays.asList(q.getCorrectOptionKey().split(",")));
+            var choices=q.getOptions()==null?java.util.List.<com.vn.aitutor.quiz.ChoiceInput>of():q.getOptions().stream().map(o -> new com.vn.aitutor.quiz.ChoiceInput(
+                String.valueOf(o.getOrDefault("key","")),String.valueOf(o.getOrDefault("text",o.getOrDefault("content",""))),keys.contains(String.valueOf(o.get("key"))))).toList();
+            if(q.getQuestionType()!=QuestionType.FILL_BLANK && !keys.equals(choices.stream().filter(com.vn.aitutor.quiz.ChoiceInput::correct).map(com.vn.aitutor.quiz.ChoiceInput::key).collect(java.util.stream.Collectors.toSet())))
+                throw new ResourceBadRequestException("Đáp án không khớp phương án câu hỏi");
+            QuestionContentRules.require(q.getQuestionText(),q.getExplanation(),q.getQuestionType(),choices,q.getTags(),q.getDifficulty(),q.getCorrectText(),null,false);
+            if(q.getSourceQuestion()!=null && q.getSourceQuestion().getReviewStatus()!=ReviewStatus.ACTIVE)
+                throw new ResourceBadRequestException("Câu hỏi nguồn chưa được duyệt");
+        }
     }
 
     private void applyWindow(Quiz quiz, java.time.Instant availableFrom, java.time.Instant availableUntil) {
@@ -197,18 +233,18 @@ public class QuizManagementService {
 
     @Transactional
     public QuizResponse archive(UUID quizId, UserPrincipal principal) {
-        return changeStatus(quizAccess.require(quizId, principal), QuizStatus.ARCHIVED);
+        return changeStatus(quizAccess.requireLocked(quizId, principal), QuizStatus.ARCHIVED);
     }
 
     @Transactional
     public QuizResponse draft(UUID quizId, UserPrincipal principal) {
-        return changeStatus(quizAccess.require(quizId, principal), QuizStatus.DRAFT);
+        return changeStatus(quizAccess.requireLocked(quizId, principal), QuizStatus.DRAFT);
     }
 
     @Transactional
     public void delete(UUID quizId, UserPrincipal principal) {
-        Quiz quiz = quizAccess.require(quizId, principal);
-        if (quizAttemptRepository.countByQuizId(quizId) > 0) {
+        Quiz quiz = quizAccess.requireLocked(quizId, principal);
+        if (quizAttemptRepository.countByQuizId(quizId) > 0 || quizRepository.hasStartedDraft(quizId)) {
             throw new ResourceBadRequestException(QuestionContentRules.DELETE_BLOCKED);
         }
         quizRepository.delete(quiz);
@@ -216,7 +252,7 @@ public class QuizManagementService {
 
     @Transactional
     public QuizResponse assign(UUID quizId, List<UUID> questionIds, UserPrincipal principal) {
-        Quiz quiz = quizAccess.require(quizId, principal);
+        Quiz quiz = quizAccess.requireLocked(quizId, principal);
         assertQuestionsMutable(quiz);
         int order = quizQuestionRepository.maxOrderIndex(quizId);
         List<UUID> existingSources = new ArrayList<>(quizQuestionRepository.findSourceIds(quizId));
@@ -235,7 +271,7 @@ public class QuizManagementService {
 
     @Transactional
     public QuizResponse removeQuestion(UUID quizId, UUID questionId, UserPrincipal principal) {
-        Quiz quiz = quizAccess.require(quizId, principal);
+        Quiz quiz = quizAccess.requireLocked(quizId, principal);
         assertQuestionsMutable(quiz);
         QuizQuestion question = quizQuestionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy câu hỏi trong đề"));
@@ -246,16 +282,16 @@ public class QuizManagementService {
         return detail(quiz);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public void validateGenerate(UUID quizId, QuizGenerateRequest request, UserPrincipal principal) {
-        Quiz quiz = quizAccess.require(quizId, principal);
+        Quiz quiz = quizAccess.requireLocked(quizId, principal);
         assertQuestionsMutable(quiz);
         requireRatios(request);
     }
 
     @Transactional
     public QuizResponse generate(UUID quizId, QuizGenerateRequest request, UserPrincipal principal) {
-        Quiz quiz = quizAccess.require(quizId, principal);
+        Quiz quiz = quizAccess.requireLocked(quizId, principal);
         assertQuestionsMutable(quiz);
         requireRatios(request);
         int stamped = (request.getMinDifficulty() + request.getMaxDifficulty()) / 2;
@@ -270,6 +306,7 @@ public class QuizManagementService {
         order = fillType(quiz, QuestionType.TRUE_FALSE, request.getTrueFalse(), 2, request, stamped, context, excluded, order);
         fillType(quiz, QuestionType.FILL_BLANK, request.getFillBlank(), 0, request, stamped, context, excluded, order);
         quiz.setAiGenerated(true);
+        quiz.setReviewRequired(true);
         return detail(quizRepository.save(quiz));
     }
 
@@ -424,7 +461,8 @@ public class QuizManagementService {
     }
 
     private void assertQuestionsMutable(Quiz quiz) {
-        if (quizAttemptRepository.countByQuizId(quiz.getId()) > 0) {
+        if (quiz.getStatus()==QuizStatus.PUBLISHED) throw new ResourceBadRequestException("Chuyển đề sang Draft trước khi sửa nội dung");
+        if (quizAttemptRepository.countByQuizId(quiz.getId()) > 0 || quizRepository.hasStartedDraft(quiz.getId())) {
             throw new ResourceBadRequestException("Đề thi đã có học sinh làm bài nên không đổi được bộ câu hỏi");
         }
     }
@@ -432,6 +470,9 @@ public class QuizManagementService {
     private void apply(Quiz quiz, QuizUpsertRequest request) {
         String subject = SubjectCode.parseRequired(request.getSubject()).name();
         String grade = GradeLevels.normalize(request.getGradeLevel());
+        if (quiz.getId()!=null && quizQuestionRepository.countByQuizId(quiz.getId())>0
+                && (!subject.equals(quiz.getSubject()) || !grade.equals(quiz.getGradeLevel())))
+            throw new ResourceBadRequestException("Gỡ bộ câu hỏi trước khi đổi môn hoặc khối");
         Lesson lesson = null;
         if (request.getLessonId() != null) {
             lesson = lessonRepository.findWithBook(request.getLessonId())
@@ -612,7 +653,7 @@ public class QuizManagementService {
                 .maxAttempts(quiz.getMaxAttempts())
                 .passingScore(quiz.getPassingScore())
                 .status(quiz.getStatus().name())
-                .aiGenerated(quiz.isAiGenerated())
+                .aiGenerated(quiz.isAiGenerated()).reviewRequired(quiz.isReviewRequired())
                 .questionCount(questionCount)
                 .attemptCount(attemptCount)
                 .createdByName(quiz.getCreatedBy() == null ? null : quiz.getCreatedBy().getFullName())

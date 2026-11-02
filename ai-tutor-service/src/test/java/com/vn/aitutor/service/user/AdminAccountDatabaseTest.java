@@ -321,4 +321,29 @@ class AdminAccountDatabaseTest {
             service.delete(success,principal);em.flush();assertEquals(0,chunks.findTopSimilarChunks(vector,5).size());
         });
     }
+
+    @Test void quizReportPagesStudentsWithGlobalCountsAndRestrictsOwners() {
+        UUID owner=account("Owner",Role.TEACHER),other=account("Other",Role.TEACHER),admin=account("Admin",Role.ADMIN);
+        UUID quiz=UUID.randomUUID();jdbc.update("INSERT INTO quizzes(id,title,difficulty,created_by_id) VALUES (?,'Quiz Report','MEDIUM',?)",quiz,owner);
+        for(int n=0;n<23;n++) {
+            UUID uid=account("Student"+n,Role.STUDENT),sid=UUID.randomUUID();
+            jdbc.update("INSERT INTO students(id,user_id,student_code,grade_level) VALUES (?,?,?,'10')",sid,uid,"R"+n);
+            jdbc.update("INSERT INTO quiz_attempts(id,quiz_id,student_id,score,submitted_at,is_visible) VALUES (?,?,?,80,now(),false)",UUID.randomUUID(),quiz,sid);
+        }
+        var tx=new org.springframework.transaction.support.TransactionTemplate(context.getBean(PlatformTransactionManager.class));
+        tx.executeWithoutResult(st -> {
+            var em=SharedEntityManagerCreator.createSharedEntityManager(context.getBean(EntityManagerFactory.class));
+            var repo=new JpaRepositoryFactory(em).getRepository(com.vn.aitutor.repository.QuizRepository.class);
+            var access=new com.vn.aitutor.service.quiz.QuizAccess(repo);
+            var report=new com.vn.aitutor.controller.QuizReportController(access,jdbc);
+            var pa=com.vn.aitutor.security.principal.UserPrincipal.builder().users(em.find(com.vn.aitutor.entity.User.class,admin)).build();
+            var pb=com.vn.aitutor.security.principal.UserPrincipal.builder().users(em.find(com.vn.aitutor.entity.User.class,other)).build();
+            var result=report.report(quiz,2,20,pa).getData();
+            assertEquals(23L,result.get("attemptCount"));assertEquals(23L,result.get("totalElements"));assertEquals(2L,result.get("totalPages"));
+            assertEquals(3,((List<?>)result.get("students")).size());assertEquals(80.0,((Number)result.get("averageScore")).doubleValue());
+            assertThrows(com.vn.aitutor.exception.ResourceForbiddenException.class,()->report.report(quiz,1,20,pb));
+            assertFalse(repo.hasStartedDraft(quiz));
+            assertEquals(false,em.find(com.vn.aitutor.entity.Quiz.class,quiz).isReviewRequired());
+        });
+    }
 }
