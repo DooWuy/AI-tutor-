@@ -78,6 +78,19 @@ class AuthServiceImplTest {
     }
 
     @Test
+    void lockedOrDeletedAccountCannotRefreshAnExistingSession() {
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setCookies(new jakarta.servlet.http.Cookie("refresh_token", "old-refresh"));
+        when(refreshTokenService.isRefreshTokenValid("old-refresh")).thenReturn(true);
+        when(jwtProvider.getUsernameFromToken("old-refresh")).thenReturn("locked-teacher");
+        when(userRepository.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue("locked-teacher"))
+                .thenReturn(Optional.empty());
+        assertThrows(ResourceBadRequestException.class, () -> authService.refreshToken(request, response));
+        verify(jwtProvider, never()).generateAccessToken(any());
+        verify(refreshTokenService).deleteRefreshToken("old-refresh");
+    }
+
+    @Test
     void setupPassword_tokenAlreadyUsed_throwsBadRequest() {
         SetupPasswordRequest request = new SetupPasswordRequest();
         request.setToken("used-token");

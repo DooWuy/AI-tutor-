@@ -19,10 +19,8 @@ public class UserDetailServiceCustom implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
-        UserDetails cached = userPrincipalCache.get(identifier);
-        if (cached != null) {
-            return cached;
-        }
+        // Account state is authoritative in the database on each authentication.
+        // A cached principal must never extend access after a lock/delete on another node.
 
         User users = userRepository.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue(identifier)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy tên người dùng hoặc email: " + identifier));

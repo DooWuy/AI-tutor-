@@ -43,6 +43,7 @@ const StudyClassDetailPage = lazy(() => import('./pages/Teacher/Classes/StudyCla
 
 // Admin Pages
 const AdminDashboardPage = lazy(() => import('./pages/Admin/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
+const UserManagementPage = lazy(() => import('./pages/Admin/Users/UserManagementPage').then(m => ({ default: m.UserManagementPage })));
 const AdminStudentDetailShell = lazy(() => import('./pages/Admin/Students/AdminStudentDetailShell').then(m => ({ default: m.AdminStudentDetailShell })));
 const StudentManagementPage = lazy(() => import('./pages/Admin/Students/StudentManagementPage').then(m => ({ default: m.StudentManagementPage })));
 const SkillsManagementPage = lazy(() => import('./pages/Admin/Skills/SkillsManagementPage').then(m => ({ default: m.SkillsManagementPage })));
@@ -132,6 +133,7 @@ function App() {
                         <Route index element={<Navigate to="/admin/students" replace />} />
                         <Route path="dashboard" element={<AdminDashboardPage />} />
                         <Route path="students" element={<StudentManagementPage />} />
+                        <Route path="users" element={<UserManagementPage />} />
                         <Route path="students/:studentId" element={<AdminStudentDetailShell />} />
                         <Route path="skills" element={<SkillsManagementPage />} />
                         <Route path="settings" element={<SystemSettingsPage />} />

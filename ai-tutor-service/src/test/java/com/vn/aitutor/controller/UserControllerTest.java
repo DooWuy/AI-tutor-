@@ -110,12 +110,13 @@ class UserControllerTest {
     @Test
     void updateStatus_returnsSuccess() {
         UUID id = UUID.randomUUID();
-        when(userService.updateStatus(id)).thenReturn(ApiResponse.<UserResponse>builder()
+        when(userService.setStatus(id, false)).thenReturn(ApiResponse.<UserResponse>builder()
                 .success(true)
                 .message("Cập nhật trạng thái thành công")
                 .build());
 
-        ResponseEntity<ApiResponse<UserResponse>> response = userController.updateStatus(id);
+        ResponseEntity<ApiResponse<UserResponse>> response = userController.setStatus(id,
+                new com.vn.aitutor.dto.request.user.AccountStatusRequest(false));
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(response.getBody().isSuccess());

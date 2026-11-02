@@ -80,6 +80,9 @@ class WebSocketBrokerIntegrationTest {
                 .withExposedPorts(80);
         nginx.start();
         url = "ws://" + nginx.getHost() + ":" + nginx.getMappedPort(80) + "/ws";
+        // Explicit diagnostic mode for hosts where Docker -> host SSH forwarding is unavailable.
+        // Default still exercises nginx; direct mode must be reported separately.
+        if ("true".equals(System.getenv("WEBSOCKET_DIRECT"))) url = "ws://localhost:" + backendPort + "/ws";
         client = new WebSocketStompClient(new StandardWebSocketClient());
         clientScheduler = new org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler();
         clientScheduler.initialize();
@@ -230,16 +233,42 @@ class WebSocketBrokerIntegrationTest {
         assertFalse(json.has("user")); assertFalse(json.has("eventKey"));
     }
 
+    @Test void lockingAccountSuppressesExistingPersonalSubscription() throws Exception {
+        var repository = web.getBean(com.vn.aitutor.repository.UserRepository.class);
+        var session = connect("one-token", new StompSessionHandlerAdapter() {});
+        var received = new LinkedBlockingQueue<String>();
+        subscribe(session, "/user/queue/notifications", strings(received::add));
+        var messaging = web.getBean(SimpMessagingTemplate.class);
+        messaging.convertAndSendToUser("one", "/queue/notifications", "before-lock");
+        assertEquals("before-lock", received.poll(10, TimeUnit.SECONDS));
+        when(repository.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue("one")).thenReturn(Optional.empty());
+        try {
+            messaging.convertAndSendToUser("one", "/queue/notifications", "after-lock");
+            assertNull(received.poll(1, TimeUnit.SECONDS));
+        } finally {
+            when(repository.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue("one")).thenReturn(Optional.of(new User()));
+        }
+    }
+
     @Configuration
     @EnableWebMvc
     @Import({WebSocketConfig.class, WebSocketSecurityConfig.class, WebSocketChannelInterceptor.class,
-            OwnedChatDestinationAuthorization.class, WebSocketExceptionHandler.class, ChatWebSocketController.class})
+            OwnedChatDestinationAuthorization.class, WebSocketExceptionHandler.class, ChatWebSocketController.class,
+            ActiveAccountOutboundInterceptor.class})
     static class Config {
+        @Bean com.vn.aitutor.repository.UserRepository accounts() {
+            var repository = mock(com.vn.aitutor.repository.UserRepository.class);
+            when(repository.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue(anyString())).thenReturn(Optional.of(new User()));
+            return repository;
+        }
         @Bean JwtProvider jwtProvider() {
             return new JwtProvider(mock(com.vn.aitutor.security.jwt.TokenBlacklistService.class));
         }
-        @Bean UserDetailsService users() {
+        @Bean UserDetailsService users(com.vn.aitutor.repository.UserRepository accounts) {
             return name -> {
+                if (accounts.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue(name).isEmpty()) {
+                    throw new org.springframework.security.core.userdetails.UsernameNotFoundException("Account disabled");
+                }
                 var user = new User(); user.setId(name.equals("one") ? ONE : TWO); user.setUsername(name);
                 return UserPrincipal.builder().users(user).authorities(List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))).build();
             };

@@ -52,6 +52,40 @@ import java.time.LocalDateTime;
 @Transactional
 public class UserServiceImpl implements IUserService {
 
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponseDTO<UserResponse> searchAccounts(Role role, Boolean active, String search, PageRequest pageRequest) {
+        Page<User> page = userRepository.searchAccounts(role, active,
+                StringUtils.hasText(search) ? search.trim() : null, pageRequest);
+        return PageResponseDTO.<UserResponse>builder().content(page.map(this::mapToUserResponse).getContent())
+                .page(page.getNumber() + 1).size(page.getSize()).totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages()).build();
+    }
+
+    @Override
+    public ApiResponse<UserResponse> setStatus(UUID id, boolean active) {
+        userRepository.lockAdminAccounts();
+        User user = getUserById(id);
+        if (!active) protectLastAdmin(user);
+        user.setActive(active);
+        User saved = userRepository.save(user);
+        evictPrincipal(user);
+        return ApiResponse.<UserResponse>builder().success(true).message("Cập nhật trạng thái thành công")
+                .data(mapToUserResponse(saved)).build();
+    }
+
+    private void protectLastAdmin(User user) {
+        if (user.getRole() == Role.ADMIN && user.isActive() && !user.isDeleted()
+                && userRepository.countByRoleAndActiveTrueAndIsDeletedFalse(Role.ADMIN) <= 1) {
+            throw new ResourceConflictException("Không thể vô hiệu hóa Admin hoạt động cuối cùng");
+        }
+    }
+
+    private void evictPrincipal(User user) {
+        userPrincipalCache.evict(user.getUsername());
+        userPrincipalCache.evict(user.getEmail());
+    }
+
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
     private final TeacherRepository teacherRepository;
@@ -234,21 +268,13 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public ApiResponse<UserResponse> updateStatus(UUID id) {
-        User user = getUserById(id);
-        user.setActive(!user.isActive());
-        User updatedUser = userRepository.save(user);
-
-        return ApiResponse.<UserResponse>builder()
-                .success(true)
-                .message(user.isActive() ? "User activated" : "User deactivated")
-                .data(mapToUserResponse(updatedUser))
-                .build();
-    }
-
-    @Override
     public ApiResponse<UserResponse> updateRole(UUID id, UpdateRoleRequest request) {
+        userRepository.lockAdminAccounts();
         User user = getUserById(id);
+        // Role transitions require profile/history migration; never just change the discriminator.
+        if (user.getRole() != request.getRole()) {
+            throw new ResourceConflictException("Đổi vai trò cần quy trình chuyển hồ sơ; hãy tạo tài khoản đúng vai trò");
+        }
         user.setRole(request.getRole());
         User updatedUser = userRepository.save(user);
 
@@ -261,9 +287,12 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public ApiResponse<String> deleteProfile(UUID id) {
+        userRepository.lockAdminAccounts();
         User user = getUserById(id);
+        protectLastAdmin(user);
         user.setDeleted(true);
         userRepository.save(user);
+        evictPrincipal(user);
 
         return ApiResponse.<String>builder()
                 .success(true)

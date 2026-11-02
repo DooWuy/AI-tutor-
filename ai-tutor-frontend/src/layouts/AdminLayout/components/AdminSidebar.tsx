@@ -63,8 +63,6 @@ const navSections: NavSection[] = [
         to: '/admin/users',
         label: 'Tài khoản người dùng',
         icon: UserCog,
-        badge: 'Sắp có',
-        isPlaceholder: true,
       },
       {
         to: '/admin/documents',

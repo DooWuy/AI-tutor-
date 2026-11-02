@@ -40,13 +40,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String username = jwtProvider.getUsernameFromToken(token);
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()) {
+                    throw new org.springframework.security.authentication.DisabledException("Account disabled");
+                }
 
                 SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities()
                 ));
             }
         } catch (Exception e) {
-            log.error(e.getMessage());
+            SecurityContextHolder.clearContext();
+            log.debug("Authentication rejected: {}", e.getClass().getSimpleName());
         }
         filterChain.doFilter(request, response);
     }

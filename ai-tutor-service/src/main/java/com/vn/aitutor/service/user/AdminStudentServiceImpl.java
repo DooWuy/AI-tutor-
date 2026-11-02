@@ -153,10 +153,10 @@ public class AdminStudentServiceImpl implements IAdminStudentService {
     }
 
     @Override
-    public ApiResponse<StudentStatusUpdateResponse> toggleStudentStatus(UUID studentId) {
+    public ApiResponse<StudentStatusUpdateResponse> setStudentStatus(UUID studentId, boolean active) {
         Student student = findStudent(studentId);
         User user = student.getUser();
-        user.setActive(!user.isActive());
+        user.setActive(active);
         userRepository.save(user);
         userPrincipalCache.evict(user.getUsername());
         userPrincipalCache.evict(user.getEmail());

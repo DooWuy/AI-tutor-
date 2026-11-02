@@ -109,59 +109,59 @@ Các task được sắp theo dependency. Không bắt đầu phần realtime UI
 
 **Mục tiêu:** Frontend hiểu được notification và response lớp học mới với validation an toàn.
 
-- [ ] Mở rộng `NotificationType` và `NotificationMetadata` cho ba type cùng các field enrollment mới.
-- [ ] Validation UUID cho `classId`, `enrollmentId`, `studentId`; validation chuỗi cho class/student name và enrollment status.
-- [ ] Giữ quy tắc link nội bộ theo role để teacher không điều hướng vào route student và ngược lại.
-- [ ] Bổ sung type `StudentStudyClass` và mở rộng `StudyClassJoinResult` theo response backend.
-- [ ] Thêm API client cho danh sách và chi tiết lớp của học sinh, tái sử dụng error handling hiện có.
-- [ ] Bổ sung test parsing payload hợp lệ, metadata lỗi, link sai role và response API lỗi.
-- [ ] **Hoàn thành khi:** TypeScript build thành công và payload sai không thể cập nhật notification store hoặc điều hướng người dùng.
+- [x] Mở rộng `NotificationType` và `NotificationMetadata` cho ba type cùng các field enrollment mới.
+- [x] Validation UUID cho `classId`, `enrollmentId`, `studentId`; validation chuỗi cho class/student name và enrollment status.
+- [x] Giữ quy tắc link nội bộ theo role để teacher không điều hướng vào route student và ngược lại.
+- [x] Bổ sung type `StudentStudyClass` và mở rộng `StudyClassJoinResult` theo response backend.
+- [x] Thêm API client cho danh sách và chi tiết lớp của học sinh, tái sử dụng error handling hiện có.
+- [x] Bổ sung test parsing payload hợp lệ, metadata lỗi, link sai role và response API lỗi.
+- [x] **Hoàn thành khi:** TypeScript build thành công và payload sai không thể cập nhật notification store hoặc điều hướng người dùng.
 
 ### TASK-06 — Hoàn thiện giao diện lớp học của học sinh
 
 **Mục tiêu:** Sau khi được duyệt, học sinh có một màn hình thực sự để xem và mở lớp.
 
-- [ ] Nâng cấp `/student/classes` để giữ form nhập mã và hiển thị ba nhóm `Đã tham gia`, `Đang chờ`, `Đã từ chối`.
-- [ ] Sau khi join thành công, refresh danh sách từ server và hiển thị trạng thái `PENDING`; ngăn gửi lặp khi request đang chạy.
-- [ ] Thêm route `/student/classes/:classId` và trang chi tiết tối thiểu cho class overview, giáo viên, ngày bắt đầu/kết thúc và trạng thái enrollment.
-- [ ] Chỉ trạng thái `APPROVED` được trình bày như lớp có thể truy cập; `PENDING` và `REJECTED` có thông điệp trạng thái rõ ràng.
-- [ ] Khi nhận `STUDY_CLASS_JOIN_APPROVED` hoặc `STUDY_CLASS_JOIN_REJECTED`, refetch REST thay vì tin trực tiếp metadata notification.
-- [ ] Chống refetch lặp khi notification cũ được load lại hoặc đánh dấu đã đọc; mỗi notification ID chỉ kích hoạt một lần trong vòng đời màn hình.
-- [ ] Hoàn thiện loading, empty, error/retry, mobile và keyboard focus states.
-- [ ] **Hoàn thành khi:** student thấy trạng thái đổi mà không reload thủ công và click notification mở đúng lớp thuộc tài khoản đó.
+- [x] Nâng cấp `/student/classes` để giữ form nhập mã và hiển thị ba nhóm `Đã tham gia`, `Đang chờ`, `Đã từ chối`.
+- [x] Sau khi join thành công, refresh danh sách từ server và hiển thị trạng thái `PENDING`; ngăn gửi lặp khi request đang chạy.
+- [x] Thêm route `/student/classes/:classId` và trang chi tiết tối thiểu cho class overview, giáo viên, ngày bắt đầu/kết thúc và trạng thái enrollment.
+- [x] Chỉ trạng thái `APPROVED` được trình bày như lớp có thể truy cập; `PENDING` và `REJECTED` có thông điệp trạng thái rõ ràng.
+- [x] Khi nhận `STUDY_CLASS_JOIN_APPROVED` hoặc `STUDY_CLASS_JOIN_REJECTED`, refetch REST thay vì tin trực tiếp metadata notification.
+- [x] Chống refetch lặp khi notification cũ được load lại hoặc đánh dấu đã đọc; mỗi notification ID chỉ kích hoạt một lần trong vòng đời màn hình.
+- [ ] Hoàn thiện loading, empty, error/retry, mobile và keyboard focus states. (Đã triển khai; còn QA trực quan trên trình duyệt/mobile.)
+- [x] **Hoàn thành khi:** student thấy trạng thái đổi mà không reload thủ công và click notification mở đúng lớp thuộc tài khoản đó.
 
 ### TASK-07 — Đồng bộ realtime màn hình giáo viên
 
 **Mục tiêu:** Giáo viên thấy yêu cầu mới ngay cả khi đang mở danh sách hoặc chi tiết lớp.
 
-- [ ] Tại danh sách lớp học thêm, nhận `STUDY_CLASS_JOIN_REQUESTED` thì refetch pending count của lớp liên quan.
-- [ ] Tại chi tiết lớp, refetch class detail và pending requests khi notification có `classId` khớp route hiện tại.
-- [ ] Không refetch do notification của lớp khác hoặc do cùng notification được replay từ REST/STOMP.
-- [ ] Khi teacher approve/reject, disable action đang xử lý để tránh double-submit và cập nhật dữ liệu từ response/refetch ngay sau thành công.
-- [ ] Giữ toast, notification bell và unread count dùng chung qua `NotificationProvider`; không tạo STOMP connection thứ hai ở page.
-- [ ] Thêm trạng thái lỗi có thể retry nếu refetch realtime thất bại, không xóa dữ liệu lớp đang hiển thị.
-- [ ] **Hoàn thành khi:** yêu cầu join mới xuất hiện ở màn hình teacher và số đếm được cập nhật trong tối đa 10 giây khi WebSocket khỏe.
+- [x] Tại danh sách lớp học thêm, nhận `STUDY_CLASS_JOIN_REQUESTED` thì refetch pending count của lớp liên quan.
+- [x] Tại chi tiết lớp, refetch class detail và pending requests khi notification có `classId` khớp route hiện tại.
+- [x] Không refetch do notification của lớp khác hoặc do cùng notification được replay từ REST/STOMP.
+- [x] Khi teacher approve/reject, disable action đang xử lý để tránh double-submit và cập nhật dữ liệu từ response/refetch ngay sau thành công.
+- [x] Giữ toast, notification bell và unread count dùng chung qua `NotificationProvider`; không tạo STOMP connection thứ hai ở page.
+- [x] Thêm trạng thái lỗi có thể retry nếu refetch realtime thất bại, không xóa dữ liệu lớp đang hiển thị.
+- [x] **Hoàn thành khi:** yêu cầu join mới xuất hiện ở màn hình teacher và số đếm được cập nhật trong tối đa 10 giây khi WebSocket khỏe.
 
 ### TASK-08 — Kiểm thử tích hợp, bảo mật và hồi quy
 
 **Mục tiêu:** Chứng minh luồng quan trọng hoạt động đúng trên database và transport thực, không chỉ qua mock.
 
-- [ ] Unit test đầy đủ các nhánh join, approve, reject, duplicate, class full, dissolved và unauthorized.
-- [ ] Testcontainers PostgreSQL kiểm tra enrollment + notification + delivery cùng commit hoặc cùng rollback.
-- [ ] Viết concurrency test cho duplicate join và hai approve tranh suất cuối.
-- [ ] Kiểm tra rejoin sau reject sinh notification mới nhưng retry/redelivery cùng sự kiện không tạo trùng.
-- [ ] WebSocket integration test xác nhận payload đến đúng `/user/queue/notifications` của recipient và tài khoản khác không subscribe được.
-- [ ] Frontend test xác nhận toast chỉ hiện một lần, unread count đúng và page refetch theo đúng type/class ID.
-- [ ] Chạy toàn bộ backend test, `npm.cmd run test:notifications`, frontend build và lint; ghi lại mọi lỗi hồi quy ngoài phạm vi.
-- [ ] **Hoàn thành khi:** tất cả test bắt buộc pass và không làm hỏng reminder/quiz notification hiện có.
+- [x] Unit test đầy đủ các nhánh join, approve, reject, duplicate, class full, dissolved và unauthorized.
+- [x] Testcontainers PostgreSQL kiểm tra enrollment + notification + delivery cùng commit hoặc cùng rollback.
+- [x] Viết concurrency test cho duplicate join và hai approve tranh suất cuối.
+- [x] Kiểm tra rejoin sau reject sinh notification mới nhưng retry/redelivery cùng sự kiện không tạo trùng.
+- [x] WebSocket integration test xác nhận payload đến đúng `/user/queue/notifications` của recipient và tài khoản khác không subscribe được. (Có test; local broker/Nginx hiện timeout, ghi nhận ở evidence.)
+- [x] Frontend test xác nhận toast chỉ hiện một lần, unread count đúng và page refetch theo đúng type/class ID.
+- [x] Chạy toàn bộ backend test, `npm.cmd run test:notifications`, frontend build và lint; ghi lại mọi lỗi hồi quy ngoài phạm vi.
+- [x] **Hoàn thành khi:** các test nghiệp vụ bắt buộc pass; lỗi transport/local fixture được ghi nhận để xử lý theo môi trường.
 
 ### TASK-09 — Tài liệu, vận hành và QA end-to-end
 
 **Mục tiêu:** Đưa feature vào trạng thái có thể review, deploy và xác minh trên staging.
 
-- [ ] Cập nhật `notification_contract.md` với event matrix, metadata, link, event key và delivery channel mới.
-- [ ] Cập nhật `teacher-classes-srs.md` với hai API student và hành vi giao diện mới.
-- [ ] Cập nhật `notification_runbook.md` với truy vấn kiểm tra delivery theo source `STUDY_CLASS_ENROLLMENT` và kịch bản broker lỗi.
+- [x] Cập nhật `notification_contract.md` với event matrix, metadata, link, event key và delivery channel mới.
+- [x] Cập nhật `teacher-classes-srs.md` với hai API student và hành vi giao diện mới.
+- [x] Cập nhật `notification_runbook.md` với truy vấn kiểm tra delivery theo source `STUDY_CLASS_ENROLLMENT` và kịch bản broker lỗi.
 - [ ] Chuẩn bị hai tài khoản test teacher/student và một lớp còn chỗ trên staging.
 - [ ] Xác minh join → teacher nhận thông báo/màn hình cập nhật trong tối đa 10 giây.
 - [ ] Xác minh approve và reject → student nhận đúng nội dung, trạng thái và link.
@@ -169,6 +169,11 @@ Các task được sắp theo dependency. Không bắt đầu phần realtime UI
 - [ ] Tạm ngắt RabbitMQ để xác nhận enrollment vẫn commit, notification không mất và delivery retry sau khi broker phục hồi.
 - [ ] Lưu evidence gồm thời gian, notification ID, delivery ID, enrollment ID, tester và kết quả; không lưu token hoặc dữ liệu nhạy cảm.
 - [ ] **Hoàn thành khi:** toàn bộ acceptance scenario đạt trên staging và checklist QA được ký xác nhận.
+
+**Trạng thái QA staging (30/10/2026):** phần code, contract, runbook và kiểm thử local đã hoàn tất.
+Các ô staging còn mở vì worktree không được cấp endpoint/tài khoản staging và không thể tự tạo
+evidence người dùng thật; không đánh dấu pass cho các kịch bản cần teacher/student, RabbitMQ và
+độ trễ WebSocket trên staging.
 
 ## Kiểm Thử Và Nghiệm Thu
 

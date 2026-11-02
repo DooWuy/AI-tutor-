@@ -34,7 +34,7 @@ export function LockUnlockDialog({ isOpen, student, onClose, onSuccess }: LockUn
     setErrorMessage(null);
     try {
       setSubmitting(true);
-      await toggleStudentStatus(student.studentId);
+      await toggleStudentStatus(student.studentId, !student.active);
       const toastText = isLocking
         ? 'Đã khóa tài khoản học sinh.'
         : 'Đã mở khóa tài khoản học sinh.';

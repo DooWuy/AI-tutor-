@@ -113,11 +113,12 @@ class AdminStudentControllerTest {
     @Test
     void toggleStatus_returnsSuccess() {
         UUID studentId = UUID.randomUUID();
-        when(adminStudentService.toggleStudentStatus(studentId)).thenReturn(ApiResponse.<StudentStatusUpdateResponse>builder()
+        when(adminStudentService.setStudentStatus(studentId, false)).thenReturn(ApiResponse.<StudentStatusUpdateResponse>builder()
                 .success(true)
                 .build());
 
-        ResponseEntity<ApiResponse<StudentStatusUpdateResponse>> response = controller.toggleStatus(studentId);
+        ResponseEntity<ApiResponse<StudentStatusUpdateResponse>> response = controller.setStatus(studentId,
+                new com.vn.aitutor.dto.request.user.AccountStatusRequest(false));
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(response.getBody().isSuccess());
