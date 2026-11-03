@@ -46,6 +46,9 @@ import com.vn.aitutor.entity.PasswordResetToken;
 import com.vn.aitutor.repository.PasswordResetTokenRepository;
 import com.vn.aitutor.security.otp.PasswordChangeOtpCache;
 import com.vn.aitutor.security.principal.UserPrincipalCache;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+import java.util.ArrayList;
 import java.time.LocalDateTime;
 
 @Service
@@ -56,8 +59,27 @@ public class UserServiceImpl implements IUserService {
     @Override
     @Transactional(readOnly = true)
     public PageResponseDTO<UserResponse> searchAccounts(Role role, Boolean active, String search, PageRequest pageRequest) {
-        Page<User> page = userRepository.searchAccounts(role, active,
-                StringUtils.hasText(search) ? search.trim() : null, pageRequest);
+        Specification<User> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.isFalse(root.get("isDeleted")));
+            if (role != null) {
+                predicates.add(cb.equal(root.get("role"), role));
+            }
+            if (active != null) {
+                predicates.add(cb.equal(root.get("active"), active));
+            }
+            if (StringUtils.hasText(search)) {
+                String pattern = "%" + search.trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("fullName")), pattern),
+                        cb.like(cb.lower(root.get("email")), pattern),
+                        cb.like(cb.lower(root.get("username")), pattern)
+                ));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<User> page = userRepository.findAll(spec, pageRequest);
         return PageResponseDTO.<UserResponse>builder().content(mapAccounts(page.getContent()))
                 .page(page.getNumber() + 1).size(page.getSize()).totalElements(page.getTotalElements())
                 .totalPages(page.getTotalPages()).build();
@@ -453,7 +475,7 @@ public class UserServiceImpl implements IUserService {
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
                 .avatarUrl(user.getAvatarUrl())
-                .role(user.getRole().name())
+                .role(user.getRole() != null ? user.getRole().name() : null)
                 .gender(user.getGender() != null ? user.getGender().name() : null)
                 .dateOfBirth(user.getDateOfBirth())
                 .active(user.isActive())
