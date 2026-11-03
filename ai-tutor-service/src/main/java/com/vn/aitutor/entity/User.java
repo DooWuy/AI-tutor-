@@ -63,6 +63,17 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
+    // Null for existing accounts. Administrative lock remains independent.
+    @Column(name = "invitation_status", length = 16)
+    private String invitationStatus;
+
+    @Column(name = "invitation_requested_at")
+    private java.time.Instant invitationRequestedAt;
+
+    public boolean isSetupComplete() {
+        return invitationStatus == null || "COMPLETED".equals(invitationStatus);
+    }
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

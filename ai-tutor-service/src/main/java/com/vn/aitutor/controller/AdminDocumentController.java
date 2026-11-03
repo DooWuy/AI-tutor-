@@ -30,22 +30,22 @@ public class AdminDocumentController {
      */
     @PostMapping(value = "/ingest/pdf", consumes = {"multipart/form-data"})
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')") // Giới hạn quyền Admin hoặc Giáo viên
-    public ResponseEntity<ApiResponse<Void>> ingestPdf(
+    public ResponseEntity<ApiResponse<java.util.UUID>> ingestPdf(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestParam("file") MultipartFile file,
             @RequestParam("subject") String subject,
             @RequestParam("gradeLevel") String gradeLevel) {
         log.info("Nhận được request nạp file PDF: {}", file.getOriginalFilename());
         try {
-            documentIngestionService.ingestPdfDocument(
+            java.util.UUID id = documentIngestionService.ingestPdfDocument(
                     file, 
                     subject, 
                     gradeLevel, 
                     userPrincipal.getUsers().getId()
             );
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.<Void>builder()
-                    .success(true)
+            return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.<java.util.UUID>builder()
+                    .success(true).data(id)
                     .message("Tài liệu đã được tải lên thành công. Quá trình bóc tách OCR và Vector hóa đang chạy ngầm.")
                     .build());
             
@@ -53,9 +53,9 @@ public class AdminDocumentController {
                 | ServiceUnavailableException | IngestionException e) {
             throw e;
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.<Void>builder()
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.<java.util.UUID>builder()
                     .success(false)
-                    .message("Lỗi khi nạp file PDF: " + e.getMessage())
+                    .message("Không thể tải tài liệu. Vui lòng thử lại.")
                     .build());
         }
     }

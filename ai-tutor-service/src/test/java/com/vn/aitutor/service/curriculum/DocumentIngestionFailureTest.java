@@ -61,7 +61,7 @@ class DocumentIngestionFailureTest {
         document.setGradeLevel("12");
         document.setStatus(DocumentStatus.PROCESSING);
         document.setCreatedBy(owner);
-        when(documentRepository.findById(documentId)).thenReturn(Optional.of(document));
+        when(documentRepository.lockById(documentId)).thenReturn(Optional.of(document));
         when(cloudinaryService.materialize(document.getFilePath())).thenReturn(File.createTempFile("aitutor-", ".pdf"));
         when(textExtractor.extract(any(), any())).thenReturn("Công thức $$\\int_{a}^{b} f(x) dx$$");
         when(embeddingService.embed(any())).thenThrow(new IngestionException("hạn mức"));
@@ -92,5 +92,12 @@ class DocumentIngestionFailureTest {
 
     private static void assertEqualsMessage(String expected, String actual) {
         org.junit.jupiter.api.Assertions.assertEquals(expected, actual);
+    }
+
+    @Test void duplicateSuccessfulMessageDoesNotEmbedOrWriteAgain() {
+        UUID id=UUID.randomUUID();Document doc=new Document();doc.setStatus(DocumentStatus.SUCCESS);
+        when(documentRepository.lockById(id)).thenReturn(Optional.of(doc));
+        processor.ingest(DocumentIngestionMessage.builder().documentId(id).build());
+        verify(embeddingService,never()).embed(any());verify(documentChunkRepository,never()).saveAll(any());
     }
 }

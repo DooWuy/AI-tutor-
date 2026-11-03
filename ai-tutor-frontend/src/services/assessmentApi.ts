@@ -196,7 +196,8 @@ export const quizAdminApi = {
   ) => request<GenerationJob>(`/quizzes/${quizId}/generation-jobs`, { method: 'POST', body: JSON.stringify(body) }),
   currentGeneration: (quizId: string) =>
     request<GenerationJob | null>(`/quizzes/${quizId}/generation-jobs/current`),
-  statistics: (quizId: string) => request<QuizStatistics>(`/quizzes/${quizId}/statistics`),
+  review: (quizId: string) => request<QuizItem>(`/quizzes/${quizId}/review`, {method:'POST'}),
+  statistics: (quizId: string, page = 1) => request<QuizStatistics>(`/quizzes/${quizId}/report?page=${page}&size=20`),
   async downloadExcel(quizId: string) {
     const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/statistics/export.xlsx`, {
       credentials: 'include',

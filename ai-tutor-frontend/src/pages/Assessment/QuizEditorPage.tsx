@@ -28,6 +28,7 @@ export default function QuizEditorPage() {
   const [skills, setSkills] = useState<SkillItem[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const reviewing=useRef(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
   const [pickerSkill, setPickerSkill] = useState('');
@@ -229,6 +230,7 @@ export default function QuizEditorPage() {
       <Link className="text-sm text-primary hover:underline" to={`${base}/quizzes`}>Quản lý đề thi</Link>
       <h1 className="text-2xl font-bold text-on-surface">{quizId ? 'Soạn đề thi' : 'Tạo đề thi'}</h1>
       <ErrorBanner message={error} />
+      {quiz?.reviewRequired && <div className="rounded-xl border border-outline-variant p-4"><p>Câu hỏi AI cần được xem và duyệt trước khi phát hành.</p><PrimaryButton disabled={saving} onClick={async()=>{if(!quizId||reviewing.current)return;reviewing.current=true;setSaving(true);try{setQuiz(await quizAdminApi.review(quizId));}catch(e){setError(e instanceof Error?e.message:'Không duyệt được câu hỏi');}finally{reviewing.current=false;setSaving(false);}}}>Tôi đã kiểm tra và duyệt câu hỏi AI</PrimaryButton></div>}
       <div className="grid gap-3 rounded-2xl border border-outline-variant p-4 md:grid-cols-2">
         <Field label="Tiêu đề">
           <input className={inputClass} value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />

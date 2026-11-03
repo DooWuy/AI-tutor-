@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertCircle, AlertTriangle, RefreshCw, Trash2, X } from 'lucide-react';
 import { deleteStudent, AdminStudentApiError } from '../../../../services/adminStudentApi';
 import type { AdminStudentDetail, AdminStudentListItem } from '../../../../types/adminStudent';
 
@@ -48,43 +48,59 @@ export function DeleteConfirmDialog({ isOpen, student, onClose, onSuccess }: Del
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#181c22]/50 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
       role="dialog"
       aria-modal="true"
       aria-labelledby="delete-confirm-dialog-title"
     >
-      <div className="w-full max-w-md rounded-2xl bg-surface-container-lowest border border-outline-variant/70 shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-start gap-3.5">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-error-container text-on-error-container">
-            <Trash2 size={20} />
+      <div className="w-full max-w-md rounded-2xl bg-surface-container-lowest border border-outline-variant/80 shadow-2xl p-6 space-y-4 student-modal-enter">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3.5">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-rose-500/15 text-rose-600 dark:text-rose-400 shadow-xs">
+              <Trash2 size={22} />
+            </div>
+            <div>
+              <h3 id="delete-confirm-dialog-title" className="text-base font-extrabold text-on-surface">
+                Xóa học sinh khỏi danh sách?
+              </h3>
+              <p className="text-xs font-bold text-primary mt-0.5">
+                {student.fullName} ({student.studentCode})
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 id="delete-confirm-dialog-title" className="text-base font-bold text-on-surface">
-              Xóa học sinh khỏi danh sách quản lý?
-            </h3>
-            <p className="text-xs font-semibold text-primary mt-0.5">
-              {student.fullName} ({student.studentCode})
-            </p>
-          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-7 w-7 place-items-center rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
+            aria-label="Đóng dialog"
+          >
+            <X size={16} />
+          </button>
         </div>
 
         {errorMessage && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-error-container/40 border border-error/30 text-on-error-container text-xs">
-            <AlertCircle size={15} className="shrink-0 text-error" />
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-error-container/40 border border-error/30 text-on-error-container text-xs font-semibold">
+            <AlertCircle size={16} className="shrink-0 text-error" />
             <span>{errorMessage}</span>
           </div>
         )}
 
-        <p className="text-xs text-on-surface-variant leading-relaxed">
-          Đây là xóa mềm. Tài khoản sẽ bị ẩn khỏi danh sách vận hành, nhưng lịch sử học tập, bài làm và hội thoại vẫn được giữ lại để bảo toàn dữ liệu báo cáo.
-        </p>
+        <div className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20 text-xs text-on-surface-variant leading-relaxed">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+            <p>
+              Đây là thao tác <strong>xóa mềm (soft delete)</strong>. Tài khoản học sinh sẽ bị ẩn khỏi danh sách vận hành, nhưng toàn bộ lịch sử điểm số, bài quiz và hội thoại AI <strong>vẫn được giữ nguyên</strong> trong cơ sở dữ liệu để bảo toàn thống kê hệ thống.
+            </p>
+          </div>
+        </div>
 
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-outline-variant/30">
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-outline-variant/40">
           <button
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="px-4 py-2 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+            className="px-4 py-2.5 text-xs font-bold text-on-surface-variant hover:bg-surface-container hover:text-on-surface rounded-xl transition-all cursor-pointer disabled:opacity-50"
           >
             Hủy
           </button>
@@ -92,10 +108,10 @@ export function DeleteConfirmDialog({ isOpen, student, onClose, onSuccess }: Del
             type="button"
             onClick={handleConfirm}
             disabled={submitting}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-error hover:bg-error/90 rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white bg-error hover:bg-error/90 rounded-xl shadow-xs shadow-red-900/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             {submitting && <RefreshCw size={13} className="animate-spin" />}
-            <span>{submitting ? 'Đang xóa...' : 'Xóa mềm'}</span>
+            <span>{submitting ? 'Đang xóa...' : 'Xác nhận xóa mềm'}</span>
           </button>
         </div>
       </div>

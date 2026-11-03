@@ -21,6 +21,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketChannelInterceptor webSocketChannelInterceptor;
     private final WebSocketExceptionHandler webSocketExceptionHandler;
+    private final com.vn.aitutor.security.websocket.ActiveAccountOutboundInterceptor activeAccountOutboundInterceptor;
 
     @Value("${RABBITMQ_HOST:localhost}")
     private String rabbitHost;
@@ -66,5 +67,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(webSocketChannelInterceptor);
+    }
+
+    @Override
+    public void configureClientOutboundChannel(ChannelRegistration registration) {
+        registration.interceptors(activeAccountOutboundInterceptor);
     }
 }

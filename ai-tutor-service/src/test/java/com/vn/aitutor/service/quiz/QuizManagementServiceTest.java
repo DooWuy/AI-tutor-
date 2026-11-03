@@ -97,11 +97,12 @@ class QuizManagementServiceTest {
         quiz.setTitle("Đề kiểm tra");
         quiz.setSubject("TOAN");
         quiz.setGradeLevel("12");
+        org.mockito.Mockito.lenient().when(quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId())).thenReturn(List.of(validQuestion()));
     }
 
     @Test
     void multiSelectCountIsPartOfTheRatio() {
-        when(quizAccess.require(quiz.getId(), null)).thenReturn(quiz);
+        when(quizAccess.requireLocked(quiz.getId(), null)).thenReturn(quiz);
         QuizGenerateRequest request = request(5, 3, 1, 1, 0);
 
         service.validateGenerate(quiz.getId(), request, null);
@@ -115,7 +116,7 @@ class QuizManagementServiceTest {
 
     @Test
     void missingMultiSelectCountCountsAsZero() {
-        when(quizAccess.require(quiz.getId(), null)).thenReturn(quiz);
+        when(quizAccess.requireLocked(quiz.getId(), null)).thenReturn(quiz);
         QuizGenerateRequest request = request(5, 3, null, 1, 1);
 
         service.validateGenerate(quiz.getId(), request, null);
@@ -124,7 +125,7 @@ class QuizManagementServiceTest {
     @Test
     void publishRequiresAtLeastOneClass() {
         UserPrincipal teacher = principal(Role.TEACHER);
-        when(quizAccess.require(quiz.getId(), teacher)).thenReturn(quiz);
+        when(quizAccess.requireLocked(quiz.getId(), teacher)).thenReturn(quiz);
         when(quizQuestionRepository.countByQuizId(quiz.getId())).thenReturn(1L);
 
         ResourceBadRequestException error = assertThrows(
@@ -142,7 +143,7 @@ class QuizManagementServiceTest {
         Teacher profile = new Teacher();
         profile.setId(UUID.randomUUID());
         SchoolClass schoolClass = schoolClass(classId, "12");
-        when(quizAccess.require(quiz.getId(), teacher)).thenReturn(quiz);
+        when(quizAccess.requireLocked(quiz.getId(), teacher)).thenReturn(quiz);
         when(quizQuestionRepository.countByQuizId(quiz.getId())).thenReturn(1L);
         when(teacherRepository.findByUserId(teacher.getUsers().getId())).thenReturn(Optional.of(profile));
         when(schoolClassRepository.findById(classId)).thenReturn(Optional.of(schoolClass));
@@ -158,7 +159,7 @@ class QuizManagementServiceTest {
         UUID classId = UUID.randomUUID();
         Teacher profile = new Teacher();
         profile.setId(UUID.randomUUID());
-        when(quizAccess.require(quiz.getId(), teacher)).thenReturn(quiz);
+        when(quizAccess.requireLocked(quiz.getId(), teacher)).thenReturn(quiz);
         when(quizQuestionRepository.countByQuizId(quiz.getId())).thenReturn(1L);
         when(teacherRepository.findByUserId(teacher.getUsers().getId())).thenReturn(Optional.of(profile));
         when(schoolClassRepository.findById(classId)).thenReturn(Optional.of(schoolClass(classId, "10")));
@@ -174,7 +175,7 @@ class QuizManagementServiceTest {
     void missingClassIsNotFound() {
         UserPrincipal admin = principal(Role.ADMIN);
         UUID classId = UUID.randomUUID();
-        when(quizAccess.require(quiz.getId(), admin)).thenReturn(quiz);
+        when(quizAccess.requireLocked(quiz.getId(), admin)).thenReturn(quiz);
         when(quizQuestionRepository.countByQuizId(quiz.getId())).thenReturn(1L);
         when(schoolClassRepository.findById(classId)).thenReturn(Optional.empty());
 
@@ -192,14 +193,14 @@ class QuizManagementServiceTest {
         QuizClassAssignment stored = new QuizClassAssignment();
         stored.setQuiz(quiz);
         stored.setSchoolClass(schoolClass);
-        when(quizAccess.require(quiz.getId(), teacher)).thenReturn(quiz);
+        when(quizAccess.requireLocked(quiz.getId(), teacher)).thenReturn(quiz);
         when(quizQuestionRepository.countByQuizId(quiz.getId())).thenReturn(1L);
         when(teacherRepository.findByUserId(teacher.getUsers().getId())).thenReturn(Optional.of(profile));
         when(schoolClassRepository.findById(classId)).thenReturn(Optional.of(schoolClass));
         when(assignmentRepository.existsByTeacher_IdAndSchoolClass_Id(profile.getId(), classId)).thenReturn(true);
         when(userRepository.getReferenceById(teacher.getUsers().getId())).thenReturn(teacher.getUsers());
         when(quizRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId())).thenReturn(List.of());
+        when(quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId())).thenReturn(List.of(validQuestion()));
         when(quizAttemptRepository.countByQuizId(quiz.getId())).thenReturn(0L);
         when(quizClassAssignmentRepository.findByQuizIdIn(any())).thenReturn(List.of(stored));
 
@@ -217,7 +218,7 @@ class QuizManagementServiceTest {
         UUID classId = UUID.randomUUID();
         Teacher profile = new Teacher();
         profile.setId(UUID.randomUUID());
-        when(quizAccess.require(quiz.getId(), teacher)).thenReturn(quiz);
+        when(quizAccess.requireLocked(quiz.getId(), teacher)).thenReturn(quiz);
         when(quizQuestionRepository.countByQuizId(quiz.getId())).thenReturn(1L);
         when(teacherRepository.findByUserId(teacher.getUsers().getId())).thenReturn(Optional.of(profile));
         when(schoolClassRepository.findById(classId)).thenReturn(Optional.of(schoolClass(classId, "12")));
@@ -244,14 +245,14 @@ class QuizManagementServiceTest {
         QuizClassAssignment stored = new QuizClassAssignment();
         stored.setQuiz(quiz);
         stored.setSchoolClass(schoolClass);
-        when(quizAccess.require(quiz.getId(), teacher)).thenReturn(quiz);
+        when(quizAccess.requireLocked(quiz.getId(), teacher)).thenReturn(quiz);
         when(quizQuestionRepository.countByQuizId(quiz.getId())).thenReturn(1L);
         when(teacherRepository.findByUserId(teacher.getUsers().getId())).thenReturn(Optional.of(profile));
         when(schoolClassRepository.findById(classId)).thenReturn(Optional.of(schoolClass));
         when(assignmentRepository.existsByTeacher_IdAndSchoolClass_Id(profile.getId(), classId)).thenReturn(true);
         when(userRepository.getReferenceById(teacher.getUsers().getId())).thenReturn(teacher.getUsers());
         when(quizRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId())).thenReturn(List.of());
+        when(quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId())).thenReturn(List.of(validQuestion()));
         when(quizAttemptRepository.countByQuizId(quiz.getId())).thenReturn(0L);
         when(quizClassAssignmentRepository.findByQuizIdIn(any())).thenReturn(List.of(stored));
         Instant start = Instant.parse("2026-10-20T01:00:00Z");
@@ -265,9 +266,9 @@ class QuizManagementServiceTest {
 
     @Test
     void archiveKeepsClassAssignments() {
-        when(quizAccess.require(quiz.getId(), null)).thenReturn(quiz);
+        when(quizAccess.requireLocked(quiz.getId(), null)).thenReturn(quiz);
         when(quizRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId())).thenReturn(List.of());
+        when(quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId())).thenReturn(List.of(validQuestion()));
         when(quizAttemptRepository.countByQuizId(quiz.getId())).thenReturn(0L);
 
         service.archive(quiz.getId(), null);
@@ -278,14 +279,14 @@ class QuizManagementServiceTest {
 
     @Test
     void generateAsksForFourChoicesWhenTheRatioIncludesMultiSelect() {
-        when(quizAccess.require(quiz.getId(), null)).thenReturn(quiz);
+        when(quizAccess.requireLocked(quiz.getId(), null)).thenReturn(quiz);
         when(quizQuestionRepository.maxOrderIndex(quiz.getId())).thenReturn(0);
         when(quizQuestionRepository.findSourceIds(quiz.getId())).thenReturn(List.of());
         when(questionBankRepository.findActiveForQuiz(any(), anyInt(), anyInt(), any(), any(), anyBoolean(), any()))
                 .thenReturn(List.of());
         when(questionComposer.compose(any())).thenReturn(List.of(draft()));
         when(quizRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId())).thenReturn(List.of());
+        when(quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId())).thenReturn(List.of(validQuestion()));
 
         service.generate(quiz.getId(), request(1, 0, 1, 0, 0), null);
 
@@ -342,5 +343,32 @@ class QuizManagementServiceTest {
                         new ChoiceInput("B", "Sai", false),
                         new ChoiceInput("C", "Cũng đúng", true)),
                 null);
+    }
+
+    private QuizQuestion validQuestion() {
+        var q=new QuizQuestion();q.setQuiz(quiz);q.setQuestionText("Câu hỏi trắc nghiệm hợp lệ");q.setExplanation("Lời giải thích hợp lệ cho câu hỏi");q.setCorrectOptionKey("A");
+        q.setOptions(List.of(java.util.Map.of("key","A","text","Đúng"),java.util.Map.of("key","B","text","Sai")));return q;
+    }
+    @Test void malformedSnapshotAndUnreviewedAiCannotPublish() {
+        var admin=principal(Role.ADMIN);when(quizAccess.requireLocked(quiz.getId(),admin)).thenReturn(quiz);
+        when(quizQuestionRepository.countByQuizId(quiz.getId())).thenReturn(1L);
+        var bad=validQuestion();bad.setCorrectOptionKey("A,B");
+        when(quizQuestionRepository.findByQuizIdOrderByOrderIndexAsc(quiz.getId())).thenReturn(List.of(bad));
+        assertThrows(ResourceBadRequestException.class,()->service.publish(quiz.getId(),List.of(),admin));
+        quiz.setReviewRequired(true);
+        assertThrows(ResourceBadRequestException.class,()->service.publish(quiz.getId(),List.of(),admin));
+        verify(quizRepository,never()).save(any());
+    }
+    @Test void reviewValidatesSnapshotsAndRecordsApproval() {
+        var admin=principal(Role.ADMIN);when(quizAccess.requireLocked(quiz.getId(),admin)).thenReturn(quiz);
+        quiz.setReviewRequired(true);when(quizRepository.save(any())).thenAnswer(i->i.getArgument(0));
+        service.review(quiz.getId(),admin);assertEquals(false,quiz.isReviewRequired());
+    }
+    @Test void startedAttemptOrDraftBlocksEditingAndDelete() {
+        var admin=principal(Role.ADMIN);when(quizAccess.requireLocked(quiz.getId(),admin)).thenReturn(quiz);
+        when(quizRepository.hasStartedDraft(quiz.getId())).thenReturn(true);
+        assertThrows(ResourceBadRequestException.class,()->service.delete(quiz.getId(),admin));
+        assertThrows(ResourceBadRequestException.class,()->service.update(quiz.getId(),new com.vn.aitutor.dto.request.quiz.QuizUpsertRequest(),admin));
+        verify(quizRepository,never()).delete(any());verify(quizRepository,never()).save(any());
     }
 }

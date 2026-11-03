@@ -38,8 +38,10 @@ public class DocumentIngestionProcessor {
 
     @Transactional
     public void ingest(DocumentIngestionMessage message) {
-        Document doc = documentRepository.findById(message.getDocumentId())
-                .orElseThrow(() -> new IngestionException("Không tìm thấy tài liệu"));
+        Document doc = documentRepository.lockById(message.getDocumentId())
+                .orElse(null);
+        if (doc == null || doc.getStatus() != DocumentStatus.PROCESSING) return;
+        documentChunkRepository.deleteByDocumentId(doc.getId());
         String userId = doc.getCreatedBy().getId().toString();
         send(userId, doc, 0, "Bắt đầu xử lý tài liệu");
         File local = null;
@@ -122,7 +124,7 @@ public class DocumentIngestionProcessor {
         payload.put("documentId", doc.getId().toString());
         payload.put("progress", progress);
         payload.put("message", message);
-        messagingTemplate.convertAndSendToUser(userId, "/queue/document-progress", payload);
+        try { messagingTemplate.convertAndSendToUser(userId, "/queue/document-progress", payload); } catch (RuntimeException ex) { log.warn("Progress delivery failed for {}", doc.getId()); }
     }
 }
 

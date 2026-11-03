@@ -17,6 +17,7 @@ import { Spinner } from './components/common/Spinner';
 // Lazy-loaded Pages (Code-splitting for optimal bundle size and fast initial load)
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const LoginPage = lazy(() => import('./pages/Login/LoginPage'));
+const SetupPasswordPage = lazy(() => import('./pages/SetupPasswordPage'));
 const RegisterPage = lazy(() => import('./pages/Register/RegisterPage'));
 
 // Student Pages
@@ -42,7 +43,9 @@ const TeacherStudentDetailPage = lazy(() => import('./pages/Teacher/Classes/Teac
 const StudyClassDetailPage = lazy(() => import('./pages/Teacher/Classes/StudyClassDetailPage'));
 
 // Admin Pages
+const DocumentsPage = lazy(() => import('./pages/Admin/DocumentsPage').then(m => ({default:m.DocumentsPage})));
 const AdminDashboardPage = lazy(() => import('./pages/Admin/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
+const UserManagementPage = lazy(() => import('./pages/Admin/Users/UserManagementPage').then(m => ({ default: m.UserManagementPage })));
 const AdminStudentDetailShell = lazy(() => import('./pages/Admin/Students/AdminStudentDetailShell').then(m => ({ default: m.AdminStudentDetailShell })));
 const StudentManagementPage = lazy(() => import('./pages/Admin/Students/StudentManagementPage').then(m => ({ default: m.StudentManagementPage })));
 const SkillsManagementPage = lazy(() => import('./pages/Admin/Skills/SkillsManagementPage').then(m => ({ default: m.SkillsManagementPage })));
@@ -87,6 +90,7 @@ function App() {
                     <Routes>
                       <Route path="/" element={<LandingPage />} />
                       <Route path="/login" element={<LoginPage />} />
+                      <Route path="/setup-password" element={<SetupPasswordPage />} />
                       <Route path="/register" element={<RegisterPage />} />
                       <Route path="/quizzes/:quizId/statistics" element={<QuizStatisticsRedirect />} />
                       
@@ -129,9 +133,11 @@ function App() {
 
                       {/* Admin Routes */}
                       <Route path="/admin" element={<AdminLayout />}>
-                        <Route index element={<Navigate to="/admin/students" replace />} />
+                        <Route index element={<Navigate to="/admin/dashboard" replace />} />
                         <Route path="dashboard" element={<AdminDashboardPage />} />
                         <Route path="students" element={<StudentManagementPage />} />
+                        <Route path="users" element={<UserManagementPage />} />
+                        <Route path="documents" element={<DocumentsPage />} />
                         <Route path="students/:studentId" element={<AdminStudentDetailShell />} />
                         <Route path="skills" element={<SkillsManagementPage />} />
                         <Route path="settings" element={<SystemSettingsPage />} />

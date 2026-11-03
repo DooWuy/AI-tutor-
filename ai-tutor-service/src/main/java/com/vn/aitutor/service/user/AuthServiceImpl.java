@@ -77,6 +77,10 @@ public class AuthServiceImpl implements IAuthService {
 
     @Override
     public ApiResponse<String> setupPassword(SetupPasswordRequest request) {
+        UUID setupUserId = passwordResetTokenRepository.findUserIdByToken(request.getToken())
+                .orElseThrow(() -> new ResourceBadRequestException("Token không hợp lệ hoặc không tồn tại."));
+        User lockedUser = userRepository.lockById(setupUserId)
+                .filter(u -> !u.isDeleted()).orElseThrow(() -> new ResourceBadRequestException("Tài khoản không tồn tại."));
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
                 .orElseThrow(() -> new ResourceBadRequestException("Token không hợp lệ hoặc không tồn tại."));
 
@@ -88,7 +92,8 @@ public class AuthServiceImpl implements IAuthService {
             throw new ResourceBadRequestException("Token đã hết hạn.");
         }
 
-        User user = resetToken.getUser();
+        User user = lockedUser;
+        if (user.getInvitationStatus() != null) user.setInvitationStatus("COMPLETED");
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
@@ -112,7 +117,7 @@ public class AuthServiceImpl implements IAuthService {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         User user = userPrincipal.getUsers();
 
-        if (!user.isActive()) {
+        if (!user.isActive() || !user.isSetupComplete()) {
             throw new ResourceBadRequestException("Người dùng không hoạt động.");
         }
 
@@ -255,6 +260,7 @@ public class AuthServiceImpl implements IAuthService {
         User user = userRepository.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue(username)
                 .orElseThrow(() -> new ResourceBadRequestException("Không tìm thấy người dùng"));
 
+        if (!user.isSetupComplete()) throw new ResourceUnauthorizedException("Tài khoản chưa thiết lập mật khẩu");
         // Generate new tokens
         String newAccessToken = jwtProvider.generateAccessToken(user);
         String newRefreshToken = jwtProvider.generateRefreshToken(user);

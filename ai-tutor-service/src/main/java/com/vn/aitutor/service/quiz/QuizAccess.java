@@ -24,6 +24,11 @@ public class QuizAccess {
         return quiz;
     }
 
+    public Quiz requireLocked(UUID id, UserPrincipal principal) {
+        Quiz quiz=quizRepository.lockById(id).orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề thi"));
+        assertCanManage(principal,quiz); return quiz;
+    }
+
     public UUID ownerFilter(UserPrincipal principal) {
         User user = requireUser(principal);
         if (user.getRole() == Role.ADMIN) {

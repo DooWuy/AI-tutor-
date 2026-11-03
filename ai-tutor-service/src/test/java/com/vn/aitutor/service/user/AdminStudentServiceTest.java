@@ -100,7 +100,7 @@ class AdminStudentServiceTest {
         assertEquals("STU-ORIGINAL", student.getStudentCode());
         assertEquals("Updated Name", user.getFullName());
 
-        var status = service.toggleStudentStatus(studentId);
+        var status = service.setStudentStatus(studentId, false);
         assertFalse(status.getData().isActive());
     }
 

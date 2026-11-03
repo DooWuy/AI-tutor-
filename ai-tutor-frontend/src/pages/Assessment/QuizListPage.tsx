@@ -92,7 +92,7 @@ export default function QuizListPage() {
       {!loading && quizzes.length === 0 ? <p className="text-sm text-on-surface-variant">Chưa có đề thi phù hợp.</p> : null}
 
       <div className="scroll-x hidden overflow-x-auto rounded-2xl border border-outline-variant md:block">
-        <table className="w-full min-w-[840px] text-left text-sm">
+        <table className="w-full min-w-[980px] text-left text-sm">
           <thead className="bg-surface-container text-on-surface-variant">
             <tr>
               <th className="px-4 py-3 font-semibold">Tiêu đề</th>
@@ -100,7 +100,7 @@ export default function QuizListPage() {
               <th className="px-4 py-3 font-semibold">Trạng thái</th>
               <th className="px-4 py-3 font-semibold">Câu hỏi</th>
               <th className="px-4 py-3 font-semibold">Lượt làm</th>
-              <th className="px-4 py-3 font-semibold">Hành động</th>
+              <th className="px-4 py-3 font-semibold whitespace-nowrap">Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -116,7 +116,7 @@ export default function QuizListPage() {
                 <td className="px-4 py-3">{statusLabel(quiz.status)}</td>
                 <td className="px-4 py-3">{quiz.questionCount}</td>
                 <td className="px-4 py-3">{quiz.attemptCount}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <QuizActions base={base} quiz={quiz} onStatus={changeStatus} onPublish={setPublishTarget} onDelete={() => { setDeleteError(''); setPendingDelete(quiz); }} />
                 </td>
               </tr>
@@ -134,7 +134,7 @@ export default function QuizListPage() {
             {quiz.status === 'PUBLISHED' ? <p className="mt-1 text-xs text-on-surface-variant">{formatQuizWindow(quiz.availableFrom, quiz.availableUntil)}</p> : null}
             <p className="mt-2 text-sm">{quiz.questionCount} câu · {quiz.attemptCount} lượt làm</p>
             <div className="mt-3">
-              <QuizActions base={base} quiz={quiz} onStatus={changeStatus} onPublish={setPublishTarget} onDelete={() => { setDeleteError(''); setPendingDelete(quiz); }} />
+              <QuizActions wrap base={base} quiz={quiz} onStatus={changeStatus} onPublish={setPublishTarget} onDelete={() => { setDeleteError(''); setPendingDelete(quiz); }} />
             </div>
           </article>
         ))}
@@ -170,21 +170,23 @@ function QuizActions({
   onStatus,
   onPublish,
   onDelete,
+  wrap = false,
 }: {
   base: string;
   quiz: QuizItem;
   onStatus: (quiz: QuizItem, action: 'archive' | 'draft') => void;
   onPublish: (quiz: QuizItem) => void;
   onDelete: () => void;
+  wrap?: boolean;
 }) {
   const isPublished = quiz.status === 'PUBLISHED';
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className={`flex items-center gap-1.5 ${wrap ? 'flex-wrap' : 'flex-nowrap whitespace-nowrap'}`}>
       {/* Xem thống kê */}
       <Link
         to={`${base}/quizzes/${quiz.id}/statistics`}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20 hover:border-primary/40"
+        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20 hover:border-primary/40"
         title="Xem thống kê kết quả làm bài"
       >
         <BarChart3 size={13} className="shrink-0" />
@@ -195,7 +197,7 @@ function QuizActions({
       <button
         type="button"
         onClick={() => onPublish(quiz)}
-        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
+        className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
           isPublished
             ? 'border-secondary/30 bg-secondary-container/40 text-on-secondary-container hover:bg-secondary-container/70'
             : 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/20'
@@ -215,7 +217,7 @@ function QuizActions({
         <button
           type="button"
           onClick={() => onStatus(quiz, 'archive')}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface px-2.5 py-1 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface cursor-pointer"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-outline-variant bg-surface px-2.5 py-1 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface cursor-pointer"
           title="Lưu trữ đề thi này"
         >
           <Archive size={13} className="shrink-0" />
@@ -228,7 +230,7 @@ function QuizActions({
         <button
           type="button"
           onClick={() => onStatus(quiz, 'draft')}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface px-2.5 py-1 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface cursor-pointer"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-outline-variant bg-surface px-2.5 py-1 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface cursor-pointer"
           title="Đưa đề thi về trạng thái nháp"
         >
           <RotateCcw size={13} className="shrink-0" />
@@ -240,7 +242,7 @@ function QuizActions({
       <button
         type="button"
         onClick={onDelete}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-error/25 bg-error-container/30 px-2.5 py-1 text-xs font-medium text-error transition-colors hover:bg-error-container hover:text-on-error-container hover:border-error/40 cursor-pointer"
+        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-error/25 bg-error-container/30 px-2.5 py-1 text-xs font-medium text-error transition-colors hover:bg-error-container hover:text-on-error-container hover:border-error/40 cursor-pointer"
         title="Xóa đề thi"
       >
         <Trash2 size={13} className="shrink-0" />

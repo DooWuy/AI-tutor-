@@ -1,564 +1,722 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight,
-  ArrowUpRight,
-  BookOpen,
-  Bot,
-  BrainCircuit,
-  CheckCircle2,
-  Clock,
-  Flame,
-  GraduationCap,
-  Plus,
-  RefreshCw,
-  Sparkles,
-  TrendingUp,
   Users,
+  BookOpen,
+  ClipboardList,
+  MessagesSquare,
+  CheckSquare,
+  RefreshCw,
+  ArrowUpRight,
+  TrendingUp,
+  PieChart as PieChartIcon,
+  BarChart3,
+  ShieldCheck,
+  GraduationCap,
+  Settings,
+  FileText,
+  Clock,
+  Sparkles,
+  AlertTriangle,
+  Cpu,
+  Activity,
+  Layers
 } from 'lucide-react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-  type ChartOptions,
-} from 'chart.js';
-import { Line, Bar } from 'react-chartjs-2';
-import { fetchStudents } from '../../services/adminStudentApi';
-import { useTheme } from '../../context/ThemeContext';
-import type { AdminStudentListItem } from '../../types/adminStudent';
+import { fetchAdminDashboard, type AdminDashboard } from '../../services/adminDashboardApi';
 
-// Register ChartJS plugins
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+const controlButton =
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-outline-variant/70 bg-surface-container-lowest/80 px-4 py-2 text-sm font-medium transition-all duration-200 hover:border-primary hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed shadow-xs active:scale-[0.98]';
+
+interface MetricConfig {
+  key: keyof Omit<AdminDashboard, 'updatedAt'>;
+  label: string;
+  detail: string;
+  icon: typeof Users;
+  to?: string;
+  accent: {
+    color: string;
+    bg: string;
+    border: string;
+    bar: string;
+    gradient: string;
+  };
+}
+
+const metrics: readonly MetricConfig[] = [
+  {
+    key: 'totalUsers',
+    label: 'Tài khoản người dùng',
+    detail: 'Mọi vai trò, gồm tài khoản khóa; loại tài khoản đã xóa.',
+    icon: Users,
+    to: '/admin/users',
+    accent: {
+      color: 'text-blue-600 dark:text-blue-400',
+      bg: 'bg-blue-500/10 dark:bg-blue-500/15',
+      border: 'hover:border-blue-500/50',
+      bar: '#3b82f6',
+      gradient: 'from-blue-600 to-indigo-600',
+    },
+  },
+  {
+    key: 'totalDocuments',
+    label: 'Tài liệu',
+    detail: 'Tất cả trạng thái xử lý tài liệu.',
+    icon: BookOpen,
+    to: '/admin/documents',
+    accent: {
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
+      border: 'hover:border-emerald-500/50',
+      bar: '#10b981',
+      gradient: 'from-emerald-600 to-teal-600',
+    },
+  },
+  {
+    key: 'totalQuizzes',
+    label: 'Quiz',
+    detail: 'Tất cả chủ sở hữu và trạng thái phát hành.',
+    icon: ClipboardList,
+    to: '/admin/quizzes',
+    accent: {
+      color: 'text-amber-600 dark:text-amber-400',
+      bg: 'bg-amber-500/10 dark:bg-amber-500/15',
+      border: 'hover:border-amber-500/50',
+      bar: '#f59e0b',
+      gradient: 'from-amber-600 to-orange-600',
+    },
+  },
+  {
+    key: 'chatCount',
+    label: 'Phiên chat',
+    detail: 'Số phiên, bao gồm phiên chưa có tin nhắn.',
+    icon: MessagesSquare,
+    accent: {
+      color: 'text-violet-600 dark:text-violet-400',
+      bg: 'bg-violet-500/10 dark:bg-violet-500/15',
+      border: 'hover:border-violet-500/50',
+      bar: '#8b5cf6',
+      gradient: 'from-violet-600 to-purple-600',
+    },
+  },
+  {
+    key: 'attemptCount',
+    label: 'Lượt làm quiz đã nộp',
+    detail: 'Bao gồm lịch sử bị ẩn; không tính bài nháp.',
+    icon: CheckSquare,
+    accent: {
+      color: 'text-rose-600 dark:text-rose-400',
+      bg: 'bg-rose-500/10 dark:bg-rose-500/15',
+      border: 'hover:border-rose-500/50',
+      bar: '#f43f5e',
+      gradient: 'from-rose-600 to-pink-600',
+    },
+  },
+] as const;
+
+const quickNavItems = [
+  {
+    to: '/admin/users',
+    title: 'Tài khoản người dùng',
+    desc: 'Phân quyền, khóa/mở khóa học sinh, giáo viên, quản trị',
+    icon: Users,
+    tag: 'Tài khoản',
+  },
+  {
+    to: '/admin/students',
+    title: 'Hồ sơ học sinh',
+    desc: 'Theo dõi tiến trình học tập, cấp độ XP và streak',
+    icon: GraduationCap,
+    tag: 'Học sinh',
+  },
+  {
+    to: '/admin/documents',
+    title: 'Kho học liệu & RAG',
+    desc: 'Kiểm soát tài liệu học tập, vector hóa và trạng thái ingestion',
+    icon: BookOpen,
+    tag: 'Tài liệu',
+  },
+  {
+    to: '/admin/quizzes',
+    title: 'Ngân hàng đề thi',
+    desc: 'Quản lý bài kiểm tra, kiểm duyệt và phân tích kết quả nộp',
+    icon: ClipboardList,
+    tag: 'Quiz',
+  },
+  {
+    to: '/admin/settings',
+    title: 'Cấu hình hệ thống',
+    desc: 'Thiết lập LLM, tham số prompt và chế độ bảo trì an toàn',
+    icon: Settings,
+    tag: 'Cấu hình',
+  },
+  {
+    to: '/admin/logs',
+    title: 'Nhật ký audit & log',
+    desc: 'Truy vết thao tác quản trị, nhật ký lỗi và bảo mật',
+    icon: FileText,
+    tag: 'Nhật ký',
+  },
+];
 
 export function AdminDashboardPage() {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-
-  const [students, setStudents] = useState<AdminStudentListItem[]>([]);
-  const [totalStudents, setTotalStudents] = useState(0);
+  const [data, setData] = useState<AdminDashboard | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [revision, setRevision] = useState(0);
+  const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
+  const [chartView, setChartView] = useState<'bars' | 'distribution'>('bars');
+  const busy = useRef(false);
 
-  const loadData = async () => {
-    try {
-      setRefreshing(true);
-      const res = await fetchStudents({ size: 10, sort: 'lastActivityDate', direction: 'desc' });
-      setStudents(res.content || []);
-      setTotalStudents(res.totalElements || 0);
-    } catch {
-      // Fallback silent handle
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  useEffect(() => {
+    const abort = new AbortController();
+    busy.current = true;
+    fetchAdminDashboard(abort.signal)
+      .then((value) => {
+        if (!abort.signal.aborted) {
+          setData(value);
+          setError('');
+        }
+      })
+      .catch((e) => {
+        if (!abort.signal.aborted) {
+          setError(e instanceof Error ? e.message : 'Không thể kết nối. Vui lòng thử lại.');
+        }
+      })
+      .finally(() => {
+        if (!abort.signal.aborted) {
+          busy.current = false;
+          setLoading(false);
+        }
+      });
+    return () => abort.abort();
+  }, [revision]);
+
+  const refresh = () => {
+    if (!busy.current) {
+      busy.current = true;
+      setLoading(true);
+      setError('');
+      setRevision((v) => v + 1);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const totalEntities = useMemo(() => {
+    if (!data) return 0;
+    return (
+      data.totalUsers +
+      data.totalDocuments +
+      data.totalQuizzes +
+      data.chatCount +
+      data.attemptCount
+    );
+  }, [data]);
 
-  const activeCount = students.filter((s) => s.active).length;
-  const activePercent = totalStudents > 0 ? Math.round((activeCount / Math.max(1, students.length)) * 100) : 95;
+  const maxMetricValue = useMemo(() => {
+    if (!data) return 1;
+    const max = Math.max(
+      data.totalUsers,
+      data.totalDocuments,
+      data.totalQuizzes,
+      data.chatCount,
+      data.attemptCount
+    );
+    return max > 0 ? max : 1;
+  }, [data]);
 
-  // Chart 1: AI & Activity 7 Days
-  const daysLabels = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
-  const activityData = {
-    labels: daysLabels,
-    datasets: [
-      {
-        label: 'Phiên hỏi đáp AI Tutor',
-        data: [142, 195, 230, 210, 275, 340, 310],
-        borderColor: isDark ? '#38bdf8' : '#005cb8',
-        backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(0, 92, 184, 0.08)',
-        fill: true,
-        tension: 0.4,
-        borderWidth: 2.5,
-        pointBackgroundColor: isDark ? '#38bdf8' : '#005cb8',
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      },
-      {
-        label: 'Bài thi trắc nghiệm',
-        data: [65, 82, 94, 78, 120, 160, 145],
-        borderColor: isDark ? '#818cf8' : '#0284c7',
-        backgroundColor: 'transparent',
-        borderDash: [5, 5],
-        tension: 0.4,
-        borderWidth: 2,
-        pointBackgroundColor: isDark ? '#818cf8' : '#0284c7',
-        pointRadius: 3,
-      },
-    ],
-  };
-
-  const activityOptions: ChartOptions<'line'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-        align: 'end',
-        labels: {
-          boxWidth: 10,
-          boxHeight: 10,
-          usePointStyle: true,
-          font: { size: 11, family: 'Inter' },
-          color: isDark ? '#cbd5e1' : '#475569',
-        },
-      },
-      tooltip: {
-        backgroundColor: isDark ? '#1e293b' : '#0f172a',
-        titleColor: '#ffffff',
-        bodyColor: isDark ? '#e2e8f0' : '#f8fafc',
-        borderColor: isDark ? '#334155' : 'transparent',
-        borderWidth: isDark ? 1 : 0,
-        padding: 10,
-        cornerRadius: 8,
-        titleFont: { size: 12, weight: 'bold' },
-      },
-    },
-    scales: {
-      y: {
-        grid: { color: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(226, 232, 240, 0.8)' },
-        ticks: { font: { size: 10 }, color: isDark ? '#94a3b8' : '#64748b' },
-      },
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 10 }, color: isDark ? '#94a3b8' : '#64748b' },
-      },
-    },
-  };
-
-  // Chart 2: Grade distribution
-  const gradeData = {
-    labels: ['Khối 10', 'Khối 11', 'Khối 12', 'Khối 9', 'Khác'],
-    datasets: [
-      {
-        label: 'Số lượng học sinh',
-        data: [42, 58, 65, 30, 15],
-        backgroundColor: isDark
-          ? [
-              'rgba(56, 189, 248, 0.85)',
-              'rgba(14, 165, 233, 0.85)',
-              'rgba(99, 102, 241, 0.85)',
-              'rgba(129, 140, 248, 0.85)',
-              'rgba(148, 163, 184, 0.85)',
-            ]
-          : [
-              'rgba(0, 92, 184, 0.85)',
-              'rgba(2, 132, 199, 0.85)',
-              'rgba(14, 165, 233, 0.85)',
-              'rgba(56, 189, 248, 0.85)',
-              'rgba(148, 163, 184, 0.85)',
-            ],
-        borderRadius: 8,
-      },
-    ],
-  };
-
-  const gradeOptions: ChartOptions<'bar'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-    },
-    scales: {
-      y: {
-        grid: { color: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(226, 232, 240, 0.8)' },
-        ticks: { font: { size: 10 }, color: isDark ? '#94a3b8' : '#64748b' },
-      },
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 11 }, color: isDark ? '#94a3b8' : '#64748b' },
-      },
-    },
-  };
+  // Donut chart segments calculation
+  const donutSegments = useMemo(() => {
+    if (!data || totalEntities === 0) return [];
+    let currentAngle = 0;
+    return metrics.map((m) => {
+      const val = data[m.key];
+      const percentage = (val / totalEntities) * 100;
+      const angle = (val / totalEntities) * 360;
+      const startAngle = currentAngle;
+      currentAngle += angle;
+      return {
+        ...m,
+        value: val,
+        percentage,
+        startAngle,
+        angle,
+      };
+    });
+  }, [data, totalEntities]);
 
   return (
-    <div className="space-y-6 pb-12 font-sans" aria-labelledby="admin-dashboard-title">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 p-6 sm:p-8 text-white shadow-lg border border-slate-800/80">
-        <div className="absolute right-0 top-0 -mt-10 -mr-10 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" />
-        <div className="absolute left-1/3 bottom-0 -mb-10 h-48 w-48 rounded-full bg-cyan-400/10 blur-2xl" />
+    <section aria-labelledby="admin-dashboard-title" className="space-y-8 pb-16 text-on-surface">
+      {/* Top Banner & Header */}
+      <header className="relative overflow-hidden rounded-3xl border border-outline-variant/60 bg-gradient-to-br from-surface-container-low via-surface-container to-surface-container-high/60 p-6 sm:p-8 shadow-xs">
+        {/* Glow ambient background accents */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-secondary/10 blur-3xl"
+        />
+        {/* Subtle decorative background watermark icons */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-4 bottom-2 opacity-[0.06] dark:opacity-[0.08] select-none"
+        >
+          <Layers size={140} className="text-primary" />
+        </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-md border border-white/10 text-cyan-200">
-              <Sparkles size={14} className="text-cyan-300" />
-              <span>Hệ thống AI Tutor hoạt động tối ưu</span>
+        <div className="relative flex flex-wrap items-center justify-between gap-6">
+          <div className="flex items-start gap-5 max-w-2xl">
+            {/* Visual Thumbnail Icon Badge */}
+            <div className="hidden sm:flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary to-primary-container text-white shadow-lg shadow-primary/25 ring-4 ring-primary/10 transition-transform duration-300 hover:scale-105">
+              <Cpu size={32} className="text-white drop-shadow-xs" aria-hidden="true" />
             </div>
-            <h1 id="admin-dashboard-title" className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              Tổng quan điều hành AI Tutor
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-              Theo dõi hiệu năng tương tác AI, tiến độ học tập của học sinh và tình trạng vận hành nền tảng theo thời gian thực.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={loadData}
-              disabled={refreshing}
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 px-3.5 py-2.5 text-xs font-bold text-white transition-all backdrop-blur-md active:scale-95 disabled:opacity-50 cursor-pointer"
-              title="Làm mới dữ liệu"
-            >
-              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-              <span>{refreshing ? 'Đang tải...' : 'Làm mới'}</span>
-            </button>
-
-            <Link
-              to="/admin/students"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary hover:opacity-90 text-on-primary px-4 py-2.5 text-xs font-bold shadow-md shadow-primary/25 transition-all active:scale-95"
-            >
-              <Plus size={16} />
-              <span>Quản lý học sinh</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* KPI Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        {/* Card 1: Total Students */}
-        <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Tổng số học sinh</span>
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-              <Users size={20} />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-on-surface">
-              {loading ? '...' : totalStudents || 128}
-            </span>
-            <span className="inline-flex items-center text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-              <ArrowUpRight size={12} /> +14.2%
-            </span>
-          </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-on-surface-variant border-t border-outline-variant/40 pt-3">
-            <span>Tỷ lệ hoạt động: <strong className="text-on-surface">{activePercent}%</strong></span>
-            <Link to="/admin/students" className="text-primary font-bold hover:underline">Chi tiết</Link>
-          </div>
-        </div>
-
-        {/* Card 2: AI Queries */}
-        <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Phiên trợ lý AI</span>
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-              <Bot size={20} />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-on-surface">1,702</span>
-            <span className="inline-flex items-center text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-              <ArrowUpRight size={12} /> +28%
-            </span>
-          </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-on-surface-variant border-t border-outline-variant/40 pt-3">
-            <span>Tỉ lệ phản hồi tốt: <strong className="text-on-surface">98.4%</strong></span>
-            <span className="text-on-surface-variant">7 ngày qua</span>
-          </div>
-        </div>
-
-        {/* Card 3: Average Quiz Score */}
-        <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Điểm Quiz trung bình</span>
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <TrendingUp size={20} />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-on-surface">8.3</span>
-            <span className="text-xs text-on-surface-variant">/ 10</span>
-            <span className="inline-flex items-center text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full ml-auto">
-              Tốt
-            </span>
-          </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-on-surface-variant border-t border-outline-variant/40 pt-3">
-            <span>Tổng lượt làm: <strong className="text-on-surface">894 bài</strong></span>
-            <span className="text-on-surface-variant">Tuần này</span>
-          </div>
-        </div>
-
-        {/* Card 4: Learning Streaks */}
-        <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Duy trì Streak</span>
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
-              <Flame size={20} />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-on-surface">86.5%</span>
-            <span className="inline-flex items-center text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full">
-              Cao
-            </span>
-          </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-on-surface-variant border-t border-outline-variant/40 pt-3">
-            <span>Streak TB: <strong className="text-on-surface">7.2 ngày</strong></span>
-            <span className="text-on-surface-variant">Toàn trường</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Analytics Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Main Line Chart: Weekly AI Interactions */}
-        <div className="lg:col-span-8 rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-5 sm:p-6 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-outline-variant/40">
-            <div>
-              <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
-                <BrainCircuit size={18} className="text-primary" />
-                Tần suất tương tác & Học tập cùng AI
-              </h2>
-              <p className="text-xs text-on-surface-variant mt-0.5">Số lượng câu hỏi AI và bài kiểm tra hoàn thành theo ngày</p>
-            </div>
-            <span className="text-[11px] font-bold bg-surface-container text-on-surface-variant px-2.5 py-1 rounded-full self-start sm:self-auto border border-outline-variant/50">
-              7 ngày qua
-            </span>
-          </div>
-          <div className="w-full h-72 pt-4">
-            <Line data={activityData} options={activityOptions} />
-          </div>
-        </div>
-
-        {/* Sub Bar Chart: Grade Distribution */}
-        <div className="lg:col-span-4 rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-5 sm:p-6 shadow-xs flex flex-col justify-between">
-          <div className="pb-4 border-b border-outline-variant/40">
-            <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
-              <GraduationCap size={18} className="text-primary" />
-              Phân bố theo Khối lớp
-            </h2>
-            <p className="text-xs text-on-surface-variant mt-0.5">Tỷ lệ học sinh tham gia trên nền tảng</p>
-          </div>
-          <div className="w-full h-56 pt-3">
-            <Bar data={gradeData} options={gradeOptions} />
-          </div>
-          <div className="pt-3 border-t border-outline-variant/40 flex items-center justify-between text-xs text-on-surface-variant">
-            <span>Học sinh đông nhất: <strong className="text-on-surface">Khối 12</strong></span>
-            <Link to="/admin/students" className="text-primary font-bold hover:underline">Xem lớp</Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Two Columns: Recent Active Students + Quick Admin Modules */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Recent Students Table (8 cols) */}
-        <div className="lg:col-span-8 rounded-2xl border border-outline-variant/60 bg-surface-container-lowest shadow-xs overflow-hidden">
-          <div className="flex items-center justify-between p-5 border-b border-outline-variant/40 bg-surface-container/30">
-            <div>
-              <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
-                <Clock size={17} className="text-primary" />
-                Học sinh hoạt động gần đây
-              </h2>
-              <p className="text-xs text-on-surface-variant mt-0.5">Các tài khoản học sinh vừa tương tác trên hệ thống</p>
-            </div>
-            <Link
-              to="/admin/students"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline transition-colors"
-            >
-              <span>Xem tất cả</span>
-              <ArrowRight size={14} />
-            </Link>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-surface-container/50 border-b border-outline-variant/50 text-on-surface-variant uppercase tracking-wider font-bold">
-                <tr>
-                  <th className="py-3 px-5">Học sinh</th>
-                  <th className="py-3 px-4">Lớp / Trường</th>
-                  <th className="py-3 px-4 text-center">Tiến trình</th>
-                  <th className="py-3 px-4">Trạng thái</th>
-                  <th className="py-3 px-4 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/30 text-on-surface">
-                {loading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <tr key={i} className="animate-pulse">
-                      <td className="py-4 px-5"><div className="h-4 w-32 bg-surface-container rounded" /></td>
-                      <td className="py-4 px-4"><div className="h-4 w-24 bg-surface-container rounded" /></td>
-                      <td className="py-4 px-4"><div className="h-4 w-16 mx-auto bg-surface-container rounded" /></td>
-                      <td className="py-4 px-4"><div className="h-4 w-20 bg-surface-container rounded" /></td>
-                      <td className="py-4 px-4 text-right"><div className="h-4 w-12 ml-auto bg-surface-container rounded" /></td>
-                    </tr>
-                  ))
-                ) : students.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-on-surface-variant">
-                      Chưa có dữ liệu học sinh nào.
-                    </td>
-                  </tr>
-                ) : (
-                  students.slice(0, 5).map((student) => {
-                    const initials = student.fullName
-                      .split(/\s+/)
-                      .filter(Boolean)
-                      .slice(-2)
-                      .map((p) => p[0])
-                      .join('')
-                      .toUpperCase() || 'HS';
-
-                    return (
-                      <tr key={student.studentId} className="hover:bg-surface-container/40 transition-colors">
-                        <td className="py-3.5 px-5">
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
-                              {student.avatarUrl ? <img src={student.avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}
-                            </div>
-                            <div>
-                              <Link
-                                to={`/admin/students/${student.studentId}`}
-                                className="font-semibold text-on-surface hover:text-primary transition-colors"
-                              >
-                                {student.fullName}
-                              </Link>
-                              <p className="text-[11px] text-on-surface-variant font-mono">{student.studentCode}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="font-medium text-on-surface">{student.className || 'Chưa xếp lớp'}</div>
-                          <div className="text-[11px] text-on-surface-variant">{student.schoolName || '—'}</div>
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span className="inline-flex items-center gap-1 font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full text-[11px]">
-                            {student.totalXp} XP
-                          </span>
-                          <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-600 dark:text-amber-400 font-semibold ml-2">
-                            <Flame size={12} /> {student.currentStreak}d
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
-                              student.active
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-                            }`}
-                          >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                student.active ? 'bg-emerald-500' : 'bg-rose-500'
-                              }`}
-                            />
-                            {student.active ? 'Hoạt động' : 'Tạm khóa'}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <Link
-                            to={`/admin/students/${student.studentId}`}
-                            className="inline-flex items-center justify-center h-7 px-2.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-primary hover:border-primary/40 hover:bg-surface-container transition-all font-semibold"
-                          >
-                            Chi tiết
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Quick Admin Tools Grid (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-5 shadow-xs">
-            <h2 className="text-base font-bold text-on-surface flex items-center gap-2 mb-1">
-              <Sparkles size={17} className="text-primary" />
-              Lối tắt tác vụ quản trị
-            </h2>
-            <p className="text-xs text-on-surface-variant mb-4">Các tính năng thao tác thường dùng nhất</p>
 
             <div className="space-y-2.5">
-              <Link
-                to="/admin/students"
-                className="group flex items-center justify-between p-3 rounded-xl border border-outline-variant/40 bg-surface-container/30 hover:bg-surface-container hover:border-primary/40 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary group-hover:scale-105 transition-transform">
-                    <GraduationCap size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-on-surface group-hover:text-primary">Danh sách học sinh</h3>
-                    <p className="text-[11px] text-on-surface-variant">Phân lớp, quản lý hồ sơ & khóa tài khoản</p>
-                  </div>
-                </div>
-                <ArrowRight size={15} className="text-on-surface-variant group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-              </Link>
-
-              <div
-                className="group flex items-center justify-between p-3 rounded-xl border border-outline-variant/30 bg-surface-container/20 opacity-70 cursor-not-allowed"
-                title="Sắp ra mắt"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="grid h-9 w-9 place-items-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                    <BookOpen size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-on-surface">Kho tài liệu giáo trình</h3>
-                    <p className="text-[11px] text-on-surface-variant">Tải lên PDF/Word để nạp vào AI RAG</p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-semibold text-on-surface-variant bg-surface-container border border-outline-variant/40 px-1.5 py-0.5 rounded">Sắp có</span>
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <Activity size={12} className="text-emerald-500" aria-hidden="true" />
+                <span>Hệ thống trực tuyến · Toàn thời gian</span>
               </div>
 
-              <div
-                className="group flex items-center justify-between p-3 rounded-xl border border-outline-variant/30 bg-surface-container/20 opacity-70 cursor-not-allowed"
-                title="Sắp ra mắt"
+              <h1
+                id="admin-dashboard-title"
+                className="text-2xl font-bold tracking-tight sm:text-4xl text-on-surface"
               >
-                <div className="flex items-center gap-3">
-                  <div className="grid h-9 w-9 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                    <Bot size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-on-surface">Cấu hình Prompt & Model AI</h3>
-                    <p className="text-[11px] text-on-surface-variant">Điều chỉnh phong cách gia sư và độ nghiêm ngặt</p>
-                  </div>
-                </div>
-                <span className="text-[10px] font-semibold text-on-surface-variant bg-surface-container border border-outline-variant/40 px-1.5 py-0.5 rounded">Sắp có</span>
-              </div>
+                Tổng quan quản trị
+              </h1>
+              <p className="text-sm sm:text-base text-on-surface-variant leading-relaxed">
+                Số liệu được truy vấn mới mỗi lần tải. Nhấn làm mới để cập nhật.
+              </p>
             </div>
           </div>
 
-          {/* System Check Card */}
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20 p-5 shadow-xs">
-            <div className="flex items-start gap-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white shadow-xs">
-                <CheckCircle2 size={18} />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-xs font-bold text-emerald-800 dark:text-emerald-400">Môi trường máy chủ hoạt động tốt</h3>
-                <p className="text-[11px] text-emerald-700 dark:text-emerald-300 leading-relaxed">
-                  Cơ sở dữ liệu, WebSocket STOMP và hệ thống phân tích học tập đều đang phản hồi dưới 45ms.
-                </p>
-              </div>
-            </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <button
+              className={`${controlButton} group`}
+              disabled={loading}
+              onClick={refresh}
+            >
+              <RefreshCw
+                size={18}
+                aria-hidden="true"
+                className={`transition-transform duration-500 ${loading ? 'animate-spin text-primary' : 'group-hover:rotate-180'}`}
+              />
+              <span className="font-medium">{loading ? 'Đang tải…' : 'Làm mới'}</span>
+            </button>
           </div>
         </div>
-      </div>
-    </div>
+
+        {/* Live Timestamp or Stale Notice */}
+        {data && (
+          <div className="relative mt-6 pt-5 border-t border-outline-variant/40 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm text-on-surface-variant">
+            <div className="flex items-center gap-2">
+              <Clock size={15} className="text-primary shrink-0" aria-hidden="true" />
+              <p role="status">
+                {error ? 'Lần tải thành công trước' : 'Dữ liệu lúc'}:{' '}
+                <time dateTime={data.updatedAt} className="font-semibold text-on-surface">
+                  {new Intl.DateTimeFormat('vi-VN', {
+                    dateStyle: 'medium',
+                    timeStyle: 'medium',
+                    timeZone: 'Asia/Ho_Chi_Minh',
+                  }).format(new Date(data.updatedAt))}
+                </time>{' '}
+                (giờ Việt Nam)
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-on-surface-variant/80">
+              <ShieldCheck size={14} className="text-emerald-500" aria-hidden="true" />
+              <span>Dữ liệu authoritative DB (MVCC snapshot)</span>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Error / Warning Alert Banner */}
+      {error && (
+        <div
+          role="alert"
+          className="space-y-3 rounded-2xl border border-error/50 bg-error-container/30 p-5 text-on-surface shadow-xs transition-all"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="text-error shrink-0 mt-0.5" size={20} aria-hidden="true" />
+            <div className="space-y-1">
+              <p className="font-semibold text-error">{error}</p>
+              {data && (
+                <p className="text-sm text-on-surface-variant">
+                  Dữ liệu bên dưới là lần tải thành công trước, chưa cập nhật.
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="pt-2">
+            <button
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-error px-4 py-2 text-xs font-semibold text-on-error hover:bg-error/90 transition-colors focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
+              disabled={loading}
+              onClick={refresh}
+            >
+              <RefreshCw size={14} aria-hidden="true" className={loading ? 'animate-spin' : ''} />
+              Thử lại
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Screen reader / Live state status */}
+      {loading && (
+        <div className="flex items-center gap-3 rounded-xl border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
+          <RefreshCw size={16} className="animate-spin text-primary" aria-hidden="true" />
+          <p role="status">{data ? 'Đang làm mới tổng quan…' : 'Đang tải tổng quan…'}</p>
+        </div>
+      )}
+
+      {/* 5 Core Metrics Grid */}
+      {data && (
+        <div className="space-y-8">
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-on-surface flex items-center gap-2">
+                  <Sparkles size={18} className="text-primary" />
+                  Chỉ số thực thể hệ thống
+                </h2>
+                <p className="text-xs text-on-surface-variant">
+                  Tổng hợp trực tiếp từ DB cho tất cả thực thể chính trong hệ sinh thái AI Tutor
+                </p>
+              </div>
+              <span className="text-xs font-medium text-on-surface-variant/80">
+                Tổng: <strong className="text-on-surface">{totalEntities.toLocaleString('vi-VN')}</strong> thực thể
+              </span>
+            </div>
+
+            <dl
+              aria-busy={loading}
+              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+            >
+              {metrics.map((m) => {
+                const IconComponent = m.icon;
+                const value = data[m.key];
+                const percentage = totalEntities > 0 ? ((value / totalEntities) * 100).toFixed(1) : '0';
+                const isHovered = hoveredMetric === m.key;
+
+                return (
+                  <div
+                    key={m.key}
+                    onMouseEnter={() => setHoveredMetric(m.key)}
+                    onMouseLeave={() => setHoveredMetric(null)}
+                    className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${m.accent.border} ${
+                      isHovered ? 'ring-2 ring-primary/20' : ''
+                    }`}
+                  >
+                    {/* Top ambient color streak */}
+                    <div
+                      aria-hidden="true"
+                      className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${m.accent.gradient} opacity-80`}
+                    />
+
+                    <div>
+                      {/* Metric Card Header */}
+                      <dt className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`flex h-10 w-10 items-center justify-center rounded-xl ${m.accent.bg} ${m.accent.color} transition-transform duration-300 group-hover:scale-110`}
+                          >
+                            <IconComponent size={20} aria-hidden="true" />
+                          </div>
+                          <span className="text-xs font-semibold text-on-surface line-clamp-1">
+                            {m.label}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-bold text-on-surface-variant/70 bg-surface-container px-2 py-0.5 rounded-full">
+                          {percentage}%
+                        </span>
+                      </dt>
+
+                      {/* Main Value - REQUIRED by test: dd.text-4xl */}
+                      <dd className="my-4 text-4xl font-bold tabular-nums tracking-tight text-on-surface">
+                        {value.toLocaleString('vi-VN')}
+                      </dd>
+
+                      {/* Mini proportion bar */}
+                      <div
+                        aria-hidden="true"
+                        className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container"
+                      >
+                        <div
+                          className="h-full rounded-full transition-all duration-700 ease-out"
+                          style={{
+                            width: `${Math.min(Math.max(Number(percentage), 3), 100)}%`,
+                            backgroundColor: m.accent.bar,
+                          }}
+                        />
+                      </div>
+
+                      {/* Detailed Description */}
+                      <dd className="mt-3 text-xs leading-relaxed text-on-surface-variant">
+                        {m.detail}
+                      </dd>
+                    </div>
+
+                    {/* Drill-down link if available */}
+                    {'to' in m && m.to && (
+                      <dd className="mt-4 pt-3 border-t border-outline-variant/30">
+                        <Link
+                          to={m.to}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary group-hover:text-primary-container"
+                        >
+                          <span>Quản lý {m.label.toLowerCase()}</span>
+                          <ArrowUpRight
+                            size={14}
+                            aria-hidden="true"
+                            className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                          />
+                        </Link>
+                      </dd>
+                    )}
+                  </div>
+                );
+              })}
+            </dl>
+          </div>
+
+          {/* Interactive Chart Section: Real-data Visualization */}
+          <div className="rounded-3xl border border-outline-variant/60 bg-surface-container-lowest p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-on-surface flex items-center gap-2">
+                  <TrendingUp size={20} className="text-primary" />
+                  Biểu đồ phân tích dữ liệu thực thể
+                </h2>
+                <p className="text-xs text-on-surface-variant">
+                  Phản ánh tỷ trọng và tương quan quy mô 5 chỉ số toàn hệ thống
+                </p>
+              </div>
+
+              {/* View Switcher */}
+              <div className="flex items-center rounded-xl border border-outline-variant/60 bg-surface-container-low p-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setChartView('bars')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-colors cursor-pointer ${
+                    chartView === 'bars'
+                      ? 'bg-surface-container-lowest text-primary shadow-xs font-semibold'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  <BarChart3 size={15} />
+                  So sánh quy mô
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartView('distribution')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition-colors cursor-pointer ${
+                    chartView === 'distribution'
+                      ? 'bg-surface-container-lowest text-primary shadow-xs font-semibold'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  <PieChartIcon size={15} />
+                  Tỷ trọng phân bổ
+                </button>
+              </div>
+            </div>
+
+            {totalEntities === 0 ? (
+              <div className="py-12 text-center text-on-surface-variant">
+                <p className="text-sm">Chưa có dữ liệu để lập biểu đồ phân tích.</p>
+              </div>
+            ) : chartView === 'bars' ? (
+              /* Bar Chart View */
+              <div className="space-y-4 pt-2">
+                {metrics.map((m) => {
+                  const val = data[m.key];
+                  const ratio = maxMetricValue > 0 ? (val / maxMetricValue) * 100 : 0;
+                  const percentOfTotal = ((val / totalEntities) * 100).toFixed(1);
+                  const isHovered = hoveredMetric === m.key;
+
+                  return (
+                    <div
+                      key={m.key}
+                      onMouseEnter={() => setHoveredMetric(m.key)}
+                      onMouseLeave={() => setHoveredMetric(null)}
+                      className={`group rounded-xl p-3 transition-all duration-200 cursor-pointer ${
+                        isHovered ? 'bg-surface-container-low/80 scale-[1.01]' : 'hover:bg-surface-container-low/40'
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center justify-between text-xs font-medium">
+                        <span className="flex items-center gap-2 text-on-surface">
+                          <span
+                            className="inline-block h-3 w-3 rounded-full"
+                            style={{ backgroundColor: m.accent.bar }}
+                          />
+                          <strong className="font-semibold">{m.label}</strong>
+                          <span className="text-on-surface-variant hidden sm:inline text-[11px]">
+                            ({percentOfTotal}% tổng thực thể)
+                          </span>
+                        </span>
+                        <span className="font-mono text-sm font-bold text-on-surface">
+                          {val.toLocaleString('vi-VN')}
+                        </span>
+                      </div>
+
+                      <div className="h-4 w-full overflow-hidden rounded-full bg-surface-container">
+                        <div
+                          className="h-full rounded-full transition-all duration-700 ease-out flex items-center justify-end pr-2"
+                          style={{
+                            width: `${Math.max(ratio, 4)}%`,
+                            backgroundColor: m.accent.bar,
+                          }}
+                        >
+                          {ratio > 15 && (
+                            <span className="text-[10px] font-bold text-white tracking-wider">
+                              {percentOfTotal}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* Distribution / Donut SVG View */
+              <div className="grid gap-6 md:grid-cols-2 items-center pt-2">
+                <div className="relative flex items-center justify-center">
+                  <svg viewBox="0 0 200 200" className="h-56 w-56 transform -rotate-90">
+                    {donutSegments.map((seg) => {
+                      // Circumference for r=70 is 2 * PI * 70 ≈ 439.82
+                      const circumference = 2 * Math.PI * 70;
+                      const strokeDasharray = `${(seg.percentage / 100) * circumference} ${circumference}`;
+                      const strokeDashoffset = -((seg.startAngle / 360) * circumference);
+                      const isHovered = hoveredMetric === seg.key;
+
+                      return (
+                        <circle
+                          key={seg.key}
+                          cx="100"
+                          cy="100"
+                          r="70"
+                          fill="transparent"
+                          stroke={seg.accent.bar}
+                          strokeWidth={isHovered ? '24' : '18'}
+                          strokeDasharray={strokeDasharray}
+                          strokeDashoffset={strokeDashoffset}
+                          className="transition-all duration-300 cursor-pointer"
+                          onMouseEnter={() => setHoveredMetric(seg.key)}
+                          onMouseLeave={() => setHoveredMetric(null)}
+                        />
+                      );
+                    })}
+                  </svg>
+                  {/* Center Stat */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                    <span className="text-xs uppercase tracking-wider text-on-surface-variant font-medium">
+                      Tổng số
+                    </span>
+                    <span className="text-2xl font-extrabold text-on-surface">
+                      {totalEntities.toLocaleString('vi-VN')}
+                    </span>
+                    <span className="text-[11px] text-on-surface-variant">thực thể</span>
+                  </div>
+                </div>
+
+                {/* Donut Legend */}
+                <div className="space-y-3">
+                  {donutSegments.map((seg) => {
+                    const isHovered = hoveredMetric === seg.key;
+                    return (
+                      <div
+                        key={seg.key}
+                        onMouseEnter={() => setHoveredMetric(seg.key)}
+                        onMouseLeave={() => setHoveredMetric(null)}
+                        className={`flex items-center justify-between rounded-xl p-2.5 transition-all cursor-pointer ${
+                          isHovered
+                            ? 'bg-surface-container-low ring-1 ring-primary/30'
+                            : 'hover:bg-surface-container-low/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="h-3.5 w-3.5 rounded-md shrink-0"
+                            style={{ backgroundColor: seg.accent.bar }}
+                          />
+                          <span className="text-xs font-semibold text-on-surface">
+                            {seg.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-mono font-bold text-on-surface">
+                            {seg.value.toLocaleString('vi-VN')}
+                          </span>
+                          <span className="rounded-md bg-surface-container px-2 py-0.5 text-[11px] font-semibold text-on-surface-variant">
+                            {seg.percentage.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Empty state when all metrics are 0 */}
+          {metrics.every((m) => data[m.key] === 0) && (
+            <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-low/50 p-8 text-center">
+              <p className="text-base font-medium text-on-surface">Chưa có dữ liệu trong hệ thống.</p>
+              <p className="mt-1 text-sm text-on-surface-variant">
+                Các chỉ số sẽ tự động cập nhật khi học sinh, giáo viên bắt đầu hoạt động hoặc nộp bài.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Admin Quick Action Hub */}
+      <section aria-labelledby="quick-actions-title" className="space-y-4 pt-4">
+        <div>
+          <h2 id="quick-actions-title" className="text-lg font-bold text-on-surface">
+            Tác vụ quản trị nhanh
+          </h2>
+          <p className="text-xs text-on-surface-variant">
+            Truy cập trực tiếp các module nghiệp vụ và công cụ cấu hình
+          </p>
+        </div>
+
+        <nav aria-label="Tác vụ quản trị" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {quickNavItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="group relative flex items-start gap-4 rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-5 transition-all duration-200 hover:-translate-y-1 hover:border-primary/50 hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-on-primary">
+                  <Icon size={22} aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <h3 className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors truncate">
+                      {item.title}
+                    </h3>
+                    <ArrowUpRight
+                      size={16}
+                      aria-hidden="true"
+                      className="text-on-surface-variant/60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary shrink-0"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-on-surface-variant line-clamp-2 leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
+      </section>
+    </section>
   );
 }

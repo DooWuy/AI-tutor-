@@ -16,11 +16,12 @@ import java.io.IOException;
 import java.util.UUID;
 
 public interface IUserService {
+    PageResponseDTO<UserResponse> searchAccounts(Role role, Boolean active, String search, PageRequest pageRequest);
+    ApiResponse<UserResponse> setStatus(UUID id, boolean active);
     PageResponseDTO<UserResponse> getAllProfile(Role role, String search, PageRequest pageRequest) throws ResourceConflictException, ResourceBadRequestException, ResourceForbiddenException;
     ApiResponse<UserResponse> getProfileById(UUID id) throws ResourceConflictException, ResourceNotFoundException;
     ApiResponse<UserResponse> createProfile(UserCreateRequest userCreateRequest) throws ResourceConflictException, ResourceBadRequestException, ResourceForbiddenException;
     ApiResponse<UserResponse> updateProfile(UUID id, UserUpdateRequest userUpdateRequest) throws ResourceConflictException, ResourceNotFoundException, ResourceForbiddenException;
-    ApiResponse<UserResponse> updateStatus(UUID id) throws ResourceConflictException, ResourceNotFoundException, ResourceForbiddenException;
     ApiResponse<UserResponse> updateRole(UUID id, UpdateRoleRequest request) throws ResourceConflictException, ResourceNotFoundException, ResourceForbiddenException, ResourceBadRequestException;
     ApiResponse<String> deleteProfile(UUID id) throws ResourceConflictException, ResourceNotFoundException, ResourceForbiddenException;
     ApiResponse<String> sendChangePasswordOtp();

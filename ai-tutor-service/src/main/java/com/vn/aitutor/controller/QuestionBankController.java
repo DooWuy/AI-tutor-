@@ -95,23 +95,27 @@ public class QuestionBankController {
     }
 
     @GetMapping("/questions/{questionId}")
+    @PreAuthorize("@questionBankAccess.read(authentication,#questionId)")
     public ResponseEntity<ApiResponse<QuestionResponse>> get(@PathVariable UUID questionId) {
         return ResponseEntity.ok(ok("Lấy câu hỏi thành công", questionBankService.getQuestion(questionId)));
     }
 
     @PutMapping("/questions/{questionId}")
+    @PreAuthorize("@questionBankAccess.manage(authentication,#questionId)")
     public ResponseEntity<ApiResponse<QuestionResponse>> update(
             @PathVariable UUID questionId, @Valid @RequestBody QuestionUpsertRequest request) {
         return ResponseEntity.ok(ok("Đã cập nhật câu hỏi", questionBankService.update(questionId, request)));
     }
 
     @DeleteMapping("/questions/{questionId}")
+    @PreAuthorize("@questionBankAccess.manage(authentication,#questionId)")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID questionId) {
         questionBankService.delete(questionId);
         return ResponseEntity.ok(ok("Đã xóa câu hỏi", null));
     }
 
     @PostMapping("/questions/bulk-delete")
+    @PreAuthorize("@questionBankAccess.all(authentication,#request.ids)")
     public ResponseEntity<ApiResponse<Map<String, Integer>>> bulkDelete(
             @Valid @RequestBody BulkDeleteQuestionsRequest request) {
         int deleted = questionBankService.bulkDelete(request.getIds());
@@ -129,6 +133,7 @@ public class QuestionBankController {
     }
 
     @PutMapping("/batches/{batchId}/questions/{questionId}")
+    @PreAuthorize("@questionBankAccess.manage(authentication,#questionId)")
     public ResponseEntity<ApiResponse<QuestionResponse>> updateDraft(
             @PathVariable UUID batchId,
             @PathVariable UUID questionId,
@@ -137,6 +142,7 @@ public class QuestionBankController {
     }
 
     @DeleteMapping("/batches/{batchId}/questions/{questionId}")
+    @PreAuthorize("@questionBankAccess.manage(authentication,#questionId)")
     public ResponseEntity<ApiResponse<Void>> deleteDraft(
             @PathVariable UUID batchId, @PathVariable UUID questionId) {
         questionBankService.deleteInBatch(batchId, questionId);
@@ -144,6 +150,7 @@ public class QuestionBankController {
     }
 
     @PostMapping("/batches/{batchId}/confirm")
+    @PreAuthorize("@questionBankAccess.batch(authentication,#batchId)")
     public ResponseEntity<ApiResponse<List<QuestionResponse>>> confirm(@PathVariable UUID batchId) {
         List<QuestionResponse> saved = questionBankService.confirm(batchId);
         generationJobService.acknowledgeBatch(batchId);
@@ -151,6 +158,7 @@ public class QuestionBankController {
     }
 
     @DeleteMapping("/batches/{batchId}")
+    @PreAuthorize("@questionBankAccess.batch(authentication,#batchId)")
     public ResponseEntity<ApiResponse<Void>> discard(@PathVariable UUID batchId) {
         questionBankService.discard(batchId);
         generationJobService.acknowledgeBatch(batchId);
