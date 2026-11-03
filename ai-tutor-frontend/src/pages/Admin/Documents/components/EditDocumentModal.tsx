@@ -16,16 +16,23 @@ interface EditDocumentModalProps {
   error?: string;
 }
 
-export const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
-  isOpen,
+export const EditDocumentModal: React.FC<EditDocumentModalProps> = (props) => {
+  if (!props.isOpen || !props.document) return null;
+
+  return <EditDocumentForm {...props} document={props.document} key={props.document.id} />;
+};
+
+type EditDocumentFormProps = Omit<EditDocumentModalProps, 'isOpen' | 'document'> & {
+  document: NonNullable<EditDocumentModalProps['document']>;
+};
+
+const EditDocumentForm: React.FC<EditDocumentFormProps> = ({
   onClose,
   document,
   onSave,
   isSaving,
   error,
 }) => {
-  if (!isOpen || !document) return null;
-
   const [title, setTitle] = useState(document.title);
   const [subject, setSubject] = useState(document.subject);
   const [gradeLevel, setGradeLevel] = useState(document.gradeLevel);
