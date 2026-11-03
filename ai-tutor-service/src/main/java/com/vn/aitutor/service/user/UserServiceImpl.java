@@ -40,6 +40,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
+import java.util.Collections;
 import java.util.stream.Collectors;
 import com.vn.aitutor.entity.PasswordResetToken;
 import com.vn.aitutor.repository.PasswordResetTokenRepository;
@@ -421,8 +422,11 @@ public class UserServiceImpl implements IUserService {
     }
 
     private List<UserResponse> mapAccounts(List<User> users) {
-        var teachers = teacherRepository.findByUser_IdIn(users.stream().filter(u -> u.getRole() == Role.TEACHER).map(User::getId).toList())
-                .stream().collect(Collectors.toMap(t -> t.getUser().getId(), t -> t));
+        var teacherIds = users.stream().filter(u -> u.getRole() == Role.TEACHER).map(User::getId).toList();
+        var teachers = teacherIds.isEmpty() ? Collections.<UUID, Teacher>emptyMap() :
+                teacherRepository.findByUser_IdIn(teacherIds)
+                        .stream().filter(t -> t.getUser() != null && t.getUser().getId() != null)
+                        .collect(Collectors.toMap(t -> t.getUser().getId(), t -> t, (existing, replacement) -> existing));
         return users.stream().map(u -> {
             var r = mapUser(u);
             if (teachers.containsKey(u.getId())) fillTeacher(r, teachers.get(u.getId()));

@@ -19,7 +19,7 @@ const storage = () => {
 function setup(fetch) {
   const localStorage = storage(), sessionStorage = storage();
   const load = tsLoader({ env: { VITE_API_BASE_URL: 'https://api.example.test/api/v1/' },
-    globals: { fetch, localStorage, sessionStorage } });
+    globals: { fetch, localStorage, sessionStorage, window: dom.window, document: dom.window.document } });
   return { api: load('src/services/authApi.ts'), load, localStorage, sessionStorage };
 }
 

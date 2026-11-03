@@ -106,7 +106,7 @@ export const MathMarkdown: React.FC<MathMarkdownProps> = ({
   }, [inline, useProse]);
 
   const rehypePlugins = useMemo(
-    () => [[rehypeKatex, { throwOnError: false, strict: false }]] as any,
+    () => [[rehypeKatex, { throwOnError: false, strict: 'ignore' }]] as any,
     []
   );
 

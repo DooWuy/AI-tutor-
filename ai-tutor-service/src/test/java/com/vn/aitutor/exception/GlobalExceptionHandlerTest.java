@@ -82,4 +82,13 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.FORBIDDEN, handler.handleForbidden(new ResourceForbiddenException("Forbidden")).getStatusCode());
         assertEquals(HttpStatus.UNAUTHORIZED, handler.handleUnauthorized(new ResourceUnauthorizedException("Unauthorized")).getStatusCode());
     }
+
+    @Test
+    void handleNoResourceFound_returns404() {
+        var ex = new org.springframework.web.servlet.resource.NoResourceFoundException(
+                org.springframework.http.HttpMethod.GET, "ws/vendor/phpunit/eval-stdin.php", "No static resource");
+        var response = handler.handleNoResourceFound(ex);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertFalse(response.getBody().isSuccess());
+    }
 }

@@ -51,6 +51,16 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<String>> handleNoResourceFound(
+            org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.<String>builder()
+                        .success(false)
+                        .message("Không tìm thấy tài nguyên: " + ex.getResourcePath())
+                        .build());
+    }
+
     @ExceptionHandler(ResourceConflictException.class)
     public ResponseEntity<ApiResponse<String>> handleConflict(ResourceConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
