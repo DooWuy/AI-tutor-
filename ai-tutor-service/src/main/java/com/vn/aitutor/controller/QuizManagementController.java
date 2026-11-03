@@ -147,6 +147,12 @@ public class QuizManagementController {
                 quizManagementService.generate(quizId, request, principal)));
     }
 
+    @PostMapping("/{quizId}/review")
+    @io.swagger.v3.oas.annotations.Operation(summary="Confirm review of generated quiz questions before publish")
+    public ResponseEntity<ApiResponse<QuizResponse>> review(@PathVariable UUID quizId,@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(ok("Đã duyệt câu hỏi AI",quizManagementService.review(quizId,principal)));
+    }
+
     @GetMapping("/{quizId}/statistics")
     public ResponseEntity<ApiResponse<QuizStatisticsResponse>> statistics(
             @PathVariable UUID quizId, @AuthenticationPrincipal UserPrincipal principal) {

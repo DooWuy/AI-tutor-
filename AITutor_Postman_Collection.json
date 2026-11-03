@@ -543,7 +543,8 @@
                             ]
                         },
                         "method": "PATCH",
-                        "header": [],
+                        "header": [{ "key": "Content-Type", "value": "application/json", "type": "text" }],
+                        "body": { "mode": "raw", "raw": "{\n    \"active\": false\n}", "options": { "raw": { "language": "json" } } },
                         "url": {
                             "raw": "{{baseUrl}}/api/v1/users/{{userId}}/status",
                             "host": [
@@ -1095,7 +1096,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n\t\n}",
+                            "raw": "{\n    \"active\": false\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"

@@ -29,6 +29,12 @@ public class QuizAccessService {
 
     public Quiz requireQuiz(UUID id, Student student) {
         Quiz quiz = quizzes.findById(id).orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+        return checkQuiz(quiz,student);
+    }
+    public Quiz requireQuizLocked(UUID id,Student student) {
+        return checkQuiz(quizzes.lockById(id).orElseThrow(() -> new ResourceNotFoundException("Quiz not found")),student);
+    }
+    private Quiz checkQuiz(Quiz quiz,Student student) {
         boolean ownPractice = quiz.isAiGenerated()
                 && quiz.getCreatedBy() != null
                 && student.getUser() != null

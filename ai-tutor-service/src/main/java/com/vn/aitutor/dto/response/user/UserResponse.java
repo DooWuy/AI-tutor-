@@ -13,6 +13,12 @@ import java.util.UUID;
 @NoArgsConstructor
 @Builder
 public class UserResponse {
+    private UUID teacherId;
+    private String teacherCode;
+    private String department;
+    private String subjectTaught;
+    private String schoolName;
+    private String invitationStatus;
     private UUID userId;
     private String username;
     private String fullName;

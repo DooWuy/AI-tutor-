@@ -56,7 +56,7 @@ public class QuizSubmissionService {
     @Transactional
     public QuizDraftResponse saveDraft(QuizDraftRequest request) {
         Student student = lockStudent(access.currentStudent().getId());
-        Quiz quiz = access.requireQuiz(request.quizId(), student);
+        Quiz quiz = access.requireQuizLocked(request.quizId(), student);
         List<QuizQuestion> quizQuestions = access.readyQuestions(quiz.getId());
         QuizAttemptDraft draft;
         if (request.draftId() != null) {

@@ -13,11 +13,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UUID> {
     
-    @Query(value = "SELECT * FROM document_chunks ORDER BY embedding <=> cast(:vector as vector) LIMIT :maxResults", nativeQuery = true)
+    @Query(value = "SELECT dc.* FROM document_chunks dc JOIN documents d ON dc.document_id=d.id WHERE d.status='SUCCESS' ORDER BY dc.embedding <=> cast(:vector as vector) LIMIT :maxResults", nativeQuery = true)
     List<DocumentChunk> findTopSimilarChunks(@Param("vector") String vectorString, @Param("maxResults") int maxResults);
 
     @Query(value = "SELECT dc.* FROM document_chunks dc JOIN documents d ON dc.document_id = d.id " +
-                   "WHERE (:subject IS NULL OR d.subject = :subject) " +
+                   "WHERE d.status = 'SUCCESS' AND (:subject IS NULL OR d.subject = :subject) " +
                    "AND (:gradeLevel IS NULL OR d.grade_level = :gradeLevel) " +
                    "ORDER BY dc.embedding <=> cast(:vector as vector) LIMIT :maxResults", nativeQuery = true)
     List<DocumentChunk> findTopSimilarChunksWithFilter(@Param("vector") String vectorString,

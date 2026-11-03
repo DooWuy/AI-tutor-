@@ -32,6 +32,9 @@ public class LearningMaterialValidator {
         if (file.getSize() > SUPPLEMENT_MAX_BYTES) {
             throw new ResourceBadRequestException("Dung lượng file vượt quá giới hạn 50MB");
         }
+        String name = file.getOriginalFilename();
+        if (name == null || name.length()>255 || name.contains("/") || name.contains("\\") || name.chars().anyMatch(c -> c<32))
+            throw new ResourceBadRequestException("Tên file không hợp lệ");
         String extension = extension(file);
         if ("zip".equals(extension) || !SUPPLEMENT_EXTENSIONS.contains(extension)) {
             throw new ResourceBadRequestException("Chỉ chấp nhận file .pdf, .docx, .md, .txt");
@@ -50,6 +53,9 @@ public class LearningMaterialValidator {
         if (file.getSize() > TOC_IMAGE_MAX_BYTES) {
             throw new ResourceBadRequestException("Dung lượng ảnh mục lục vượt quá giới hạn 10MB");
         }
+        String name = file.getOriginalFilename();
+        if (name == null || name.length()>255 || name.contains("/") || name.contains("\\") || name.chars().anyMatch(c -> c<32))
+            throw new ResourceBadRequestException("Tên file không hợp lệ");
         String extension = extension(file);
         if (!Set.of("jpg", "jpeg", "png").contains(extension)) {
             throw new ResourceBadRequestException("Ảnh mục lục chỉ chấp nhận .jpg, .jpeg, .png");

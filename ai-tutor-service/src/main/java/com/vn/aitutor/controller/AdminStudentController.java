@@ -83,8 +83,9 @@ public class AdminStudentController {
     }
 
     @PatchMapping("/{studentId}/status")
-    public ResponseEntity<ApiResponse<StudentStatusUpdateResponse>> toggleStatus(@PathVariable UUID studentId) {
-        return ResponseEntity.ok(adminStudentService.toggleStudentStatus(studentId));
+    public ResponseEntity<ApiResponse<StudentStatusUpdateResponse>> setStatus(@PathVariable UUID studentId,
+            @Valid @RequestBody com.vn.aitutor.dto.request.user.AccountStatusRequest request) {
+        return ResponseEntity.ok(adminStudentService.setStudentStatus(studentId, request.active()));
     }
 
     @DeleteMapping("/{studentId}")

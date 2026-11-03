@@ -52,7 +52,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Slf4j
 @Component
-@Profile("dev")
+@Profile("dev & !prod & !staging")
 @ConditionalOnProperty(name = "app.analytics.seed-demo", havingValue = "true")
 @RequiredArgsConstructor
 public class AnalyticsDemoDataSeeder implements ApplicationRunner {

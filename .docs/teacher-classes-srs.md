@@ -228,4 +228,19 @@ Phát hành đề cho lớp học thêm dùng bảng `quiz_study_class_assignmen
 | GET | `/api/v1/quizzes/publish-study-classes` | Lớp học thêm đang hoạt động mà người dùng được phát hành |
 | POST | `/api/v1/quizzes/{id}/publish` | Thêm `studyClassIds` bên cạnh `classIds` |
 
-Giao diện: khối lớp học thêm trên `/teacher/classes`, chi tiết `/teacher/study-classes/{id}` có sĩ số, hồ sơ học sinh và đề đã phát hành, phân tích tại `/teacher/analytics?classId=`. Modal phát hành có ngày giờ bắt đầu và kết thúc. Học sinh mở `/student/classes`: tab Lớp học xem lớp đang học, tab Đề thi xem đề đã và đang phát hành, làm bài trong khung giờ và xem bài đã nộp.
+Hai API student dùng student từ principal, không nhận student ID từ client:
+
+| Method | Đường dẫn | Response và quyền |
+|---|---|---|
+| GET | `/api/v1/student/study-classes` | Danh sách enrollment của chính student, mới nhất theo `requestedAt`; mỗi item có `enrollmentId`, `classId`, `className`, `description`, `classCode`, `teacherName`, `classStatus`, `enrollmentStatus`, `requestedAt`, `reviewedAt`, `startDate`, `endDate` |
+| GET | `/api/v1/student/study-classes/{classId}` | Một item thuộc enrollment của chính student; không có enrollment trả `404`, kể cả class tồn tại |
+
+Giao diện teacher: khối lớp học thêm trên `/teacher/classes` refetch khi nhận
+`STUDY_CLASS_JOIN_REQUESTED`; chi tiết `/teacher/study-classes/{id}` chỉ refetch khi `classId`
+trùng route, cập nhật pending request và sĩ số mà không mở STOMP connection riêng. Nút duyệt/từ
+chối khóa trong lúc request, lỗi refetch giữ dữ liệu đang hiển thị và có nút `Thử lại`.
+
+Giao diện student: `/student/classes` giữ form nhập mã và ba nhóm `Đã tham gia`, `Đang chờ`,
+`Đã từ chối`; `/student/classes/:classId` hiển thị overview, giáo viên, thời hạn và trạng thái
+enrollment. Chỉ `APPROVED` mở nội dung lớp. Notification approved/rejected chỉ là tín hiệu để
+refetch REST; click link vẫn qua kiểm tra ownership ở backend.

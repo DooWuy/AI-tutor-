@@ -72,9 +72,22 @@ class AuthServiceImplTest {
         SetupPasswordRequest request = new SetupPasswordRequest();
         request.setToken("invalid-token");
 
-        when(passwordResetTokenRepository.findByToken("invalid-token")).thenReturn(Optional.empty());
+        when(passwordResetTokenRepository.findUserIdByToken("invalid-token")).thenReturn(Optional.empty());
 
         assertThrows(ResourceBadRequestException.class, () -> authService.setupPassword(request));
+    }
+
+    @Test
+    void lockedOrDeletedAccountCannotRefreshAnExistingSession() {
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setCookies(new jakarta.servlet.http.Cookie("refresh_token", "old-refresh"));
+        when(refreshTokenService.isRefreshTokenValid("old-refresh")).thenReturn(true);
+        when(jwtProvider.getUsernameFromToken("old-refresh")).thenReturn("locked-teacher");
+        when(userRepository.findByUsernameOrEmailAndIsDeletedFalseAndIsActiveTrue("locked-teacher"))
+                .thenReturn(Optional.empty());
+        assertThrows(ResourceBadRequestException.class, () -> authService.refreshToken(request, response));
+        verify(jwtProvider, never()).generateAccessToken(any());
+        verify(refreshTokenService).deleteRefreshToken("old-refresh");
     }
 
     @Test
@@ -85,6 +98,11 @@ class AuthServiceImplTest {
         PasswordResetToken token = new PasswordResetToken();
         token.setUsed(true);
 
+        UUID uid = UUID.randomUUID();
+        User locked = token.getUser() == null ? new User() : token.getUser();
+        locked.setId(uid);
+        when(passwordResetTokenRepository.findUserIdByToken("used-token" )).thenReturn(Optional.of(uid));
+        when(userRepository.lockById(uid)).thenReturn(Optional.of(locked));
         when(passwordResetTokenRepository.findByToken("used-token")).thenReturn(Optional.of(token));
 
         ResourceBadRequestException ex = assertThrows(ResourceBadRequestException.class, () -> authService.setupPassword(request));
@@ -100,6 +118,11 @@ class AuthServiceImplTest {
         token.setUsed(false);
         token.setExpiryDate(LocalDateTime.now().minusHours(1));
 
+        UUID uid = UUID.randomUUID();
+        User locked = token.getUser() == null ? new User() : token.getUser();
+        locked.setId(uid);
+        when(passwordResetTokenRepository.findUserIdByToken("expired-token" )).thenReturn(Optional.of(uid));
+        when(userRepository.lockById(uid)).thenReturn(Optional.of(locked));
         when(passwordResetTokenRepository.findByToken("expired-token")).thenReturn(Optional.of(token));
 
         ResourceBadRequestException ex = assertThrows(ResourceBadRequestException.class, () -> authService.setupPassword(request));
@@ -121,6 +144,11 @@ class AuthServiceImplTest {
         token.setUsed(false);
         token.setExpiryDate(LocalDateTime.now().plusHours(12));
 
+        UUID uid = UUID.randomUUID();
+        User locked = token.getUser() == null ? new User() : token.getUser();
+        locked.setId(uid);
+        when(passwordResetTokenRepository.findUserIdByToken("valid-token" )).thenReturn(Optional.of(uid));
+        when(userRepository.lockById(uid)).thenReturn(Optional.of(locked));
         when(passwordResetTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(token));
         when(passwordEncoder.encode("NewPass@123")).thenReturn("hashed_new_pass");
 

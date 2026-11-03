@@ -2,11 +2,14 @@ server:
   port: 8088
 
 app:
+  frontend:
+    url: ${APP_FRONTEND_URL}
   auth:
     cookie:
       secure: ${APP_AUTH_COOKIE_SECURE:false}
       same-site: ${APP_AUTH_COOKIE_SAME_SITE:Lax}
   analytics:
+    seed-demo: false
     knowledge-gap-job: true
     at-risk-job: true
 

@@ -72,6 +72,12 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
             }
         }
         
+        if (accessor.getUser() != null && accessor.getCommand() != StompCommand.DISCONNECT) {
+            UserDetails current = userDetailsService.loadUserByUsername(accessor.getUser().getName());
+            if (!current.isEnabled() || !current.isAccountNonLocked()) {
+                throw new org.springframework.security.access.AccessDeniedException("Account disabled");
+            }
+        }
         return message;
     }
 }

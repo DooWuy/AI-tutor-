@@ -19,7 +19,7 @@ public interface IAdminStudentService {
     ApiResponse<StudentAdminDetailResponse> getStudentDetail(UUID studentId);
     ApiResponse<StudentAdminDetailResponse> createStudent(StudentAdminCreateRequest request);
     ApiResponse<StudentAdminDetailResponse> updateStudent(UUID studentId, StudentAdminUpdateRequest request);
-    ApiResponse<StudentStatusUpdateResponse> toggleStudentStatus(UUID studentId);
+    ApiResponse<StudentStatusUpdateResponse> setStudentStatus(UUID studentId, boolean active);
     ApiResponse<String> softDeleteStudent(UUID studentId);
     ApiResponse<StudentImportResponse> importStudentsFromExcel(byte[] content);
 }

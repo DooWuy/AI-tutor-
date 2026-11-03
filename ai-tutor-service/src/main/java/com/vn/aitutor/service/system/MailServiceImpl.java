@@ -19,6 +19,9 @@ public class MailServiceImpl implements IMailService {
     @Value("${spring.mail.username:}")
     private String fromEmail;
 
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl = "http://localhost:5173";
+
     private String getSenderEmail() {
         if (fromEmail != null && !fromEmail.isBlank()) {
             return fromEmail.trim();
@@ -53,6 +56,12 @@ public class MailServiceImpl implements IMailService {
     @Override
     @Async
     public void sendAccountSetupEmail(String toEmail, String fullName, String username, String setupToken) {
+        try { sendTeacherSetupEmail(toEmail, fullName, username, setupToken); }
+        catch (RuntimeException ex) { log.warn("Account setup mail delivery failed"); }
+    }
+
+    @Override
+    public void sendTeacherSetupEmail(String toEmail, String fullName, String username, String setupToken) {
         if (toEmail == null || toEmail.isBlank()) {
             log.warn("Bỏ qua gửi email thiết lập: toEmail rỗng");
             return;
@@ -64,7 +73,7 @@ public class MailServiceImpl implements IMailService {
             message.setSubject("Thiết lập mật khẩu tài khoản AI Tutor");
             
             // Link giả lập frontend URL
-            String setupLink = "https://aitutor.vn/setup-password?token=" + setupToken;
+            String setupLink = frontendUrl.replaceAll("/+$", "") + "/setup-password?token=" + setupToken;
             
             message.setText("Xin chào " + fullName + ",\n\n" +
                     "Quản trị viên đã tạo cho bạn một tài khoản trên hệ thống AI Tutor với tên đăng nhập: " + username + "\n" +
@@ -76,7 +85,7 @@ public class MailServiceImpl implements IMailService {
             mailSender.send(message);
             log.info("Đã gửi email yêu cầu thiết lập mật khẩu đến: {}", toEmail);
         } catch (Exception e) {
-            log.error("Lỗi khi gửi email cấp tài khoản đến {}: {}", toEmail, e.getMessage());
+            throw new IllegalStateException("Không thể gửi email thiết lập", e);
         }
     }
 

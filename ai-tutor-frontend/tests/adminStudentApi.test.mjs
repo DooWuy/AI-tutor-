@@ -10,7 +10,9 @@ function setup(transport, base = 'https://api.example.test/api/v1/') {
   const compiled = ts.transpileModule(source.replace('import.meta.env.VITE_API_BASE_URL', JSON.stringify(base)), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
-  const context = createContext({ exports: {}, fetch: transport, URLSearchParams });
+  const context = createContext({ exports: {}, fetch: transport, URLSearchParams,
+    require: name => { if (name === './authApi') return { getStoredSession: () => null }; throw new Error(`Unexpected import: ${name}`); },
+  });
   runInContext(compiled, context);
   return context.exports;
 }
@@ -48,11 +50,12 @@ test('all wrapped endpoints preserve method, payload and cookie authentication',
   await api.fetchStudentDetail('id/encoded');
   await api.createStudent({ username: 'student' });
   await api.updateStudent('id', { fullName: 'Student' });
-  await api.toggleStudentStatus('id');
+  await api.toggleStudentStatus('id', false);
   await api.deleteStudent('id');
   assert.deepEqual(calls.map(call => call.init.method || 'GET'), ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
   assert.ok(calls[0].url.endsWith('/id%2Fencoded'));
   assert.ok(calls[3].url.endsWith('/id/status'));
+  assert.equal(JSON.parse(calls[3].init.body).active, false);
   assert.equal(JSON.parse(calls[2].init.body).fullName, 'Student');
   assert.ok(calls.every(call => call.init.credentials === 'include'));
 });

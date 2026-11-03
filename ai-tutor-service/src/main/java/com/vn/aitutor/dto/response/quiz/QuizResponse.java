@@ -22,6 +22,7 @@ public class QuizResponse {
     private BigDecimal passingScore;
     private String status;
     private boolean aiGenerated;
+    private boolean reviewRequired;
     private int questionCount;
     private long attemptCount;
     private String createdByName;

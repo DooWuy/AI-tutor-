@@ -69,6 +69,9 @@ public class Quiz {
     @Column(name = "is_ai_generated", nullable = false)
     private boolean aiGenerated;
 
+    @Column(name="review_required", nullable=false)
+    private boolean reviewRequired;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by_id", nullable = false)
     private User createdBy;

@@ -43,7 +43,7 @@ class DocumentLifecycleServiceTest {
         UUID documentId = UUID.randomUUID();
         User admin = user(Role.ADMIN);
         Document document = document(documentId, admin);
-        when(documentRepository.findById(documentId)).thenReturn(Optional.of(document));
+        when(documentRepository.lockById(documentId)).thenReturn(Optional.of(document));
         DocumentMetadataRequest request = new DocumentMetadataRequest();
         request.setSubject("Vật lý");
         request.setGradeLevel("Khối 11");
@@ -59,7 +59,7 @@ class DocumentLifecycleServiceTest {
     void teacherCannotRelabelSomeoneElsesDocument() {
         UUID documentId = UUID.randomUUID();
         Document document = document(documentId, user(Role.TEACHER));
-        when(documentRepository.findById(documentId)).thenReturn(Optional.of(document));
+        when(documentRepository.lockById(documentId)).thenReturn(Optional.of(document));
         DocumentMetadataRequest request = new DocumentMetadataRequest();
         request.setSubject("LY");
 
@@ -74,7 +74,7 @@ class DocumentLifecycleServiceTest {
         UUID documentId = UUID.randomUUID();
         User admin = user(Role.ADMIN);
         Document document = document(documentId, admin);
-        when(documentRepository.findById(documentId)).thenReturn(Optional.of(document));
+        when(documentRepository.lockById(documentId)).thenReturn(Optional.of(document));
         doThrow(new RuntimeException("missing")).when(cloudinaryService).deleteStoredFile(document.getFilePath());
 
         service.delete(documentId, principal(admin));

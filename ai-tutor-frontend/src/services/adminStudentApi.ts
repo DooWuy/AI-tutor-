@@ -118,8 +118,10 @@ export function updateStudent(studentId: string, payload: UpdateAdminStudentPayl
   });
 }
 
-export function toggleStudentStatus(studentId: string) {
-  return requestWrapped<StudentStatusUpdate>(`${STUDENTS_PATH}/${encodeURIComponent(studentId)}/status`, { method: 'PATCH' });
+export function toggleStudentStatus(studentId: string, active: boolean) {
+  return requestWrapped<StudentStatusUpdate>(`${STUDENTS_PATH}/${encodeURIComponent(studentId)}/status`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active }),
+  });
 }
 
 export function deleteStudent(studentId: string) {

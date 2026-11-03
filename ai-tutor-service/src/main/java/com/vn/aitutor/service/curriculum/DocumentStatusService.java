@@ -23,11 +23,12 @@ public class DocumentStatusService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markFailed(UUID documentId, String reason) {
-        documentRepository.findById(documentId).ifPresent(doc -> {
+        documentRepository.lockById(documentId).ifPresent(doc -> {
+            if (doc.getStatus() != DocumentStatus.PROCESSING) return;
             doc.setStatus(DocumentStatus.FAILED);
             doc.setErrorMessage(trim(reason));
             documentRepository.save(doc);
-            send(doc, reason);
+            try { send(doc, reason); } catch (RuntimeException ex) { log.warn("Progress delivery failed for {}",documentId); }
             log.warn("Tài liệu {} chuyển FAILED: {}", documentId, reason);
         });
     }
@@ -39,7 +40,7 @@ public class DocumentStatusService {
         Map<String, Object> payload = new HashMap<>();
         payload.put("documentId", doc.getId().toString());
         payload.put("progress", -1);
-        payload.put("message", trim(reason));
+        payload.put("message", "Xử lý tài liệu thất bại. Mã tài liệu: " + doc.getId());
         messagingTemplate.convertAndSendToUser(
                 doc.getCreatedBy().getId().toString(), "/queue/document-progress", payload);
     }

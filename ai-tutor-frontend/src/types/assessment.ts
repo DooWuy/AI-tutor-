@@ -84,6 +84,7 @@ export interface QuizItem {
   passingScore: number;
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | string;
   aiGenerated: boolean;
+  reviewRequired?: boolean;
   questionCount: number;
   attemptCount: number;
   createdByName?: string | null;
@@ -168,6 +169,7 @@ export interface StudentQuizResult {
 }
 
 export interface QuizStatistics {
+  page?: number; totalPages?: number; totalElements?: number;
   quizId: string;
   title: string;
   passingScore: number;
