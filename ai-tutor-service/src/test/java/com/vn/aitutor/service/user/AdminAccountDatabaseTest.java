@@ -89,8 +89,8 @@ class AdminAccountDatabaseTest {
     }
     @BeforeAll static void start() {
         flyway = Flyway.configure().dataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword()).load();
-        // Exercise upgrade V8 -> V9 on an existing account as well as clean V1..V8.
-        Flyway.configure().dataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword()).target("8").load().migrate();
+        // Exercise upgrade from the consolidated V1 schema to V9 on an existing account.
+        Flyway.configure().dataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword()).target("1").load().migrate();
         var upgrade = new JdbcTemplate(new DriverManagerDataSource(DB.getJdbcUrl(), DB.getUsername(), DB.getPassword()));
         upgrade.update("INSERT INTO users(id,username,email,password_hash,full_name,gender,role) VALUES (?,?,?,'unused','Existing Teacher','OTHER','TEACHER')",UUID.randomUUID(),"legacy","legacy@example.invalid");
         flyway.migrate();
