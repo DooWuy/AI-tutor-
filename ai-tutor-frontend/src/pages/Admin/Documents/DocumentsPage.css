@@ -1,0 +1,80 @@
+/* Modern styles & animations for Admin Document & Textbook Management */
+
+@keyframes docFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes docSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes docPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes docShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.doc-fade-in {
+  animation: docFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.doc-slide-up {
+  animation: docSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.doc-pulse {
+  animation: docPulse 1.8s infinite ease-in-out;
+}
+
+.doc-glass-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Custom scrollbar for document preview / tables */
+.doc-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.doc-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.doc-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(113, 119, 133, 0.25);
+  border-radius: 9999px;
+}
+
+.doc-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(113, 119, 133, 0.45);
+}
+
